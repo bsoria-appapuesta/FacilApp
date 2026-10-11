@@ -2,18 +2,24 @@ import { supabase } from '@/lib/supabase'
 
 export default async function BarberiaPage() {
   const { data: servicios, error } = await supabase
-    .from('servicios')
+    .from('services')
     .select('*')
 
   return (
-    <main className="min-h-screen bg-slate-900 text-white p-8">
+    <main className="min-h-screen bg-slate-950 text-white p-6 font-sans">
       <div className="max-w-md mx-auto">
-        <h1 className="text-3xl font-bold mb-2">Barbería San José</h1>
-        <p className="text-slate-400 mb-6">Lista de precios y turnos</p>
+        <header className="mb-8 text-center border-b border-slate-800 pb-6">
+          <h1 className="text-3xl font-extrabold text-amber-500 mb-1">
+            Barbería San José
+          </h1>
+          <p className="text-slate-400 text-sm">
+            Catálogo de servicios y lista de precios
+          </p>
+        </header>
 
         {error && (
-          <div className="p-4 bg-red-500/20 text-red-400 rounded-lg mb-4">
-            Error al cargar servicios desde Supabase
+          <div className="p-4 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl mb-6 text-sm text-center">
+            Error al conectar con la base de datos
           </div>
         )}
 
@@ -22,19 +28,28 @@ export default async function BarberiaPage() {
             servicios.map((servicio: any) => (
               <div 
                 key={servicio.id} 
-                className="p-4 bg-slate-800 rounded-lg border border-slate-700 flex justify-between items-center"
+                className="p-5 bg-slate-900 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors shadow-sm flex justify-between items-center"
               >
-                <div>
-                  <h2 className="font-semibold text-lg">{servicio.nombre}</h2>
-                  <p className="text-slate-400 text-sm">{servicio.descripcion}</p>
+                <div className="pr-4">
+                  <h2 className="font-bold text-lg text-slate-100">
+                    {servicio.title}
+                  </h2>
+                  <p className="text-slate-400 text-xs mt-1">
+                    {servicio.description}
+                  </p>
+                  <span className="inline-block mt-2 text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-mono">
+                    ⏱️ {servicio.duration}
+                  </span>
                 </div>
-                <span className="font-bold text-green-400 text-lg">
-                  ${servicio.precio}
-                </span>
+                <div className="text-right whitespace-nowrap">
+                  <span className="font-extrabold text-amber-400 text-xl">
+                    ${servicio.price}
+                  </span>
+                </div>
               </div>
             ))
           ) : (
-            <p className="text-slate-500 text-center py-4">
+            <p className="text-slate-500 text-center py-8 text-sm">
               No hay servicios registrados aún.
             </p>
           )}
