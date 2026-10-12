@@ -7,14 +7,13 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Generador de horarios cada 30 minutos (de 09:00 a 20:00)
 const HORARIOS_DISPONIBLES = [
   '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
   '12:00', '12:30', '14:00', '14:30', '15:00', '15:30',
   '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30'
 ]
 
-export default function ManicuraDemoPage() {
+export default function ClientePage() {
   const [negocio, setNegocio] = useState<any>(null)
   const [servicios, setServicios] = useState<any[]>([])
   const [servicioSeleccionado, setServicioSeleccionado] = useState<any>(null)
@@ -81,26 +80,34 @@ export default function ManicuraDemoPage() {
       alert('Error al guardar la reserva: ' + error.message)
     } else {
       setExito(true)
-      const textoMensaje = `¡Hola ${negocio.nombre}! 👋%0AMi nombre es *${nombre}*.%0A%0AQuiero confirmar el siguiente turno:%0A💅 *Servicio:* ${servicioSeleccionado.nombre}%0A📅 *Fecha:* ${fecha}%0A⏰ *Hora:* ${hora} hs%0A💰 *Precio:* $${servicioSeleccionado.precio}%0A%0A¿Me confirmás el turno?`
+      const textoMensaje = `¡Hola ${negocio.nombre}! 👋%0AMi nombre es *${nombre}*.%0A%0AQuiero confirmar el siguiente turno:%0A📌 *Servicio:* ${servicioSeleccionado.nombre}%0A📅 *Fecha:* ${fecha}%0A⏰ *Hora:* ${hora} hs%0A💰 *Precio:* $${servicioSeleccionado.precio}%0A%0A¿Me confirmás el turno?`
       
       const urlWa = `https://wa.me/${negocio.whatsapp}?text=${textoMensaje}`
       setLinkWhatsapp(urlWa)
     }
   }
 
+  // Estilos dinámicos configurados desde /admin
+  const colorPrincipal = negocio?.color_principal || '#e11d48'
+  const colorFondo = negocio?.color_fondo || '#fff1f2'
+  const fuente = negocio?.tipo_fuente || 'Sans-Serif'
+
   return (
-    <div className="min-h-screen bg-rose-50/50 text-slate-800 p-4 sm:p-6 flex flex-col items-center justify-center">
-      <div className="max-w-md w-full bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-rose-100">
+    <div 
+      className="min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center transition-colors duration-300"
+      style={{ backgroundColor: colorFondo, fontFamily: fuente }}
+    >
+      <div className="max-w-md w-full bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-100">
         
         {/* Cabecera Tipo Linktree */}
         <div className="text-center mb-6">
-          <div className="w-20 h-20 bg-rose-100 rounded-full mx-auto mb-3 flex items-center justify-center text-3xl shadow-inner">
+          <div className="w-20 h-20 bg-slate-50 rounded-full mx-auto mb-3 flex items-center justify-center text-3xl shadow-inner border border-slate-100">
             💅
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             {negocio ? negocio.nombre : 'Cargando...'}
           </h1>
-          <p className="text-rose-500 font-medium text-sm mt-1">Estética & Uñas Studio</p>
+          <p className="text-slate-500 font-medium text-sm mt-1">Perfil Oficial de Reservas</p>
           <div className="mt-3 inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-semibold border border-emerald-200">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             Turnos Disponibles
@@ -113,7 +120,7 @@ export default function ManicuraDemoPage() {
               <div className="text-4xl mb-2">🎉</div>
               <p className="font-bold text-lg">¡Reserva Registrada!</p>
               <p className="text-xs text-slate-600 mt-1">
-                El turno ya fue reservado en nuestro sistema. Para confirmarlo, enviá el mensaje automático por WhatsApp:
+                El turno quedó anotado en el sistema. Para confirmarlo, enviá el mensaje automático por WhatsApp:
               </p>
             </div>
             
@@ -135,25 +142,30 @@ export default function ManicuraDemoPage() {
                 1. Seleccioná el Servicio
               </label>
               <div className="space-y-2">
-                {servicios.map((s) => (
-                  <div
-                    key={s.id}
-                    onClick={() => setServicioSeleccionado(s)}
-                    className={`p-3.5 rounded-2xl border-2 transition cursor-pointer flex justify-between items-center ${
-                      servicioSeleccionado?.id === s.id
-                        ? 'border-rose-500 bg-rose-50/40 text-slate-900 font-medium'
-                        : 'border-slate-100 hover:border-rose-200 bg-slate-50/50 text-slate-600'
-                    }`}
-                  >
-                    <div>
-                      <p className="font-bold text-sm text-slate-800">{s.nombre}</p>
-                      <p className="text-xs text-slate-400">{s.duracion_minutos} min de sesión</p>
+                {servicios.map((s) => {
+                  const esSeleccionado = servicioSeleccionado?.id === s.id
+                  return (
+                    <div
+                      key={s.id}
+                      onClick={() => setServicioSeleccionado(s)}
+                      className="p-3.5 rounded-2xl border-2 transition cursor-pointer flex justify-between items-center bg-slate-50/50"
+                      style={{
+                        borderColor: esSeleccionado ? colorPrincipal : '#f1f5f9',
+                      }}
+                    >
+                      <div>
+                        <p className="font-bold text-sm text-slate-800">{s.nombre}</p>
+                        <p className="text-xs text-slate-400">{s.duracion_minutos} min de sesión</p>
+                      </div>
+                      <span 
+                        className="font-extrabold text-sm px-3 py-1 rounded-xl"
+                        style={{ color: colorPrincipal, backgroundColor: `${colorPrincipal}15` }}
+                      >
+                        ${s.precio}
+                      </span>
                     </div>
-                    <span className="font-extrabold text-rose-600 text-sm bg-rose-100/60 px-3 py-1 rounded-xl">
-                      ${s.precio}
-                    </span>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
 
@@ -167,18 +179,18 @@ export default function ManicuraDemoPage() {
                 placeholder="Nombre y Apellido"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-800 focus:outline-none focus:border-rose-500 mb-2"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-800 focus:outline-none mb-2"
               />
               <input
                 type="tel"
                 placeholder="Tu WhatsApp (ej. 1122334455)"
                 value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-800 focus:outline-none focus:border-rose-500"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-800 focus:outline-none"
               />
             </div>
 
-            {/* Fecha y Slots de Hora en Intervalos */}
+            {/* Fecha y Horarios */}
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
                 3. Elegí Fecha y Horario
@@ -187,31 +199,36 @@ export default function ManicuraDemoPage() {
                 type="date"
                 value={fecha}
                 onChange={(e) => setFecha(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-800 focus:outline-none focus:border-rose-500 mb-2"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-800 focus:outline-none mb-2"
               />
 
               <div className="grid grid-cols-4 gap-1.5 max-h-36 overflow-y-auto p-1 bg-slate-50 border border-slate-200 rounded-xl">
-                {HORARIOS_DISPONIBLES.map((h) => (
-                  <button
-                    key={h}
-                    type="button"
-                    onClick={() => setHora(h)}
-                    className={`py-2 text-xs font-bold rounded-lg transition ${
-                      hora === h
-                        ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30'
-                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-rose-50'
-                    }`}
-                  >
-                    {h}
-                  </button>
-                ))}
+                {HORARIOS_DISPONIBLES.map((h) => {
+                  const esHoraSel = hora === h
+                  return (
+                    <button
+                      key={h}
+                      type="button"
+                      onClick={() => setHora(h)}
+                      className="py-2 text-xs font-bold rounded-lg transition"
+                      style={{
+                        backgroundColor: esHoraSel ? colorPrincipal : '#ffffff',
+                        color: esHoraSel ? '#ffffff' : '#475569',
+                        border: esHoraSel ? 'none' : '1px solid #e2e8f0'
+                      }}
+                    >
+                      {h}
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
             <button
               type="submit"
               disabled={cargando}
-              className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-3.5 rounded-2xl transition shadow-lg shadow-rose-500/25 mt-3 text-base active:scale-[0.98] disabled:opacity-50"
+              style={{ backgroundColor: colorPrincipal }}
+              className="w-full text-white font-bold py-3.5 rounded-2xl transition shadow-lg text-base active:scale-[0.98] disabled:opacity-50 mt-3"
             >
               {cargando ? 'Procesando...' : 'Confirmar Reserva ✨'}
             </button>
