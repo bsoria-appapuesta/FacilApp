@@ -86,7 +86,6 @@ export default function ClientePage() {
     }
   }
 
-  // Estilos Pro configurados desde /admin
   const colorPrincipal = negocio?.color_principal || '#e11d48'
   const colorFondo = negocio?.color_fondo || '#fff1f2'
   const tipoFondo = negocio?.tipo_fondo || 'color'
@@ -108,7 +107,6 @@ export default function ClientePage() {
         fontFamily: fuente 
       }}
     >
-      {/* Cargar Google Fonts dinámicamente */}
       <link 
         rel="stylesheet" 
         href={`https://fonts.googleapis.com/css2?family=${fuente.replace(' ', '+')}:wght@400;600;800;900&display=swap`} 
@@ -120,14 +118,12 @@ export default function ClientePage() {
 
       <div className={`max-w-md w-full bg-white/95 backdrop-blur-md p-6 sm:p-8 shadow-2xl border border-slate-100/80 relative z-10 ${bordesRedondeados}`}>
         
-        {/* Banner Promocional opcional */}
         {negocio?.banner_promo && (
           <div className="bg-slate-900 text-white text-xs font-bold py-1.5 px-4 rounded-full text-center mb-4 shadow-sm border border-slate-800">
             {negocio.banner_promo}
           </div>
         )}
 
-        {/* Cabecera Tipo Linktree Pro */}
         <div className="text-center mb-6">
           <div className="w-20 h-20 bg-slate-50 rounded-full mx-auto mb-3 flex items-center justify-center text-3xl shadow-inner border border-slate-100">
             💅

@@ -128,7 +128,7 @@ export default function AdminDashboardPage() {
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8">
       <div className="max-w-5xl mx-auto space-y-6">
         
-        {/* Header */}
+        {/* Header Admin */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900 p-6 rounded-3xl border border-slate-800">
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
@@ -236,7 +236,6 @@ export default function AdminDashboardPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               
-              {/* Formulario de Controles */}
               <div className="space-y-5">
                 
                 {/* 1. TIPOGRAFÍA Y TAMAÑOS */}
@@ -251,8 +250,8 @@ export default function AdminDashboardPage() {
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none"
                     >
                       <option value="Poppins">Poppins (Moderna & Cuidada)</option>
-                      <option value="Montserrat">Montserrat (Urbana / Barberías / Marcas)</option>
-                      <option value="Playfair Display">Playfair Display (Elegante & Lujo / Estética)</option>
+                      <option value="Montserrat">Montserrat (Urbana / Barberías)</option>
+                      <option value="Playfair Display">Playfair Display (Elegante & Lujo)</option>
                       <option value="Inter">Inter (Limpia & Minimalista)</option>
                     </select>
                   </div>
@@ -330,7 +329,7 @@ export default function AdminDashboardPage() {
                         <option value="linear-gradient(to bottom, #fff1f2, #ffe4e6)">Rosa Soft (Estética)</option>
                         <option value="linear-gradient(to bottom, #0f172a, #1e293b)">Noche Mística (Barbería Dark)</option>
                         <option value="linear-gradient(to bottom, #fefce8, #fef9c3)">Calidez Dorada</option>
-                        <option value="linear-gradient(to bottom, #f0fdf4, #dcfce7)">Menta Menta Refresh</option>
+                        <option value="linear-gradient(to bottom, #f0fdf4, #dcfce7)">Menta Refresh</option>
                       </select>
                     </div>
                   )}
@@ -410,7 +409,7 @@ export default function AdminDashboardPage() {
                     <label className="block text-xs font-medium text-slate-400 mb-1">Banner Promocional Superior</label>
                     <input
                       type="text"
-                      placeholder="ej. 🔥 10% OFF reservando esta semana"
+                      placeholder="ej. 🔥 10% OFF esta semana"
                       value={bannerPromo}
                       onChange={(e) => setBannerPromo(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none"
@@ -427,7 +426,7 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
 
-              {/* Vista Previa Interactiva */}
+              {/* Vista Previa Móvil */}
               <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800 flex flex-col items-center justify-start sticky top-6">
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Vista Previa Móvil</p>
                 
@@ -442,7 +441,6 @@ export default function AdminDashboardPage() {
                     fontFamily: tipoFuente 
                   }}
                 >
-                  {/* Overlay para legibilidad si hay foto de fondo */}
                   {tipoFondo === 'imagen' && (
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] -z-0"></div>
                   )}
