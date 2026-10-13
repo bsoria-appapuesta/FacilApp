@@ -4,16 +4,14 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { 
   Share2, 
-  MessageCircle, 
-  Music2, 
   Globe, 
-  ShoppingBag, 
   Calendar, 
-  Sparkles, 
   Plus, 
   MapPin,
   ExternalLink,
-  Image as ImageIcon
+  Image as ImageIcon,
+  LogIn,
+  ShoppingBag
 } from 'lucide-react'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -30,11 +28,10 @@ export default function Home() {
   const [servicios, setServicios] = useState<any[]>([])
   const [servicioSel, setServicioSel] = useState<any>(null)
   
-  // Estados de interacción
   const [seccionAbierta, setSeccionAbierta] = useState<'turnos' | 'galeria' | null>('turnos')
   const [copiado, setCopiado] = useState(false)
   
-  // Formulario de Reserva
+  // Formulario
   const [nombre, setNombre] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [fecha, setFecha] = useState('')
@@ -68,13 +65,13 @@ export default function Home() {
     }
   }
 
-  // Compartir Nativo (WhatsApp, Historias, etc.)
+  // Compartir sin redirecciones raras
   const handleCompartir = async () => {
     if (navigator.share) {
       try {
         await navigator.share({
           title: negocio?.nombre || 'Perfil Oficial',
-          text: `Mirá el perfil de ${negocio?.nombre || 'este negocio'}:`,
+          text: `Mirá el perfil oficial de ${negocio?.nombre || 'este comercio'}:`,
           url: window.location.href,
         })
       } catch (err) {
@@ -114,12 +111,12 @@ export default function Home() {
       alert('Error: ' + error.message)
     } else {
       setExito(true)
-      const msg = `¡Hola ${negocio.nombre}! 👋%0AMi nombre es *${nombre}*.%0A%0AQuiero solicitar un turno:%0A📌 *Servicio:* ${servicioSel.nombre}%0A📅 *Fecha:* ${fecha}%0A⏰ *Hora:* ${hora} hs%0A💰 *Precio:* $${servicioSel.precio}%0A%0A¿Me confirmás?`
+      const msg = `¡Hola ${negocio.nombre}! 👋%0AMi nombre es *${nombre}*.%0A%0AQuiero solicitar un turno/pedido:%0A📌 *Servicio/Producto:* ${servicioSel.nombre}%0A📅 *Fecha:* ${fecha}%0A⏰ *Hora:* ${hora} hs%0A💰 *Precio:* $${servicioSel.precio}%0A%0A¿Me confirmás?`
       setLinkWa(`https://wa.me/${negocio.whatsapp}?text=${msg}`)
     }
   }
 
-  // Mapeo dinámico de íconos vectoriales HD
+  // Íconos SVG oficiales en alta definición
   const renderIconoRed = (tipo: string) => {
     switch (tipo?.toLowerCase()) {
       case 'instagram': 
@@ -130,8 +127,18 @@ export default function Home() {
             <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
           </svg>
         )
-      case 'whatsapp': return <MessageCircle className="w-5 h-5 text-emerald-500" />
-      case 'tiktok': return <Music2 className="w-5 h-5 text-slate-900" />
+      case 'whatsapp': 
+        return (
+          <svg className="w-5 h-5 text-emerald-500 fill-emerald-500/10" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+        )
+      case 'tiktok': 
+        return (
+          <svg className="w-5 h-5 text-slate-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/>
+          </svg>
+        )
       case 'web': return <Globe className="w-5 h-5 text-blue-500" />
       default: return <ExternalLink className="w-5 h-5 text-indigo-500" />
     }
@@ -144,13 +151,20 @@ export default function Home() {
   const fondoImagenUrl = negocio?.fondo_imagen_url || ''
   const bordes = negocio?.bordes_redondeados || 'rounded-3xl'
 
-  // Redes sociales por defecto si la BD aún no tiene cargadas
   const redesList = negocio?.redes_sociales?.length > 0 
     ? negocio.redes_sociales 
     : [
         { tipo: 'whatsapp', titulo: 'WhatsApp Directo', url: `https://wa.me/${negocio?.whatsapp || ''}` },
         { tipo: 'instagram', titulo: 'Instagram Oficial', url: `https://instagram.com/${negocio?.instagram_username || ''}` },
-        { tipo: 'tiktok', titulo: 'Canal de TikTok', url: `https://tiktok.com/@${negocio?.tiktok_username || ''}` }
+        { tipo: 'tiktok', titulo: 'TikTok Oficial', url: `https://tiktok.com/@${negocio?.tiktok_username || ''}` }
+      ]
+
+  const galeriaLista = negocio?.galeria_detallada?.length > 0
+    ? negocio.galeria_detallada
+    : [
+        { titulo: 'Kapping Gel + Design', precio: '18.000', imagen_url: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400' },
+        { titulo: 'Service Uñas Semipermanente', precio: '12.000', imagen_url: 'https://images.unsplash.com/photo-1632345031435-8727f6897d53?w=400' },
+        { titulo: 'Corte Barbería & Barba', precio: '10.000', imagen_url: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400' }
       ]
 
   return (
@@ -165,25 +179,28 @@ export default function Home() {
         fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
       }}
     >
-      {/* Cargar fuente Ultra HD */}
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
       {tipoFondo === 'imagen' && (
         <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[3px] z-0"></div>
       )}
 
-      {/* Contenedor Principal tipo Tarjeta Linktree Pro */}
       <div className={`max-w-md w-full bg-white/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl border border-white/40 relative z-10 transition-all ${bordes}`}>
         
-        {/* Cabecera Superior: Icono Mágico + Botón Compartir Nativo */}
+        {/* Superior: Botón a Landing Principal / Login + Compartir */}
         <div className="flex justify-between items-center mb-6">
-          <div className="w-10 h-10 bg-slate-100/80 rounded-2xl flex items-center justify-center text-slate-700 shadow-sm border border-slate-200/50">
-            <Sparkles className="w-5 h-5 text-amber-500" />
-          </div>
+          <a
+            href="/landing"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition border border-slate-200/60 shadow-sm"
+            title="Creá tu cuenta en FacilApp"
+          >
+            <LogIn className="w-3.5 h-3.5 text-indigo-600" />
+            <span>FacilApp</span>
+          </a>
 
           <button
             onClick={handleCompartir}
-            className="w-10 h-10 bg-slate-100/80 hover:bg-slate-200/80 text-slate-700 rounded-2xl flex items-center justify-center transition shadow-sm border border-slate-200/50 active:scale-95 relative"
+            className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl flex items-center justify-center transition shadow-sm border border-slate-200/50 active:scale-95 relative"
             title="Compartir Perfil"
           >
             <Share2 className="w-4 h-4" />
@@ -211,7 +228,7 @@ export default function Home() {
             </h1>
             <p className="text-xs font-semibold text-slate-500 mt-1 flex items-center justify-center gap-1">
               <MapPin className="w-3.5 h-3.5 text-rose-500 inline" />
-              {negocio?.ubicacion || 'Buenos Aires'}
+              {negocio?.ubicacion || 'Llavallol, Buenos Aires'}
             </p>
             {negocio?.descripcion_corta && (
               <p className="text-xs text-slate-600 mt-2 max-w-xs mx-auto leading-relaxed">
@@ -221,7 +238,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* MÓDULO ABIERTO: LISTA DINÁMICA DE REDES SOCIALES */}
+        {/* Módulos de Redes */}
         <div className="space-y-3 mb-6">
           {redesList.map((red: any, idx: number) => (
             <a
@@ -241,7 +258,7 @@ export default function Home() {
             </a>
           ))}
 
-          {/* BOTÓN ABIERTO 1: SOLICITAR TURNO / CATÁLOGO DE PRODUCTOS */}
+          {/* Botón Principal de Acción */}
           <button
             onClick={() => setSeccionAbierta(seccionAbierta === 'turnos' ? null : 'turnos')}
             style={{ backgroundColor: colorPrincipal }}
@@ -252,26 +269,26 @@ export default function Home() {
                 <Calendar className="w-5 h-5" />
               </div>
               <div className="text-left">
-                <span className="font-extrabold text-sm block">Reservar Turno / Pedido</span>
-                <span className="text-[10px] text-white/80 block">Elegí fecha y horario disponible</span>
+                <span className="font-extrabold text-sm block">Solicitar Turno / Pedido</span>
+                <span className="text-[10px] text-white/80 block">Consultá horarios disponibles</span>
               </div>
             </div>
             <Plus className={`w-5 h-5 transition-transform duration-300 ${seccionAbierta === 'turnos' ? 'rotate-45' : ''}`} />
           </button>
         </div>
 
-        {/* SECCIÓN DESPLEGABLE DE RESERVAS / SERVICIOS */}
+        {/* Desplegable de Reservas */}
         {seccionAbierta === 'turnos' && (
-          <div className="border-t border-slate-100 pt-5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="border-t border-slate-100 pt-5 space-y-4">
             {exito ? (
               <div className="text-center space-y-4 py-2">
                 <div className="bg-emerald-50 text-emerald-900 p-5 rounded-2xl border border-emerald-200 shadow-sm">
                   <div className="w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto mb-2 text-xl font-bold shadow-md">
                     ✓
                   </div>
-                  <p className="font-bold text-base">¡Solicitud Registrada!</p>
+                  <p className="font-bold text-base">¡Solicitud Lista!</p>
                   <p className="text-xs text-slate-600 mt-1">
-                    Para confirmar el turno, enviá la notificación automática por WhatsApp:
+                    Para confirmar en agenda, enviá la notificación automática por WhatsApp:
                   </p>
                 </div>
                 
@@ -281,14 +298,14 @@ export default function Home() {
                   rel="noopener noreferrer"
                   className={`block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 transition text-center shadow-lg shadow-emerald-500/25 text-sm ${bordes}`}
                 >
-                  📲 Finalizar por WhatsApp
+                  📲 Enviar a WhatsApp
                 </a>
               </div>
             ) : (
               <form onSubmit={handleReservar} className="space-y-4">
                 <div>
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
-                    1. Seleccioná el Servicio / Producto
+                    1. Elegí Servicio / Producto
                   </label>
                   <div className="space-y-2">
                     {servicios.map((s) => {
@@ -298,14 +315,14 @@ export default function Home() {
                           key={s.id}
                           onClick={() => setServicioSel(s)}
                           className={`p-3 rounded-2xl border-2 transition cursor-pointer flex justify-between items-center ${
-                            esSel ? 'border-rose-500 bg-rose-50/30' : 'border-slate-100 bg-slate-50/50'
+                            esSel ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50'
                           }`}
                         >
                           <div>
                             <p className="font-bold text-xs text-slate-800">{s.nombre}</p>
                             <p className="text-[10px] text-slate-400">{s.duracion_minutos} min de sesión</p>
                           </div>
-                          <span className="font-black text-rose-600 text-xs bg-rose-100/80 px-2.5 py-1 rounded-xl">
+                          <span className="font-black text-indigo-600 text-xs bg-indigo-100/80 px-2.5 py-1 rounded-xl">
                             ${s.precio}
                           </span>
                         </div>
@@ -323,14 +340,14 @@ export default function Home() {
                     placeholder="Nombre y Apellido"
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 mb-2 focus:outline-none focus:border-rose-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 mb-2 focus:outline-none"
                   />
                   <input
                     type="tel"
                     placeholder="Tu WhatsApp (ej. 1122334455)"
                     value={whatsapp}
                     onChange={(e) => setWhatsapp(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 focus:outline-none focus:border-rose-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 focus:outline-none"
                   />
                 </div>
 
@@ -353,7 +370,7 @@ export default function Home() {
                         onClick={() => setHora(h)}
                         className={`py-2 text-[11px] font-bold rounded-lg transition ${
                           hora === h
-                            ? 'bg-rose-500 text-white shadow-md'
+                            ? 'bg-indigo-600 text-white shadow-md'
                             : 'bg-white text-slate-600 border border-slate-200'
                         }`}
                       >
@@ -376,29 +393,29 @@ export default function Home() {
           </div>
         )}
 
-        {/* GALERÍA DE FOTOS REALES Y CATÁLOGO VISUAL */}
+        {/* GALERÍA DE TRABAJOS CON DETALLE Y PRECIO OPTATIVO */}
         <div className="border-t border-slate-100 pt-5 space-y-3 mt-6">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <ImageIcon className="w-3.5 h-3.5 text-slate-400" />
-              Trabajos & Galería Visual
-            </p>
-          </div>
+          <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <ImageIcon className="w-3.5 h-3.5 text-slate-400" />
+            Catálogo & Trabajos Realizados
+          </p>
 
-          <div className="grid grid-cols-3 gap-2">
-            {negocio?.fotos_galeria?.length > 0 ? (
-              negocio.fotos_galeria.map((imgUrl: string, i: number) => (
-                <div key={i} className="aspect-square bg-slate-100 rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm">
-                  <img src={imgUrl} alt={`Trabajo ${i}`} className="w-full h-full object-cover" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {galeriaLista.map((item: any, i: number) => (
+              <div key={i} className="bg-slate-50/80 rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm flex flex-col justify-between">
+                <div className="aspect-square bg-slate-200 overflow-hidden relative">
+                  <img src={item.imagen_url} alt={item.titulo} className="w-full h-full object-cover" />
+                  {item.precio && (
+                    <span className="absolute bottom-2 right-2 bg-slate-900/90 backdrop-blur-md text-white font-black text-[10px] px-2 py-0.5 rounded-lg border border-white/20">
+                      ${item.precio}
+                    </span>
+                  )}
                 </div>
-              ))
-            ) : (
-              [1, 2, 3].map((_, i) => (
-                <div key={i} className="aspect-square bg-slate-100/80 rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm flex items-center justify-center text-slate-300 font-bold text-xs">
-                  Foto {i + 1}
+                <div className="p-2">
+                  <p className="font-bold text-slate-800 text-[11px] line-clamp-1">{item.titulo}</p>
                 </div>
-              ))
-            )}
+              </div>
+            ))}
           </div>
         </div>
 
