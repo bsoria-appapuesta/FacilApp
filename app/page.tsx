@@ -9,9 +9,11 @@ import {
   Plus, 
   MapPin,
   ExternalLink,
-  Image as ImageIcon,
-  LogIn,
-  ShoppingBag
+  ImageIcon,
+  Settings,
+  X,
+  Copy,
+  Check
 } from 'lucide-react'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -28,7 +30,8 @@ export default function Home() {
   const [servicios, setServicios] = useState<any[]>([])
   const [servicioSel, setServicioSel] = useState<any>(null)
   
-  const [seccionAbierta, setSeccionAbierta] = useState<'turnos' | 'galeria' | null>('turnos')
+  const [seccionAbierta, setSeccionAbierta] = useState<'turnos' | null>('turnos')
+  const [modalCompartir, setModalCompartir] = useState(false)
   const [copiado, setCopiado] = useState(false)
   
   // Formulario
@@ -57,6 +60,7 @@ export default function Home() {
         .from('servicios')
         .select('*')
         .eq('negocio_id', negData.id)
+        .eq('activo', true)
 
       if (servData && servData.length > 0) {
         setServicios(servData)
@@ -65,23 +69,10 @@ export default function Home() {
     }
   }
 
-  // Compartir sin redirecciones raras
-  const handleCompartir = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: negocio?.nombre || 'Perfil Oficial',
-          text: `Mirá el perfil oficial de ${negocio?.nombre || 'este comercio'}:`,
-          url: window.location.href,
-        })
-      } catch (err) {
-        console.log(err)
-      }
-    } else {
-      navigator.clipboard.writeText(window.location.href)
-      setCopiado(true)
-      setTimeout(() => setCopiado(false), 2000)
-    }
+  const handleCopiarLink = () => {
+    navigator.clipboard.writeText(window.location.href)
+    setCopiado(true)
+    setTimeout(() => setCopiado(false), 2000)
   }
 
   const handleReservar = async (e: React.FormEvent) => {
@@ -101,6 +92,7 @@ export default function Home() {
         cliente_nombre: nombre,
         cliente_whatsapp: whatsapp,
         fecha_hora: fechaHora,
+        monto_cobrado: servicioSel.precio || 0,
         estado: 'pendiente'
       }
     ])
@@ -108,39 +100,11 @@ export default function Home() {
     setCargando(false)
 
     if (error) {
-      alert('Error: ' + error.message)
+      alert('Error al guardar la reserva: ' + error.message)
     } else {
       setExito(true)
-      const msg = `¡Hola ${negocio.nombre}! 👋%0AMi nombre es *${nombre}*.%0A%0AQuiero solicitar un turno/pedido:%0A📌 *Servicio/Producto:* ${servicioSel.nombre}%0A📅 *Fecha:* ${fecha}%0A⏰ *Hora:* ${hora} hs%0A💰 *Precio:* $${servicioSel.precio}%0A%0A¿Me confirmás?`
+      const msg = `¡Hola ${negocio.nombre}! 👋%0AMi nombre es *${nombre}*.%0A%0AQuiero reservar:%0A📌 *Servicio/Producto:* ${servicioSel.nombre}%0A📅 *Fecha:* ${fecha}%0A⏰ *Hora:* ${hora} hs%0A💰 *Precio:* $${servicioSel.precio}%0A%0A¿Me confirmás el turno?`
       setLinkWa(`https://wa.me/${negocio.whatsapp}?text=${msg}`)
-    }
-  }
-
-  // Íconos SVG oficiales en alta definición
-  const renderIconoRed = (tipo: string) => {
-    switch (tipo?.toLowerCase()) {
-      case 'instagram': 
-        return (
-          <svg className="w-5 h-5 text-pink-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
-            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-            <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
-          </svg>
-        )
-      case 'whatsapp': 
-        return (
-          <svg className="w-5 h-5 text-emerald-500 fill-emerald-500/10" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-          </svg>
-        )
-      case 'tiktok': 
-        return (
-          <svg className="w-5 h-5 text-slate-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/>
-          </svg>
-        )
-      case 'web': return <Globe className="w-5 h-5 text-blue-500" />
-      default: return <ExternalLink className="w-5 h-5 text-indigo-500" />
     }
   }
 
@@ -156,20 +120,22 @@ export default function Home() {
     : [
         { tipo: 'whatsapp', titulo: 'WhatsApp Directo', url: `https://wa.me/${negocio?.whatsapp || ''}` },
         { tipo: 'instagram', titulo: 'Instagram Oficial', url: `https://instagram.com/${negocio?.instagram_username || ''}` },
-        { tipo: 'tiktok', titulo: 'TikTok Oficial', url: `https://tiktok.com/@${negocio?.tiktok_username || ''}` }
+        { tipo: 'tiktok', titulo: 'TikTok', url: `https://tiktok.com/@${negocio?.tiktok_username || ''}` }
       ]
 
   const galeriaLista = negocio?.galeria_detallada?.length > 0
     ? negocio.galeria_detallada
     : [
-        { titulo: 'Kapping Gel + Design', precio: '18.000', imagen_url: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400' },
-        { titulo: 'Service Uñas Semipermanente', precio: '12.000', imagen_url: 'https://images.unsplash.com/photo-1632345031435-8727f6897d53?w=400' },
-        { titulo: 'Corte Barbería & Barba', precio: '10.000', imagen_url: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400' }
+        { titulo: 'Kapping Gel + Nail Art', precio: '18000', imagen_url: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400' },
+        { titulo: 'Service Uñas Semipermanente', precio: '12000', imagen_url: 'https://images.unsplash.com/photo-1632345031435-8727f6897d53?w=400' },
+        { titulo: 'Corte Barbería & Barba', precio: '10000', imagen_url: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400' }
       ]
+
+  const urlActual = typeof window !== 'undefined' ? window.location.href : ''
 
   return (
     <div 
-      className="min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center relative transition-all duration-500 selection:bg-rose-500 selection:text-white"
+      className="min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center relative transition-all duration-500"
       style={{ 
         background: tipoFondo === 'degradado' 
           ? fondoDegradado 
@@ -187,28 +153,23 @@ export default function Home() {
 
       <div className={`max-w-md w-full bg-white/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl border border-white/40 relative z-10 transition-all ${bordes}`}>
         
-        {/* Superior: Botón a Landing Principal / Login + Compartir */}
+        {/* Superior: Botón Editar Admin + Botón Compartir */}
         <div className="flex justify-between items-center mb-6">
           <a
-            href="/landing"
+            href="/admin"
             className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition border border-slate-200/60 shadow-sm"
-            title="Creá tu cuenta en FacilApp"
+            title="Panel Administrador"
           >
-            <LogIn className="w-3.5 h-3.5 text-indigo-600" />
-            <span>FacilApp</span>
+            <Settings className="w-3.5 h-3.5 text-rose-500" />
+            <span>Editar Mi Web</span>
           </a>
 
           <button
-            onClick={handleCompartir}
-            className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl flex items-center justify-center transition shadow-sm border border-slate-200/50 active:scale-95 relative"
-            title="Compartir Perfil"
+            onClick={() => setModalCompartir(true)}
+            className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl flex items-center justify-center transition shadow-sm border border-slate-200/50 active:scale-95"
+            title="Compartir"
           >
             <Share2 className="w-4 h-4" />
-            {copiado && (
-              <span className="absolute -bottom-8 right-0 bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded-md whitespace-nowrap shadow-xl">
-                ¡Link copiado!
-              </span>
-            )}
           </button>
         </div>
 
@@ -228,13 +189,8 @@ export default function Home() {
             </h1>
             <p className="text-xs font-semibold text-slate-500 mt-1 flex items-center justify-center gap-1">
               <MapPin className="w-3.5 h-3.5 text-rose-500 inline" />
-              {negocio?.ubicacion || 'Llavallol, Buenos Aires'}
+              {negocio?.ubicacion || 'Buenos Aires, Argentina'}
             </p>
-            {negocio?.descripcion_corta && (
-              <p className="text-xs text-slate-600 mt-2 max-w-xs mx-auto leading-relaxed">
-                {negocio.descripcion_corta}
-              </p>
-            )}
           </div>
         </div>
 
@@ -248,12 +204,7 @@ export default function Home() {
               rel="noopener noreferrer"
               className={`w-full bg-white hover:bg-slate-50/80 border border-slate-200/80 p-3.5 flex items-center justify-between shadow-sm transition-all active:scale-[0.99] ${bordes}`}
             >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-inner">
-                  {renderIconoRed(red.tipo)}
-                </div>
-                <span className="font-bold text-slate-800 text-sm">{red.titulo}</span>
-              </div>
+              <span className="font-bold text-slate-800 text-sm">{red.titulo}</span>
               <ExternalLink className="w-4 h-4 text-slate-300" />
             </a>
           ))}
@@ -286,9 +237,9 @@ export default function Home() {
                   <div className="w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto mb-2 text-xl font-bold shadow-md">
                     ✓
                   </div>
-                  <p className="font-bold text-base">¡Solicitud Lista!</p>
+                  <p className="font-bold text-base">¡Reserva Enviada!</p>
                   <p className="text-xs text-slate-600 mt-1">
-                    Para confirmar en agenda, enviá la notificación automática por WhatsApp:
+                    El turno se guardó en el sistema. Confirmalo por WhatsApp:
                   </p>
                 </div>
                 
@@ -298,16 +249,16 @@ export default function Home() {
                   rel="noopener noreferrer"
                   className={`block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 transition text-center shadow-lg shadow-emerald-500/25 text-sm ${bordes}`}
                 >
-                  📲 Enviar a WhatsApp
+                  📲 Confirmar por WhatsApp
                 </a>
               </div>
             ) : (
               <form onSubmit={handleReservar} className="space-y-4">
                 <div>
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
-                    1. Elegí Servicio / Producto
+                    1. Seleccioná el Servicio / Producto
                   </label>
-                  <div className="space-y-2">
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                     {servicios.map((s) => {
                       const esSel = servicioSel?.id === s.id
                       return (
@@ -315,14 +266,14 @@ export default function Home() {
                           key={s.id}
                           onClick={() => setServicioSel(s)}
                           className={`p-3 rounded-2xl border-2 transition cursor-pointer flex justify-between items-center ${
-                            esSel ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50'
+                            esSel ? 'border-rose-500 bg-rose-50/30' : 'border-slate-100 bg-slate-50/50'
                           }`}
                         >
                           <div>
                             <p className="font-bold text-xs text-slate-800">{s.nombre}</p>
                             <p className="text-[10px] text-slate-400">{s.duracion_minutos} min de sesión</p>
                           </div>
-                          <span className="font-black text-indigo-600 text-xs bg-indigo-100/80 px-2.5 py-1 rounded-xl">
+                          <span className="font-black text-rose-600 text-xs bg-rose-100/80 px-2.5 py-1 rounded-xl">
                             ${s.precio}
                           </span>
                         </div>
@@ -370,7 +321,7 @@ export default function Home() {
                         onClick={() => setHora(h)}
                         className={`py-2 text-[11px] font-bold rounded-lg transition ${
                           hora === h
-                            ? 'bg-indigo-600 text-white shadow-md'
+                            ? 'bg-rose-500 text-white shadow-md'
                             : 'bg-white text-slate-600 border border-slate-200'
                         }`}
                       >
@@ -393,11 +344,11 @@ export default function Home() {
           </div>
         )}
 
-        {/* GALERÍA DE TRABAJOS CON DETALLE Y PRECIO OPTATIVO */}
+        {/* CATÁLOGO VISUAL CON FOTO, SERVICIO Y PRECIO */}
         <div className="border-t border-slate-100 pt-5 space-y-3 mt-6">
           <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <ImageIcon className="w-3.5 h-3.5 text-slate-400" />
-            Catálogo & Trabajos Realizados
+            Catálogo de Servicios & Productos
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -406,7 +357,7 @@ export default function Home() {
                 <div className="aspect-square bg-slate-200 overflow-hidden relative">
                   <img src={item.imagen_url} alt={item.titulo} className="w-full h-full object-cover" />
                   {item.precio && (
-                    <span className="absolute bottom-2 right-2 bg-slate-900/90 backdrop-blur-md text-white font-black text-[10px] px-2 py-0.5 rounded-lg border border-white/20">
+                    <span className="absolute bottom-2 right-2 bg-slate-900/90 text-white font-black text-[10px] px-2 py-0.5 rounded-lg border border-white/20">
                       ${item.precio}
                     </span>
                   )}
@@ -420,6 +371,83 @@ export default function Home() {
         </div>
 
       </div>
+
+      {/* MODAL DE COMPARTIR EXCLUSIVO Y LIMPIO */}
+      {modalCompartir && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white max-w-sm w-full rounded-3xl p-6 shadow-2xl border border-slate-100 relative space-y-4">
+            
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="font-black text-slate-900 text-base">Compartir Perfil</h3>
+              <button
+                onClick={() => setModalCompartir(false)}
+                className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500">Seleccioná la plataforma donde querés publicar tu enlace:</p>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <a
+                href={`https://api.whatsapp.com/send?text=Mirá%20mi%20perfil%20oficial:%20${encodeURIComponent(urlActual)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-2xl flex items-center gap-2.5 font-bold text-xs hover:bg-emerald-100 transition"
+              >
+                <span>💬 WhatsApp</span>
+              </a>
+
+              <a
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(urlActual)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 bg-blue-50 text-blue-800 border border-blue-200 rounded-2xl flex items-center gap-2.5 font-bold text-xs hover:bg-blue-100 transition"
+              >
+                <span>📘 Facebook</span>
+              </a>
+
+              <a
+                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(urlActual)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 bg-slate-100 text-slate-800 border border-slate-200 rounded-2xl flex items-center gap-2.5 font-bold text-xs hover:bg-slate-200 transition"
+              >
+                <span>🐦 X / Twitter</span>
+              </a>
+
+              <a
+                href={`mailto:?subject=Perfil%20Oficial&body=Te%20comparto%20el%20link:%20${encodeURIComponent(urlActual)}`}
+                className="p-3 bg-rose-50 text-rose-800 border border-rose-200 rounded-2xl flex items-center gap-2.5 font-bold text-xs hover:bg-rose-100 transition"
+              >
+                <span>✉️ Gmail / Mail</span>
+              </a>
+
+              <a
+                href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(urlActual)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 bg-sky-50 text-sky-800 border border-sky-200 rounded-2xl flex items-center gap-2.5 font-bold text-xs hover:bg-sky-100 transition col-span-2"
+              >
+                <span>💼 LinkedIn</span>
+              </a>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100">
+              <button
+                onClick={handleCopiarLink}
+                className="w-full bg-slate-900 text-white font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-2 active:scale-95 transition"
+              >
+                {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                <span>{copiado ? '¡Copiado al Portapapeles!' : 'Copiar Enlace Directo'}</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
