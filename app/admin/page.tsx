@@ -229,7 +229,7 @@ export default function AdminPage() {
                       </div>
                       <div className="text-right">
                         <span className="bg-slate-800 text-slate-200 text-xs px-3 py-1 rounded-xl font-bold block border border-slate-700">
-                          {f.toLocaleDateString()} - {f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} hs
+                          {f.toLocaleDateString()} {f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} hs
                         </span>
                         <span className="text-xs font-black text-emerald-400 block mt-1">${t.monto_cobrado}</span>
                       </div>
