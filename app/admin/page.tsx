@@ -9,7 +9,9 @@ import {
   Plus, 
   Upload, 
   Check, 
-  Image as ImageIcon
+  Image as ImageIcon,
+  Trash2,
+  CheckCircle2
 } from 'lucide-react'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -41,6 +43,12 @@ export default function AdminPage() {
   const [fondoImagenUrl, setFondoImagenUrl] = useState('')
   const [logoUrl, setLogoUrl] = useState('')
 
+  // Catálogo Visual / Galería con fotos y precio
+  const [galeria, setGaleria] = useState<any[]>([])
+  const [itemTitulo, setItemTitulo] = useState('')
+  const [itemPrecio, setItemPrecio] = useState('')
+  const [itemImagenUrl, setItemImagenUrl] = useState('')
+
   useEffect(() => {
     cargarDatos()
   }, [])
@@ -60,6 +68,7 @@ export default function AdminPage() {
       setTipoFondo(negData.tipo_fondo || 'color')
       setFondoImagenUrl(negData.fondo_imagen_url || '')
       setLogoUrl(negData.logo_url || '')
+      setGaleria(negData.galeria_detallada || [])
 
       const { data: turnosData } = await supabase
         .from('turnos')
@@ -78,8 +87,8 @@ export default function AdminPage() {
     }
   }
 
-  // Subir Foto (Logo o Fondo) desde dispositivo
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>, campo: 'logo' | 'fondo') {
+  // Subir Foto (Logo, Fondo o Producto de Catálogo) desde dispositivo
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>, campo: 'logo' | 'fondo' | 'catalogo') {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -104,13 +113,34 @@ export default function AdminPage() {
     setCargando(false)
     if (campo === 'logo') setLogoUrl(publicUrlData.publicUrl)
     if (campo === 'fondo') setFondoImagenUrl(publicUrlData.publicUrl)
+    if (campo === 'catalogo') setItemImagenUrl(publicUrlData.publicUrl)
     alert('Imagen subida correctamente')
+  }
+
+  // CONFIRMAR TURNO DESDE ADMIN
+  async function handleConfirmarTurno(turnoId: string) {
+    setCargando(true)
+    const { error } = await supabase
+      .from('turnos')
+      .update({ estado: 'confirmado' })
+      .eq('id', turnoId)
+
+    setCargando(false)
+    if (error) {
+      alert('Error al confirmar turno: ' + error.message)
+    } else {
+      alert('¡Turno confirmado con éxito!')
+      cargarDatos()
+    }
   }
 
   // GUARDAR NUEVO SERVICIO (CORREGIDO)
   async function handleAgregarServicio(e: React.FormEvent) {
     e.preventDefault()
-    if (!nomServicio || !precioServicio || !negocio) return
+    if (!nomServicio || !precioServicio || !negocio) {
+      alert('Completá nombre y precio del servicio')
+      return
+    }
 
     setCargando(true)
     const { error } = await supabase.from('servicios').insert([
@@ -118,7 +148,7 @@ export default function AdminPage() {
         negocio_id: negocio.id,
         nombre: nomServicio,
         precio: parseFloat(precioServicio),
-        duracion_minutos: parseInt(duracionServicio),
+        duracion_minutos: parseInt(duracionServicio || '30'),
         activo: true
       }
     ])
@@ -133,6 +163,28 @@ export default function AdminPage() {
       alert('¡Servicio guardado con éxito!')
       cargarDatos()
     }
+  }
+
+  // AGREGAR ITEM A GALERÍA / CATÁLOGO DE FOTOS
+  function handleAgregarItemGaleria() {
+    if (!itemTitulo || !itemImagenUrl) {
+      alert('Subí una imagen y escribí un título para el producto')
+      return
+    }
+    const nuevo = {
+      titulo: itemTitulo,
+      precio: itemPrecio,
+      imagen_url: itemImagenUrl
+    }
+    setGaleria([...galeria, nuevo])
+    setItemTitulo('')
+    setItemPrecio('')
+    setItemImagenUrl('')
+  }
+
+  function handleEliminarItemGaleria(index: number) {
+    const actualizada = galeria.filter((_, i) => i !== index)
+    setGaleria(actualizada)
   }
 
   // GUARDAR EDICIÓN DE PÁGINA Y COLORES (CORREGIDO)
@@ -154,7 +206,8 @@ export default function AdminPage() {
         tipo_fuente: tipoFuente,
         tipo_fondo: tipoFondo,
         fondo_imagen_url: fondoImagenUrl,
-        logo_url: logoUrl
+        logo_url: logoUrl,
+        galeria_detallada: galeria
       })
       .eq('id', negocio.id)
 
@@ -162,7 +215,7 @@ export default function AdminPage() {
     if (error) {
       alert('Error al guardar cambios: ' + error.message)
     } else {
-      alert('¡Todos los cambios de diseño y texto fueron guardados!')
+      alert('¡Todos los cambios de diseño, texto y fotos fueron guardados!')
       cargarDatos()
     }
   }
@@ -220,18 +273,36 @@ export default function AdminPage() {
               ) : (
                 turnos.map((t) => {
                   const f = new Date(t.fecha_hora)
+                  const esConfirmado = t.estado === 'confirmado'
                   return (
-                    <div key={t.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
+                    <div key={t.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-700 flex justify-between items-center flex-wrap gap-3">
                       <div>
                         <p className="font-bold text-sm text-white">{t.cliente_nombre}</p>
                         <p className="text-xs text-indigo-400">WhatsApp: {t.cliente_whatsapp}</p>
                         <p className="text-xs text-slate-400">Servicio: {t.servicios?.nombre || 'General'}</p>
                       </div>
-                      <div className="text-right">
-                        <span className="bg-slate-800 text-slate-200 text-xs px-3 py-1 rounded-xl font-bold block border border-slate-700">
-                          {f.toLocaleDateString()} {f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} hs
-                        </span>
-                        <span className="text-xs font-black text-emerald-400 block mt-1">${t.monto_cobrado}</span>
+                      <div className="text-right flex items-center gap-3">
+                        <div>
+                          <span className="bg-slate-800 text-slate-200 text-xs px-3 py-1 rounded-xl font-bold block border border-slate-700">
+                            {f.toLocaleDateString()} {f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} hs
+                          </span>
+                          <span className="text-xs font-black text-emerald-400 block mt-1">${t.monto_cobrado}</span>
+                        </div>
+
+                        {/* BOTÓN DE CONFIRMAR TURNO */}
+                        {esConfirmado ? (
+                          <span className="flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-3 py-1.5 rounded-xl">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Confirmado
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleConfirmarTurno(t.id)}
+                            disabled={cargando}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-2 rounded-xl transition shadow-md"
+                          >
+                            Confirmar Turno
+                          </button>
+                        )}
                       </div>
                     </div>
                   )
@@ -298,9 +369,9 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* PESTAÑA 3: EDICIÓN DE PÁGINA Y COLORES */}
+        {/* PESTAÑA 3: EDICIÓN DE PÁGINA, COLORES Y CATÁLOGO DE FOTOS */}
         {tab === 'marca' && (
-          <form onSubmit={handleGuardarMarca} className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-4">
+          <form onSubmit={handleGuardarMarca} className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-6">
             <h2 className="text-lg font-bold text-white">Edición de página y Estilos</h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -322,6 +393,33 @@ export default function AdminPage() {
                   onChange={(e) => setUbicacion(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">WhatsApp del Negocio</label>
+                <input
+                  type="text"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  placeholder="Ej: 5491122334455"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Tipo de Letra / Tipografía</label>
+                <select
+                  value={tipoFuente}
+                  onChange={(e) => setTipoFuente(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                >
+                  <option value="sans-serif">Sans-Serif Moderno</option>
+                  <option value="serif">Serif Elegante</option>
+                  <option value="monospace">Monospace Técnico</option>
+                  <option value="cursive">Cursive Cursiva</option>
+                </select>
               </div>
             </div>
 
@@ -367,21 +465,6 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* TIPO DE FUENTE TIPOGRÁFICA */}
-            <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1">Tipo de Letra / Tipografía</label>
-              <select
-                value={tipoFuente}
-                onChange={(e) => setTipoFuente(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
-              >
-                <option value="sans-serif">Sans-Serif Moderno</option>
-                <option value="serif">Serif Elegante</option>
-                <option value="monospace">Monospace Técnico</option>
-                <option value="cursive">Cursive Cursiva</option>
-              </select>
-            </div>
-
             {/* FOTO DE FONDO DESDE DISPOSITIVO */}
             <div className="space-y-2 pt-2">
               <label className="block text-xs font-bold text-slate-400">Usar Imagen de Fondo en la Web</label>
@@ -423,10 +506,83 @@ export default function AdminPage() {
               />
             </div>
 
+            {/* CATÁLOGO VISUAL / GALERÍA CON FOTOS, PRECIOS Y DETALLES */}
+            <div className="border-t border-slate-700 pt-5 space-y-4">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-indigo-400" />
+                Catálogo Visual de Productos / Fotos con Precio
+              </h3>
+
+              <div className="bg-slate-900 p-4 rounded-2xl border border-slate-700 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Título del Producto / Trabajo"
+                    value={itemTitulo}
+                    onChange={(e) => setItemTitulo(e.target.value)}
+                    className="bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Precio ($) Opcional"
+                    value={itemPrecio}
+                    onChange={(e) => setItemPrecio(e.target.value)}
+                    className="bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">Seleccionar foto desde tu dispositivo:</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileUpload(e, 'catalogo')}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-xs text-slate-400"
+                  />
+                </div>
+
+                {itemImagenUrl && (
+                  <div className="flex items-center gap-3 bg-slate-800 p-2 rounded-xl">
+                    <img src={itemImagenUrl} alt="Vista previa" className="w-12 h-12 object-cover rounded-lg" />
+                    <span className="text-xs text-emerald-400 font-bold">✓ Imagen lista para agregar</span>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleAgregarItemGaleria}
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-indigo-300 font-bold py-2.5 rounded-xl text-xs border border-indigo-500/30"
+                >
+                  + Agregar Foto al Catálogo
+                </button>
+              </div>
+
+              {/* LISTA DE FOTOS AGREGADAS */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {galeria.map((item, index) => (
+                  <div key={index} className="bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden relative">
+                    <img src={item.imagen_url} alt={item.titulo} className="w-full h-28 object-cover" />
+                    <div className="p-2 space-y-1">
+                      <p className="font-bold text-xs text-white truncate">{item.titulo}</p>
+                      {item.precio && <p className="text-xs text-emerald-400 font-black">${item.precio}</p>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleEliminarItemGaleria(index)}
+                      className="absolute top-2 right-2 bg-rose-600/90 text-white p-1.5 rounded-lg text-xs"
+                      title="Eliminar foto"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={cargando}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-2xl text-xs transition"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-2xl text-xs transition shadow-lg"
             >
               {cargando ? 'Guardando...' : 'Guardar Todos los Cambios'}
             </button>
