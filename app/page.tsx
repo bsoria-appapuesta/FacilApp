@@ -4,17 +4,30 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { 
   Share2, 
-  Globe, 
   Calendar, 
   Plus, 
-  MapPin,
-  ExternalLink,
-  ImageIcon,
-  Settings,
-  X,
-  Copy,
-  Check
+  MapPin, 
+  ExternalLink, 
+  ImageIcon, 
+  Settings, 
+  X, 
+  Copy, 
+  Check,
+  Info,
+  Clock,
+  ShieldAlert
 } from 'lucide-react'
+
+import { 
+  FaWhatsapp, 
+  FaInstagram, 
+  FaTiktok, 
+  FaFacebook, 
+  FaTwitter, 
+  FaLinkedin, 
+  FaGlobe, 
+  FaEnvelope 
+} from 'react-icons/fa'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
@@ -34,7 +47,7 @@ export default function Home() {
   const [modalCompartir, setModalCompartir] = useState(false)
   const [copiado, setCopiado] = useState(false)
   
-  // Formulario
+  // Formulario de reserva
   const [nombre, setNombre] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [fecha, setFecha] = useState('')
@@ -103,7 +116,11 @@ export default function Home() {
       alert('Error al guardar la reserva: ' + error.message)
     } else {
       setExito(true)
-      const msg = `¡Hola ${negocio.nombre}! 👋%0AMi nombre es *${nombre}*.%0A%0AQuiero reservar:%0A📌 *Servicio/Producto:* ${servicioSel.nombre}%0A📅 *Fecha:* ${fecha}%0A⏰ *Hora:* ${hora} hs%0A💰 *Precio:* $${servicioSel.precio}%0A%0A¿Me confirmás el turno?`
+      const textoSena = servicioSel.requiere_seña 
+        ? `%0A⚠️ *Reserva / Seña requerida:* $${servicioSel.monto_seña}` 
+        : ''
+
+      const msg = `¡Hola ${negocio.nombre}! 👋%0AMi nombre es *${nombre}*.%0A%0AQuiero reservar:%0A📌 *Servicio:* ${servicioSel.nombre}%0A📅 *Fecha:* ${fecha}%0A⏰ *Hora:* ${hora} hs%0A💰 *Precio:* $${servicioSel.precio}${textoSena}%0A%0A¿Me confirmás el turno?`
       setLinkWa(`https://wa.me/${negocio.whatsapp}?text=${msg}`)
     }
   }
@@ -115,6 +132,25 @@ export default function Home() {
   const fondoImagenUrl = negocio?.fondo_imagen_url || ''
   const bordes = negocio?.bordes_redondeados || 'rounded-3xl'
 
+  // Ajuste dinámico de tamaño de fuente
+  const tamanoFuenteClase = negocio?.tamano_fuente === 'chica' 
+    ? 'text-xs' 
+    : negocio?.tamano_fuente === 'grande' 
+      ? 'text-base' 
+      : 'text-sm'
+
+  // Obtener ícono por tipo de red social
+  const getRedSocialIcon = (tipo: string) => {
+    switch (tipo.toLowerCase()) {
+      case 'whatsapp': return <FaWhatsapp className="w-5 h-5 text-emerald-500" />
+      case 'instagram': return <FaInstagram className="w-5 h-5 text-pink-500" />
+      case 'tiktok': return <FaTiktok className="w-5 h-5 text-slate-900" />
+      case 'facebook': return <FaFacebook className="w-5 h-5 text-blue-600" />
+      case 'twitter': return <FaTwitter className="w-5 h-5 text-sky-400" />
+      default: return <FaGlobe className="w-5 h-5 text-indigo-500" />
+    }
+  }
+
   const redesList = negocio?.redes_sociales?.length > 0 
     ? negocio.redes_sociales 
     : [
@@ -125,17 +161,13 @@ export default function Home() {
 
   const galeriaLista = negocio?.galeria_detallada?.length > 0
     ? negocio.galeria_detallada
-    : [
-        { titulo: 'Kapping Gel + Nail Art', precio: '18000', imagen_url: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400' },
-        { titulo: 'Service Uñas Semipermanente', precio: '12000', imagen_url: 'https://images.unsplash.com/photo-1632345031435-8727f6897d53?w=400' },
-        { titulo: 'Corte Barbería & Barba', precio: '10000', imagen_url: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400' }
-      ]
+    : []
 
   const urlActual = typeof window !== 'undefined' ? window.location.href : ''
 
   return (
     <div 
-      className="min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center relative transition-all duration-500"
+      className={`min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center relative transition-all duration-500 ${tamanoFuenteClase}`}
       style={{ 
         background: tipoFondo === 'degradado' 
           ? fondoDegradado 
@@ -153,15 +185,15 @@ export default function Home() {
 
       <div className={`max-w-md w-full bg-white/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl border border-white/40 relative z-10 transition-all ${bordes}`}>
         
-        {/* Superior: Botón Editar Admin + Botón Compartir */}
+        {/* Barra Superior */}
         <div className="flex justify-between items-center mb-6">
           <a
             href="/admin"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition border border-slate-200/60 shadow-sm"
-            title="Panel Administrador"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold transition border border-slate-200/60 shadow-sm text-xs"
+            title="Edición de página"
           >
             <Settings className="w-3.5 h-3.5 text-rose-500" />
-            <span>Editar Mi Web</span>
+            <span>Edición de página</span>
           </a>
 
           <button
@@ -187,14 +219,23 @@ export default function Home() {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               {negocio ? negocio.nombre : 'Cargando...'}
             </h1>
+            
+            {/* Ubicación */}
             <p className="text-xs font-semibold text-slate-500 mt-1 flex items-center justify-center gap-1">
               <MapPin className="w-3.5 h-3.5 text-rose-500 inline" />
               {negocio?.ubicacion || 'Buenos Aires, Argentina'}
             </p>
+
+            {/* Descripción */}
+            {negocio?.descripcion && (
+              <p className="text-xs text-slate-600 mt-2 px-4 leading-relaxed font-medium">
+                {negocio.descripcion}
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Módulos de Redes */}
+        {/* Módulos de Redes Sociales con Íconos */}
         <div className="space-y-3 mb-6">
           {redesList.map((red: any, idx: number) => (
             <a
@@ -204,12 +245,15 @@ export default function Home() {
               rel="noopener noreferrer"
               className={`w-full bg-white hover:bg-slate-50/80 border border-slate-200/80 p-3.5 flex items-center justify-between shadow-sm transition-all active:scale-[0.99] ${bordes}`}
             >
-              <span className="font-bold text-slate-800 text-sm">{red.titulo}</span>
+              <div className="flex items-center gap-3">
+                {getRedSocialIcon(red.tipo || 'web')}
+                <span className="font-bold text-slate-800">{red.titulo}</span>
+              </div>
               <ExternalLink className="w-4 h-4 text-slate-300" />
             </a>
           ))}
 
-          {/* Botón Principal de Acción */}
+          {/* Botón Principal para Desplegar Turnos */}
           <button
             onClick={() => setSeccionAbierta(seccionAbierta === 'turnos' ? null : 'turnos')}
             style={{ backgroundColor: colorPrincipal }}
@@ -220,7 +264,7 @@ export default function Home() {
                 <Calendar className="w-5 h-5" />
               </div>
               <div className="text-left">
-                <span className="font-extrabold text-sm block">Solicitar Turno / Pedido</span>
+                <span className="font-extrabold block">Solicitar Turno / Pedido</span>
                 <span className="text-[10px] text-white/80 block">Consultá horarios disponibles</span>
               </div>
             </div>
@@ -228,7 +272,7 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Desplegable de Reservas */}
+        {/* Formulario de Reservas */}
         {seccionAbierta === 'turnos' && (
           <div className="border-t border-slate-100 pt-5 space-y-4">
             {exito ? (
@@ -247,7 +291,7 @@ export default function Home() {
                   href={linkWa}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 transition text-center shadow-lg shadow-emerald-500/25 text-sm ${bordes}`}
+                  className={`block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 transition text-center shadow-lg shadow-emerald-500/25 ${bordes}`}
                 >
                   📲 Confirmar por WhatsApp
                 </a>
@@ -258,20 +302,29 @@ export default function Home() {
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
                     1. Seleccioná el Servicio / Producto
                   </label>
-                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
                     {servicios.map((s) => {
                       const esSel = servicioSel?.id === s.id
                       return (
                         <div
                           key={s.id}
                           onClick={() => setServicioSel(s)}
-                          className={`p-3 rounded-2xl border-2 transition cursor-pointer flex justify-between items-center ${
+                          className={`p-3.5 rounded-2xl border-2 transition cursor-pointer flex justify-between items-center ${
                             esSel ? 'border-rose-500 bg-rose-50/30' : 'border-slate-100 bg-slate-50/50'
                           }`}
                         >
-                          <div>
-                            <p className="font-bold text-xs text-slate-800">{s.nombre}</p>
-                            <p className="text-[10px] text-slate-400">{s.duracion_minutos} min de sesión</p>
+                          <div className="space-y-1">
+                            <p className="font-bold text-slate-800">{s.nombre}</p>
+                            <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" /> {s.duracion_minutos || 30} min
+                              </span>
+                              {s.requiere_seña && (
+                                <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-md font-bold flex items-center gap-0.5">
+                                  <ShieldAlert className="w-3 h-3" /> Requiere reserva (${s.monto_seña})
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <span className="font-black text-rose-600 text-xs bg-rose-100/80 px-2.5 py-1 rounded-xl">
                             ${s.precio}
@@ -291,14 +344,14 @@ export default function Home() {
                     placeholder="Nombre y Apellido"
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 mb-2 focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 mb-2 focus:outline-none"
                   />
                   <input
                     type="tel"
                     placeholder="Tu WhatsApp (ej. 1122334455)"
                     value={whatsapp}
                     onChange={(e) => setWhatsapp(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:outline-none"
                   />
                 </div>
 
@@ -310,7 +363,7 @@ export default function Home() {
                     type="date"
                     value={fecha}
                     onChange={(e) => setFecha(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 mb-2 focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 mb-2 focus:outline-none"
                   />
 
                   <div className="grid grid-cols-4 gap-1.5 max-h-32 overflow-y-auto p-1 bg-slate-50 border border-slate-200 rounded-xl">
@@ -335,7 +388,7 @@ export default function Home() {
                   type="submit"
                   disabled={cargando}
                   style={{ backgroundColor: colorPrincipal }}
-                  className={`w-full text-white font-bold py-3.5 transition shadow-lg text-xs disabled:opacity-50 ${bordes}`}
+                  className={`w-full text-white font-bold py-3.5 transition shadow-lg disabled:opacity-50 ${bordes}`}
                 >
                   {cargando ? 'Procesando...' : 'Confirmar Reserva ✨'}
                 </button>
@@ -344,35 +397,37 @@ export default function Home() {
           </div>
         )}
 
-        {/* CATÁLOGO VISUAL CON FOTO, SERVICIO Y PRECIO */}
-        <div className="border-t border-slate-100 pt-5 space-y-3 mt-6">
-          <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <ImageIcon className="w-3.5 h-3.5 text-slate-400" />
-            Catálogo de Servicios & Productos
-          </p>
+        {/* Catálogo Visual de Galería */}
+        {galeriaLista.length > 0 && (
+          <div className="border-t border-slate-100 pt-5 space-y-3 mt-6">
+            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <ImageIcon className="w-3.5 h-3.5 text-slate-400" />
+              Catálogo de Servicios & Productos
+            </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {galeriaLista.map((item: any, i: number) => (
-              <div key={i} className="bg-slate-50/80 rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm flex flex-col justify-between">
-                <div className="aspect-square bg-slate-200 overflow-hidden relative">
-                  <img src={item.imagen_url} alt={item.titulo} className="w-full h-full object-cover" />
-                  {item.precio && (
-                    <span className="absolute bottom-2 right-2 bg-slate-900/90 text-white font-black text-[10px] px-2 py-0.5 rounded-lg border border-white/20">
-                      ${item.precio}
-                    </span>
-                  )}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {galeriaLista.map((item: any, i: number) => (
+                <div key={i} className="bg-slate-50/80 rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm flex flex-col justify-between">
+                  <div className="aspect-square bg-slate-200 overflow-hidden relative">
+                    <img src={item.imagen_url} alt={item.titulo} className="w-full h-full object-cover" />
+                    {item.precio && (
+                      <span className="absolute bottom-2 right-2 bg-slate-900/90 text-white font-black text-[10px] px-2 py-0.5 rounded-lg border border-white/20">
+                        ${item.precio}
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-2">
+                    <p className="font-bold text-slate-800 text-[11px] line-clamp-1">{item.titulo}</p>
+                  </div>
                 </div>
-                <div className="p-2">
-                  <p className="font-bold text-slate-800 text-[11px] line-clamp-1">{item.titulo}</p>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
 
-      {/* MODAL DE COMPARTIR EXCLUSIVO Y LIMPIO */}
+      {/* MODAL DE COMPARTIR CON ÍCONOS OFICIALES */}
       {modalCompartir && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white max-w-sm w-full rounded-3xl p-6 shadow-2xl border border-slate-100 relative space-y-4">
@@ -387,50 +442,55 @@ export default function Home() {
               </button>
             </div>
 
-            <p className="text-xs text-slate-500">Seleccioná la plataforma donde querés publicar tu enlace:</p>
+            <p className="text-xs text-slate-500">Seleccioná la plataforma para compartir tu enlace:</p>
 
             <div className="grid grid-cols-2 gap-2.5">
               <a
                 href={`https://api.whatsapp.com/send?text=Mirá%20mi%20perfil%20oficial:%20${encodeURIComponent(urlActual)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-2xl flex items-center gap-2.5 font-bold text-xs hover:bg-emerald-100 transition"
+                className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-emerald-100 transition"
               >
-                <span>💬 WhatsApp</span>
+                <FaWhatsapp className="w-4 h-4 text-emerald-600" />
+                <span>WhatsApp</span>
               </a>
 
               <a
                 href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(urlActual)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 bg-blue-50 text-blue-800 border border-blue-200 rounded-2xl flex items-center gap-2.5 font-bold text-xs hover:bg-blue-100 transition"
+                className="p-3 bg-blue-50 text-blue-800 border border-blue-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-blue-100 transition"
               >
-                <span>📘 Facebook</span>
+                <FaFacebook className="w-4 h-4 text-blue-600" />
+                <span>Facebook</span>
               </a>
 
               <a
                 href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(urlActual)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 bg-slate-100 text-slate-800 border border-slate-200 rounded-2xl flex items-center gap-2.5 font-bold text-xs hover:bg-slate-200 transition"
+                className="p-3 bg-slate-100 text-slate-800 border border-slate-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-slate-200 transition"
               >
-                <span>🐦 X / Twitter</span>
+                <FaTwitter className="w-4 h-4 text-sky-500" />
+                <span>X / Twitter</span>
               </a>
 
               <a
                 href={`mailto:?subject=Perfil%20Oficial&body=Te%20comparto%20el%20link:%20${encodeURIComponent(urlActual)}`}
-                className="p-3 bg-rose-50 text-rose-800 border border-rose-200 rounded-2xl flex items-center gap-2.5 font-bold text-xs hover:bg-rose-100 transition"
+                className="p-3 bg-rose-50 text-rose-800 border border-rose-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-rose-100 transition"
               >
-                <span>✉️ Gmail / Mail</span>
+                <FaEnvelope className="w-4 h-4 text-rose-600" />
+                <span>Correo</span>
               </a>
 
               <a
                 href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(urlActual)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 bg-sky-50 text-sky-800 border border-sky-200 rounded-2xl flex items-center gap-2.5 font-bold text-xs hover:bg-sky-100 transition col-span-2"
+                className="p-3 bg-sky-50 text-sky-800 border border-sky-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-sky-100 transition col-span-2"
               >
-                <span>💼 LinkedIn</span>
+                <FaLinkedin className="w-4 h-4 text-sky-700" />
+                <span>LinkedIn</span>
               </a>
             </div>
 

@@ -3,638 +3,525 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { 
-  BarChart3, 
-  Palette, 
-  ExternalLink, 
+  Calendar, 
+  Settings, 
+  Clock, 
+  DollarSign, 
   Plus, 
   Trash2, 
-  Edit3,
-  Briefcase,
-  Sparkles,
-  Check,
+  Upload, 
+  MapPin, 
+  AlignLeft, 
+  Check, 
+  Layout, 
   Type,
-  Layout,
-  Share2,
-  X,
-  Image as ImageIcon,
-  Save
+  ShieldCheck
 } from 'lucide-react'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-const TEMAS_PREDISEÑADOS = [
-  { nombre: 'Estética Rose Gold', principal: '#e11d48', fondo: '#fff1f2', tipoFondo: 'color', fuente: 'Playfair Display' },
-  { nombre: 'Barbería Dark Mística', principal: '#f59e0b', fondo: '#0f172a', tipoFondo: 'degradado', degradado: 'linear-gradient(to bottom, #1e293b, #0f172a)', fuente: 'Montserrat' },
-  { nombre: 'Minimalista Neón', principal: '#6366f1', fondo: '#090d16', tipoFondo: 'degradado', degradado: 'linear-gradient(to bottom, #111827, #030712)', fuente: 'Plus Jakarta Sans' },
-  { nombre: 'Menta Refresh', principal: '#10b981', fondo: '#f0fdf4', tipoFondo: 'degradado', degradado: 'linear-gradient(to bottom, #f0fdf4, #dcfce7)', fuente: 'Plus Jakarta Sans' },
-  { nombre: 'Calidez Dorada', principal: '#d97706', fondo: '#fefce8', tipoFondo: 'degradado', degradado: 'linear-gradient(to bottom, #fefce8, #fef9c3)', fuente: 'Playfair Display' }
-]
-
-export default function AdminDashboardPage() {
-  const [seccion, setSeccion] = useState<'metricas' | 'editor' | 'servicios' | 'galeria'>('metricas')
-  const [periodoMétricas, setPeriodoMétricas] = useState<'hoy' | 'semana' | 'mes'>('semana')
-  
+export default function AdminPage() {
+  const [tab, setTab] = useState<'turnos' | 'servicios' | 'marca'>('turnos')
   const [negocio, setNegocio] = useState<any>(null)
   const [turnos, setTurnos] = useState<any[]>([])
   const [servicios, setServicios] = useState<any[]>([])
-  const [cargando, setCargando] = useState(true)
+  const [cargando, setCargando] = useState(false)
 
-  // Estado Formulario Servicio (Crear/Editar)
-  const [editandoId, setEditandoId] = useState<string | null>(null)
-  const [nombreServicio, setNombreServicio] = useState('')
+  // Formulario Nuevo Servicio
+  const [nomServicio, setNomServicio] = useState('')
   const [precioServicio, setPrecioServicio] = useState('')
   const [duracionServicio, setDuracionServicio] = useState('30')
+  const [reqSena, setReqSena] = useState(false)
+  const [montoSena, setMontoSena] = useState('0')
 
-  // Estado Galería Detallada
-  const [galeria, setGaleria] = useState<any[]>([])
-  const [nuevaFotoUrl, setNuevaFotoUrl] = useState('')
-  const [nuevaFotoTitulo, setNuevaFotoTitulo] = useState('')
-  const [nuevaFotoPrecio, setNuevaFotoPrecio] = useState('')
-
-  // Estado Súper Editor Visual
-  const [colorPrincipal, setColorPrincipal] = useState('#e11d48')
-  const [colorFondo, setColorFondo] = useState('#fff1f2')
-  const [tipoFondo, setTipoFondo] = useState('color')
-  const [fondoDegradado, setFondoDegradado] = useState('linear-gradient(to bottom, #fff1f2, #ffe4e6)')
-  const [tipoFuente, setTipoFuente] = useState('Plus Jakarta Sans')
-  const [tamanoTitulo, setTamanoTitulo] = useState('text-2xl')
-  const [bordesRedondeados, setBordesRedondeados] = useState('rounded-3xl')
-  const [redesSociales, setRedesSociales] = useState<any[]>([])
-  const [nuevaRedTipo, setNuevaRedTipo] = useState('instagram')
-  const [nuevaRedTitulo, setNuevaRedTitulo] = useState('')
-  const [nuevaRedUrl, setNuevaRedUrl] = useState('')
-  const [guardando, setGuardando] = useState(false)
+  // Formulario Edición de Página
+  const [nombreNegocio, setNombreNegocio] = useState('')
+  const [ubicacion, setUbicacion] = useState('')
+  const [descripcion, setDescripcion] = useState('')
+  const [whatsapp, setWhatsapp] = useState('')
+  const [colorPrincipal, setColorPrincipal] = useState('#6366f1')
+  const [tamanoFuente, setTamanoFuente] = useState('mediano')
+  const [logoUrl, setLogoUrl] = useState('')
 
   useEffect(() => {
     cargarDatos()
   }, [])
 
   async function cargarDatos() {
-    setCargando(true)
     const { data: negData } = await supabase.from('negocios').select('*').limit(1).single()
-
     if (negData) {
       setNegocio(negData)
-      setColorPrincipal(negData.color_principal || '#e11d48')
-      setColorFondo(negData.color_fondo || '#fff1f2')
-      setTipoFondo(negData.tipo_fondo || 'color')
-      setFondoDegradado(negData.fondo_degradado || 'linear-gradient(to bottom, #fff1f2, #ffe4e6)')
-      setTipoFuente(negData.tipo_fuente || 'Plus Jakarta Sans')
-      setTamanoTitulo(negData.tamano_titulo || 'text-2xl')
-      setBordesRedondeados(negData.bordes_redondeados || 'rounded-3xl')
-      setRedesSociales(negData.redes_sociales || [])
-      setGaleria(negData.galeria_detallada || [])
+      setNombreNegocio(negData.nombre || '')
+      setUbicacion(negData.ubicacion || '')
+      setDescripcion(negData.descripcion || '')
+      setWhatsapp(negData.whatsapp || '')
+      setColorPrincipal(negData.color_principal || '#6366f1')
+      setTamanoFuente(negData.tamano_fuente || 'mediano')
+      setLogoUrl(negData.logo_url || '')
 
-      const { data: servData } = await supabase.from('servicios').select('*').eq('negocio_id', negData.id)
-      if (servData) setServicios(servData)
+      const { data: turnosData } = await supabase
+        .from('turnos')
+        .select('*, servicios(nombre)')
+        .eq('negocio_id', negData.id)
+        .order('fecha_hora', { ascending: false })
 
-      const { data: turnosData } = await supabase.from('turnos').select('*, servicios(nombre, precio)').eq('negocio_id', negData.id).order('created_at', { ascending: false })
       if (turnosData) setTurnos(turnosData)
+
+      const { data: servData } = await supabase
+        .from('servicios')
+        .select('*')
+        .eq('negocio_id', negData.id)
+
+      if (servData) setServicios(servData)
     }
-    setCargando(false)
   }
 
-  // --- GESTIÓN DE SERVICIOS (CREAR Y EDITAR) ---
-  const handleGuardarServicio = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!nombreServicio || !precioServicio) return
+  // Subir Fotos desde el Dispositivo
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>, tipo: 'logo' | 'servicio') {
+    const file = e.target.files?.[0]
+    if (!file) return
 
-    if (editandoId) {
-      // Editar
-      await supabase.from('servicios').update({
-        nombre: nombreServicio,
-        precio: parseFloat(precioServicio),
-        duracion_minutos: parseInt(duracionServicio)
-      }).eq('id', editandoId)
-    } else {
-      // Crear
-      await supabase.from('servicios').insert([{
+    setCargando(true)
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${Math.random()}.${fileExt}`
+    const filePath = `${fileName}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('facilapp-uploads')
+      .upload(filePath, file)
+
+    if (uploadError) {
+      alert('Error al subir la imagen: ' + uploadError.message)
+      setCargando(false)
+      return
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('facilapp-uploads')
+      .getPublicUrl(filePath)
+
+    setCargando(false)
+    if (tipo === 'logo') {
+      setLogoUrl(publicUrlData.publicUrl)
+    }
+    alert('Imagen cargada con éxito')
+  }
+
+  // Guardar Servicio
+  async function handleAgregarServicio(e: React.FormEvent) {
+    e.preventDefault()
+    if (!nomServicio || !precioServicio || !negocio) return
+
+    setCargando(true)
+    const { error } = await supabase.from('servicios').insert([
+      {
         negocio_id: negocio.id,
-        nombre: nombreServicio,
+        nombre: nomServicio,
         precio: parseFloat(precioServicio),
         duracion_minutos: parseInt(duracionServicio),
+        requiere_seña: reqSena,
+        monto_seña: parseFloat(montoSena) || 0,
         activo: true
-      }])
-    }
+      }
+    ])
 
-    setEditandoId(null)
-    setNombreServicio('')
-    setPrecioServicio('')
-    setDuracionServicio('30')
-    cargarDatos()
-  }
-
-  const handleEditarServicioClick = (s: any) => {
-    setEditandoId(s.id)
-    setNombreServicio(s.nombre)
-    setPrecioServicio(s.precio.toString())
-    setDuracionServicio(s.duracion_minutos.toString())
-  }
-
-  const handleEliminarServicio = async (id: string) => {
-    if (confirm('¿Seguro que querés eliminar este servicio?')) {
-      await supabase.from('servicios').delete().eq('id', id)
+    setCargando(false)
+    if (error) {
+      alert('Error al agregar servicio: ' + error.message)
+    } else {
+      setNomServicio('')
+      setPrecioServicio('')
+      setDuracionServicio('30')
+      setReqSena(false)
+      setMontoSena('0')
       cargarDatos()
     }
   }
 
-  // --- GESTIÓN DE GALERÍA DE FOTOS DETALLADA ---
-  const handleAgregarFotoGaleria = async () => {
-    if (!nuevaFotoUrl || !nuevaFotoTitulo) return
-    const nuevaLista = [...galeria, {
-      titulo: nuevaFotoTitulo,
-      precio: nuevaFotoPrecio,
-      imagen_url: nuevaFotoUrl
-    }]
-    setGaleria(nuevaLista)
-    await supabase.from('negocios').update({ galeria_detallada: nuevaLista }).eq('id', negocio.id)
-    setNuevaFotoUrl('')
-    setNuevaFotoTitulo('')
-    setNuevaFotoPrecio('')
-  }
+  // Guardar Edición de Página
+  async function handleGuardarMarca(e: React.FormEvent) {
+    e.preventDefault()
+    if (!negocio) return
 
-  const handleEliminarFotoGaleria = async (index: number) => {
-    const nuevaLista = galeria.filter((_, i) => i !== index)
-    setGaleria(nuevaLista)
-    await supabase.from('negocios').update({ galeria_detallada: nuevaLista }).eq('id', negocio.id)
-  }
+    setCargando(true)
+    const { error } = await supabase
+      .from('negocios')
+      .update({
+        nombre: nombreNegocio,
+        ubicacion,
+        descripcion,
+        whatsapp,
+        color_principal: colorPrincipal,
+        tamano_fuente: tamanoFuente,
+        logo_url: logoUrl
+      })
+      .eq('id', negocio.id)
 
-  // --- GESTIÓN DE REDES SOCIALES ---
-  const handleAgregarRed = () => {
-    if (!nuevaRedTitulo || !nuevaRedUrl) return
-    const lista = [...redesSociales, { tipo: nuevaRedTipo, titulo: nuevaRedTitulo, url: nuevaRedUrl }]
-    setRedesSociales(lista)
-    setNuevaRedTitulo('')
-    setNuevaRedUrl('')
-  }
-
-  const handleEliminarRed = (index: number) => {
-    setRedesSociales(redesSociales.filter((_, i) => i !== index))
-  }
-
-  // --- APLICAR TEMA PRE-DISEÑADO ---
-  const handleAplicarTema = (tema: any) => {
-    setColorPrincipal(tema.principal)
-    setColorFondo(tema.fondo)
-    setTipoFondo(tema.tipoFondo)
-    if (tema.degradado) setFondoDegradado(tema.degradado)
-    setTipoFuente(tema.fuente)
-  }
-
-  // --- GUARDAR EDITOR DE MARCA ---
-  const handlePublicarEstilos = async () => {
-    setGuardando(true)
-    await supabase.from('negocios').update({
-      color_principal: colorPrincipal,
-      color_fondo: colorFondo,
-      tipo_fondo: tipoFondo,
-      fondo_degradado: fondoDegradado,
-      tipo_fuente: tipoFuente,
-      tamano_titulo: tamanoTitulo,
-      bordes_redondeados: bordesRedondeados,
-      redes_sociales: redesSociales
-    }).eq('id', negocio.id)
-    setGuardando(false)
-    alert('¡Diseño actualizado y publicado en vivo!')
-  }
-
-  const turnosFiltrados = turnos.filter(t => {
-    const fecha = new Date(t.created_at)
-    const ahora = new Date()
-    if (periodoMétricas === 'hoy') return fecha.toDateString() === ahora.toDateString()
-    if (periodoMétricas === 'semana') {
-      const hace7 = new Date(ahora.setDate(ahora.getDate() - 7))
-      return fecha >= hace7
+    setCargando(false)
+    if (error) {
+      alert('Error al guardar cambios: ' + error.message)
+    } else {
+      alert('¡Configuración guardada correctamente!')
+      cargarDatos()
     }
-    return true
-  })
+  }
 
-  const facturacionTotal = turnosFiltrados.reduce((acc, curr) => acc + (curr.monto_cobrado || curr.servicios?.precio || 0), 0)
+  // Aplicar Plantilla Pro
+  async function aplicarPlantilla(plantilla: string) {
+    let config = {}
+    if (plantilla === 'glass') {
+      config = {
+        tipo_fondo: 'degradado',
+        fondo_degradado: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
+        color_principal: '#818cf8',
+        bordes_redondeados: 'rounded-3xl'
+      }
+    } else if (plantilla === 'neon') {
+      config = {
+        tipo_fondo: 'color',
+        color_fondo: '#09090b',
+        color_principal: '#f43f5e',
+        bordes_redondeados: 'rounded-xl'
+      }
+    } else if (plantilla === 'minimal') {
+      config = {
+        tipo_fondo: 'degradado',
+        fondo_degradado: 'linear-gradient(to bottom, #f8fafc, #e2e8f0)',
+        color_principal: '#0f172a',
+        bordes_redondeados: 'rounded-2xl'
+      }
+    }
 
-  if (cargando) {
-    return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center font-sans">
-        <p className="text-sm font-bold animate-pulse">Cargando Panel FacilApp...</p>
-      </div>
-    )
+    const { error } = await supabase.from('negocios').update(config).eq('id', negocio.id)
+    if (!error) {
+      alert('Plantilla ' + plantilla + ' aplicada')
+      cargarDatos()
+    }
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row font-sans">
-      
-      {/* SIDEBAR LATERAL NATIVO */}
-      <aside className="w-full md:w-64 bg-slate-900 border-r border-slate-800/80 p-5 flex flex-col justify-between">
-        <div className="space-y-6">
-          <div className="flex items-center gap-3 border-b border-slate-800/80 pb-4">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-500 to-indigo-600 flex items-center justify-center font-black text-white text-base shadow-lg shadow-rose-500/20">
-              F
-            </div>
-            <div>
-              <p className="font-extrabold text-sm text-white">{negocio?.nombre || 'Mi Comercio'}</p>
-              <p className="text-[10px] text-slate-400">Panel Administrador Pro</p>
-            </div>
+    <div className="min-h-screen bg-slate-900 text-slate-100 p-4 sm:p-8 font-sans">
+      <div className="max-w-4xl mx-auto space-y-6">
+        
+        {/* Encabezado */}
+        <div className="flex justify-between items-center bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-xl">
+          <div>
+            <h1 className="text-2xl font-black text-white">Panel de Control</h1>
+            <p className="text-xs text-slate-400 mt-1">Administra tus turnos, servicios y aspecto visual</p>
           </div>
-
-          <nav className="space-y-1">
-            <button
-              onClick={() => setSeccion('metricas')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
-                seccion === 'metricas' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <BarChart3 className="w-4 h-4" />
-              <span>Rendimiento & Turnos</span>
-            </button>
-
-            <button
-              onClick={() => setSeccion('servicios')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
-                seccion === 'servicios' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <Briefcase className="w-4 h-4" />
-              <span>Gestor de Servicios</span>
-            </button>
-
-            <button
-              onClick={() => setSeccion('galeria')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
-                seccion === 'galeria' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <ImageIcon className="w-4 h-4" />
-              <span>Fotos & Catálogo</span>
-            </button>
-
-            <button
-              onClick={() => setSeccion('editor')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
-                seccion === 'editor' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <Palette className="w-4 h-4" />
-              <span>Constructor de Marca</span>
-            </button>
-          </nav>
-        </div>
-
-        <div className="pt-6 border-t border-slate-800/80">
           <a
             href="/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 border border-slate-700/60 transition"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-xs font-bold transition shadow-lg shadow-indigo-600/30"
           >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span>Ver Mi Web en Vivo</span>
+            Ver Mi Página 🚀
           </a>
         </div>
-      </aside>
 
-      {/* CONTENIDO PRINCIPAL */}
-      <main className="flex-1 p-6 md:p-8 space-y-6 overflow-y-auto">
-        
-        {/* SECCIÓN 1: MÉTRICAS Y RESERVAS */}
-        {seccion === 'metricas' && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/80 p-5 rounded-3xl border border-slate-800">
-              <div>
-                <h2 className="text-xl font-extrabold text-white">Reportes de Facturación</h2>
-                <p className="text-xs text-slate-400">Control de ingresos y turnos</p>
-              </div>
+        {/* Pestañas de Navegación */}
+        <div className="flex gap-2 bg-slate-800 p-1.5 rounded-2xl border border-slate-700">
+          <button
+            onClick={() => setTab('turnos')}
+            className={`flex-1 py-3 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 ${
+              tab === 'turnos' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            Turnos Reservados
+          </button>
 
-              <div className="flex bg-slate-950 p-1 rounded-2xl border border-slate-800">
-                {(['hoy', 'semana', 'mes'] as const).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPeriodoMétricas(p)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold capitalize transition ${
-                      periodoMétricas === p ? 'bg-rose-500 text-white' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <button
+            onClick={() => setTab('servicios')}
+            className={`flex-1 py-3 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 ${
+              tab === 'servicios' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            Gestor de Servicios
+          </button>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Facturación ({periodoMétricas})</p>
-                <p className="text-3xl font-black text-emerald-400 mt-2">${facturacionTotal.toLocaleString('es-AR')}</p>
-              </div>
-              <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Turnos</p>
-                <p className="text-3xl font-black text-rose-400 mt-2">{turnosFiltrados.length}</p>
-              </div>
-              <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Servicios Activos</p>
-                <p className="text-3xl font-black text-indigo-400 mt-2">{servicios.length}</p>
-              </div>
-            </div>
+          <button
+            onClick={() => setTab('marca')}
+            className={`flex-1 py-3 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 ${
+              tab === 'marca' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Settings className="w-4 h-4" />
+            Edición de página
+          </button>
+        </div>
 
-            <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 space-y-4">
-              <h3 className="text-base font-bold text-white">Listado de Reservas</h3>
-              {turnosFiltrados.length === 0 ? (
-                <p className="text-slate-500 text-xs text-center py-6">No hay reservas registradas.</p>
+        {/* CONTENIDO 1: TURNOS RESERVADOS */}
+        {tab === 'turnos' && (
+          <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-4">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-indigo-400" />
+              Listado de Reservas
+            </h2>
+
+            <div className="space-y-3">
+              {turnos.length === 0 ? (
+                <p className="text-xs text-slate-400 py-4 text-center">No hay reservas registradas aún.</p>
               ) : (
-                <div className="space-y-2">
-                  {turnosFiltrados.map((t) => (
-                    <div key={t.id} className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800 flex justify-between items-center text-xs">
-                      <div>
-                        <p className="font-bold text-white text-sm">{t.cliente_nombre}</p>
-                        <p className="text-slate-400">📲 {t.cliente_whatsapp} | 💅 {t.servicios?.nombre || 'Servicio'}</p>
+                turnos.map((t) => {
+                  const fechaObj = new Date(t.fecha_hora)
+                  const dia = fechaObj.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                  const hora = fechaObj.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+
+                  return (
+                    <div key={t.id} className="bg-slate-900/80 p-4 rounded-2xl border border-slate-700/60 flex justify-between items-center">
+                      <div className="space-y-1">
+                        <p className="font-bold text-sm text-white">{t.cliente_nombre}</p>
+                        <p className="text-xs text-indigo-400 font-semibold">📞 WhatsApp: {t.cliente_whatsapp}</p>
+                        <p className="text-xs text-slate-400">
+                          Servicio: <span className="text-slate-200">{t.servicios?.nombre || 'General'}</span>
+                        </p>
                       </div>
-                      <span className="font-black text-emerald-400 text-sm">${t.servicios?.precio || 0}</span>
+
+                      <div className="text-right space-y-1">
+                        <span className="bg-slate-800 text-slate-200 text-xs px-3 py-1 rounded-xl font-bold border border-slate-700 block">
+                          📅 {dia} - ⏰ {hora} hs
+                        </span>
+                        <span className="text-xs font-black text-emerald-400 block">${t.monto_cobrado}</span>
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  )
+                })
               )}
             </div>
           </div>
         )}
 
-        {/* SECCIÓN 2: GESTOR DE SERVICIOS (CREAR Y EDITAR FUNCIONANDO) */}
-        {seccion === 'servicios' && (
+        {/* CONTENIDO 2: GESTOR DE SERVICIOS */}
+        {tab === 'servicios' && (
           <div className="space-y-6">
-            <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 space-y-4">
-              <h2 className="text-lg font-bold text-white">
-                {editandoId ? 'Editar Servicio' : 'Cargar Nuevo Servicio / Producto'}
+            {/* Formulario Agregar Servicio */}
+            <form onSubmit={handleAgregarServicio} className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-4">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Plus className="w-5 h-5 text-indigo-400" />
+                Agregar Nuevo Servicio
               </h2>
-              
-              <form onSubmit={handleGuardarServicio} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <input
                   type="text"
-                  placeholder="Nombre (ej. Kapping Gel)"
-                  value={nombreServicio}
-                  onChange={(e) => setNombreServicio(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none col-span-2"
+                  placeholder="Nombre del servicio"
+                  value={nomServicio}
+                  onChange={(e) => setNomServicio(e.target.value)}
+                  className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none"
+                  required
                 />
+
                 <input
                   type="number"
                   placeholder="Precio ($)"
                   value={precioServicio}
                   onChange={(e) => setPrecioServicio(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none"
+                  className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none"
+                  required
                 />
-                <button
-                  type="submit"
-                  className="bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5"
-                >
-                  {editandoId ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                  <span>{editandoId ? 'Guardar Cambios' : 'Agregar'}</span>
-                </button>
-              </form>
-            </div>
 
-            <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 space-y-3">
-              <h3 className="text-sm font-bold text-slate-300">Servicios Activos</h3>
-              <div className="space-y-2">
-                {servicios.map((s) => (
-                  <div key={s.id} className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 flex justify-between items-center text-xs">
-                    <div>
-                      <p className="font-bold text-white text-sm">{s.nombre}</p>
-                      <p className="text-slate-400">{s.duracion_minutos} min de sesión</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="font-black text-emerald-400 text-sm">${s.precio}</span>
-                      <button
-                        onClick={() => handleEditarServicioClick(s)}
-                        className="text-slate-400 hover:text-white p-1"
-                        title="Editar"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleEliminarServicio(s.id)}
-                        className="text-slate-500 hover:text-rose-400 p-1"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                <input
+                  type="number"
+                  placeholder="Tiempo estimado (minutos)"
+                  value={duracionServicio}
+                  onChange={(e) => setDuracionServicio(e.target.value)}
+                  className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none"
+                  required
+                />
               </div>
-            </div>
-          </div>
-        )}
 
-        {/* SECCIÓN 3: GALERÍA Y CATÁLOGO DETALLADO */}
-        {seccion === 'galeria' && (
-          <div className="space-y-6">
-            <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 space-y-4">
-              <h2 className="text-lg font-bold text-white">Agregar Foto al Catálogo con Descripción y Precio</h2>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <input
-                  type="url"
-                  placeholder="URL de la Imagen (ej. https://...)"
-                  value={nuevaFotoUrl}
-                  onChange={(e) => setNuevaFotoUrl(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none"
-                />
-                <input
-                  type="text"
-                  placeholder="Nombre / Descripción Trabajo"
-                  value={nuevaFotoTitulo}
-                  onChange={(e) => setNuevaFotoTitulo(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none"
-                />
-                <input
-                  type="text"
-                  placeholder="Precio ($) Opcional"
-                  value={nuevaFotoPrecio}
-                  onChange={(e) => setNuevaFotoPrecio(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none"
-                />
+              {/* Opción de Seña / Reserva */}
+              <div className="flex items-center gap-4 pt-2">
+                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={reqSena}
+                    onChange={(e) => setReqSena(e.target.checked)}
+                    className="rounded text-indigo-600 focus:ring-0"
+                  />
+                  ¿Requiere reserva / seña previo al turno?
+                </label>
+
+                {reqSena && (
+                  <input
+                    type="number"
+                    placeholder="Monto de la seña ($)"
+                    value={montoSena}
+                    onChange={(e) => setMontoSena(e.target.value)}
+                    className="bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white w-40 focus:outline-none"
+                  />
+                )}
               </div>
 
               <button
-                onClick={handleAgregarFotoGaleria}
-                className="bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 px-6 rounded-xl text-xs transition flex items-center justify-center gap-2"
+                type="submit"
+                disabled={cargando}
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-2xl text-xs transition"
               >
-                <Plus className="w-4 h-4" />
-                <span>Agregar al Catálogo Visual</span>
+                {cargando ? 'Guardando...' : 'Guardar Servicio'}
               </button>
-            </div>
+            </form>
 
-            <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 space-y-3">
-              <h3 className="text-sm font-bold text-slate-300">Catálogo Publicado</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {galeria.map((item: any, idx: number) => (
-                  <div key={idx} className="bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 relative group">
-                    <img src={item.imagen_url} alt={item.titulo} className="w-full h-36 object-cover" />
-                    <button
-                      onClick={() => handleEliminarFotoGaleria(idx)}
-                      className="absolute top-2 right-2 bg-rose-500 text-white p-1.5 rounded-full shadow-lg opacity-80 hover:opacity-100"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                    <div className="p-3">
-                      <p className="font-bold text-white text-xs">{item.titulo}</p>
-                      {item.precio && <p className="text-emerald-400 font-extrabold text-xs mt-1">${item.precio}</p>}
-                    </div>
+            {/* Lista de Servicios */}
+            <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-3">
+              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Servicios Activos</h3>
+
+              {servicios.map((s) => (
+                <div key={s.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
+                  <div>
+                    <p className="font-bold text-sm text-white">{s.nombre}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">⏱️ {s.duracion_minutos || 30} min</p>
+                    {s.requiere_seña && (
+                      <p className="text-[11px] text-amber-400 mt-0.5 font-semibold">
+                        ⚠️ Seña requerida: ${s.monto_seña}
+                      </p>
+                    )}
                   </div>
-                ))}
-              </div>
+                  <span className="font-black text-emerald-400 text-sm">${s.precio}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* SECCIÓN 4: SÚPER CONSTRUCTOR DE MARCA PRO */}
-        {seccion === 'editor' && (
-          <div className="space-y-6 max-w-4xl">
-            
-            {/* Plantillas Pre-diseñadas */}
-            <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 space-y-3">
-              <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                Plantillas & Temas Rápidos
+        {/* CONTENIDO 3: EDICIÓN DE PÁGINA */}
+        {tab === 'marca' && (
+          <div className="space-y-6">
+            <form onSubmit={handleGuardarMarca} className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-4">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Settings className="w-5 h-5 text-indigo-400" />
+                Edición de página
               </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                {TEMAS_PREDISEÑADOS.map((t, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleAplicarTema(t)}
-                    className="p-3 rounded-2xl bg-slate-950 border border-slate-800 text-left hover:border-rose-500 transition text-xs font-bold text-slate-300 space-y-1"
-                  >
-                    <div className="w-full h-3 rounded-md" style={{ backgroundColor: t.principal }}></div>
-                    <p className="truncate text-[11px]">{t.nombre}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
 
-            {/* Opciones Avanzadas */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-900 rounded-3xl p-6 border border-slate-800">
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold text-rose-400 uppercase tracking-wider">Tipografía & Estilo</h3>
-
+              <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Fuente Principal</label>
-                  <select
-                    value={tipoFuente}
-                    onChange={(e) => setTipoFuente(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none"
-                  >
-                    <option value="Plus Jakarta Sans">Plus Jakarta Sans (Ultra Limpia)</option>
-                    <option value="Playfair Display">Playfair Display (Elegante / Lujo)</option>
-                    <option value="Montserrat">Montserrat (Urbana / Barbería)</option>
-                    <option value="Space Grotesk">Space Grotesk (Moderna / Tech)</option>
-                  </select>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Nombre del Negocio</label>
+                  <input
+                    type="text"
+                    value={nombreNegocio}
+                    onChange={(e) => setNombreNegocio(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Forma de Botones</label>
-                  <select
-                    value={bordesRedondeados}
-                    onChange={(e) => setBordesRedondeados(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none"
-                  >
-                    <option value="rounded-none">Rectos (Cuadrados)</option>
-                    <option value="rounded-2xl">Redondeado Clásico</option>
-                    <option value="rounded-3xl">Curva Suave</option>
-                    <option value="rounded-full">Cápsula / Píldora</option>
-                  </select>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Ubicación</label>
+                  <input
+                    type="text"
+                    value={ubicacion}
+                    onChange={(e) => setUbicacion(e.target.value)}
+                    placeholder="Ej. Av. Siempreviva 742, Buenos Aires"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                  />
                 </div>
-              </div>
 
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold text-rose-400 uppercase tracking-wider">Colores Personalizados</h3>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Descripción corta</label>
+                  <textarea
+                    value={descripcion}
+                    onChange={(e) => setDescripcion(e.target.value)}
+                    placeholder="Breve reseña o información de tu negocio..."
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white h-20"
+                  />
+                </div>
 
-                <div className="flex items-center gap-3">
+                {/* Subir Logo / Foto desde el dispositivo */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Cargar Foto de Logo desde el Dispositivo</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileUpload(e, 'logo')}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-400"
+                  />
+                  {logoUrl && (
+                    <img src={logoUrl} alt="Logo Previsto" className="w-12 h-12 rounded-full mt-2 object-cover border border-slate-600" />
+                  )}
+                </div>
+
+                {/* Tamaño de letra */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Tamaño de Letra</label>
+                  <div className="flex gap-2">
+                    {['chica', 'mediano', 'grande'].map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setTamanoFuente(t)}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold capitalize transition border ${
+                          tamanoFuente === t
+                            ? 'bg-indigo-600 text-white border-indigo-500'
+                            : 'bg-slate-900 text-slate-400 border-slate-700'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Color Principal */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Color Principal de Botones</label>
                   <input
                     type="color"
                     value={colorPrincipal}
                     onChange={(e) => setColorPrincipal(e.target.value)}
-                    className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer p-1"
+                    className="w-full h-10 bg-slate-900 border border-slate-700 rounded-xl cursor-pointer"
                   />
-                  <span className="text-xs text-slate-300 font-mono">Color Principal ({colorPrincipal})</span>
                 </div>
-
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={colorFondo}
-                    onChange={(e) => setColorFondo(e.target.value)}
-                    className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer p-1"
-                  />
-                  <span className="text-xs text-slate-300 font-mono">Color de Fondo ({colorFondo})</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Gestor de Redes Sociales */}
-            <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 space-y-4">
-              <h3 className="text-sm font-bold text-white">Redes Sociales & Links Ilimitados</h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <select
-                  value={nuevaRedTipo}
-                  onChange={(e) => setNuevaRedTipo(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none"
-                >
-                  <option value="instagram">Instagram</option>
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="tiktok">TikTok</option>
-                  <option value="web">Sitio Web / CBU</option>
-                </select>
-
-                <input
-                  type="text"
-                  placeholder="Título (ej. Instagram Oficial)"
-                  value={nuevaRedTitulo}
-                  onChange={(e) => setNuevaRedTitulo(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none"
-                />
-
-                <input
-                  type="url"
-                  placeholder="URL Completa (ej. https://...)"
-                  value={nuevaRedUrl}
-                  onChange={(e) => setNuevaRedUrl(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none"
-                />
               </div>
 
               <button
-                onClick={handleAgregarRed}
-                className="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition"
+                type="submit"
+                disabled={cargando}
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-2xl text-xs transition"
               >
-                + Agregar Red Social
+                {cargando ? 'Guardando...' : 'Guardar Cambios de Edición'}
               </button>
+            </form>
 
-              <div className="space-y-2 pt-2">
-                {redesSociales.map((r, i) => (
-                  <div key={i} className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
-                    <div>
-                      <p className="font-bold text-white">{r.titulo}</p>
-                      <p className="text-slate-500 text-[10px]">{r.url}</p>
-                    </div>
-                    <button onClick={() => handleEliminarRed(i)} className="text-slate-500 hover:text-rose-400">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+            {/* Plantillas de Diseño Pro */}
+            <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-3">
+              <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">
+                <Layout className="w-4 h-4 text-indigo-400" /> Plantillas de Diseño Pro
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => aplicarPlantilla('glass')}
+                  className="p-4 bg-slate-900 border border-slate-700 rounded-2xl text-left hover:border-indigo-500 transition space-y-1"
+                >
+                  <p className="font-bold text-xs text-white">💎 Glassmorphism Pro</p>
+                  <p className="text-[10px] text-slate-400">Degradado violeta oscuro con efecto cristal</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => aplicarPlantilla('neon')}
+                  className="p-4 bg-slate-900 border border-slate-700 rounded-2xl text-left hover:border-indigo-500 transition space-y-1"
+                >
+                  <p className="font-bold text-xs text-rose-400">⚡ Cyber Dark</p>
+                  <p className="text-[10px] text-slate-400">Fondo negro absoluto con acentos neón</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => aplicarPlantilla('minimal')}
+                  className="p-4 bg-slate-900 border border-slate-700 rounded-2xl text-left hover:border-indigo-500 transition space-y-1"
+                >
+                  <p className="font-bold text-xs text-slate-200">✨ Minimal Soft</p>
+                  <p className="text-[10px] text-slate-400">Fondo claro con tipografía elegante</p>
+                </button>
               </div>
             </div>
-
-            <button
-              onClick={handlePublicarEstilos}
-              disabled={guardando}
-              className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-4 rounded-2xl text-sm transition shadow-lg shadow-rose-500/20 disabled:opacity-50"
-            >
-              {guardando ? 'Publicando...' : 'Publicar Todo en Vivo 🚀'}
-            </button>
-
           </div>
         )}
 
-      </main>
-
+      </div>
     </div>
   )
 }
