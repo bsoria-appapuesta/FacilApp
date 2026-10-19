@@ -13,7 +13,6 @@ import {
   X, 
   Copy, 
   Check,
-  Info,
   Clock,
   ShieldAlert
 } from 'lucide-react'
@@ -52,6 +51,8 @@ export default function Home() {
   const [whatsapp, setWhatsapp] = useState('')
   const [fecha, setFecha] = useState('')
   const [hora, setHora] = useState('10:00')
+  const [horasOcupadas, setHorasOcupadas] = useState<string[]>([])
+  const [cargandoHorarios, setCargandoHorarios] = useState(false)
   const [cargando, setCargando] = useState(false)
   const [exito, setExito] = useState(false)
   const [linkWa, setLinkWa] = useState('')
@@ -59,6 +60,13 @@ export default function Home() {
   useEffect(() => {
     cargarPerfil()
   }, [])
+
+  // Escuchar cuando cambia la fecha elegida para consultar los turnos ocupados
+  useEffect(() => {
+    if (fecha && negocio) {
+      cargarTurnosOcupados(fecha)
+    }
+  }, [fecha, negocio])
 
   async function cargarPerfil() {
     const { data: negData } = await supabase
@@ -82,6 +90,35 @@ export default function Home() {
     }
   }
 
+  // Consulta turnos ocupados en la fecha dada
+  async function cargarTurnosOcupados(fechaSeleccionada: string) {
+    setCargandoHorarios(true)
+    const inicioDia = `${fechaSeleccionada}T00:00:00`
+    const finDia = `${fechaSeleccionada}T23:59:59`
+
+    const { data: turnosData } = await supabase
+      .from('turnos')
+      .select('fecha_hora')
+      .eq('negocio_id', negocio.id)
+      .gte('fecha_hora', inicioDia)
+      .lte('fecha_hora', finDia)
+      .in('estado', ['pendiente', 'confirmado'])
+
+    if (turnosData) {
+      // Extraemos solo la hora 'HH:MM' de las fechas guardadas
+      const horasReservadas = turnosData.map((t: any) => {
+        const date = new Date(t.fecha_hora)
+        const hh = String(date.getHours()).padStart(2, '0')
+        const mm = String(date.getMinutes()).padStart(2, '0')
+        return `${hh}:${mm}`
+      })
+      setHorasOcupadas(horasReservadas)
+    } else {
+      setHorasOcupadas([])
+    }
+    setCargandoHorarios(false)
+  }
+
   const handleCopiarLink = () => {
     navigator.clipboard.writeText(window.location.href)
     setCopiado(true)
@@ -92,6 +129,11 @@ export default function Home() {
     e.preventDefault()
     if (!nombre || !whatsapp || !fecha || !hora || !servicioSel) {
       alert('Por favor completá todos los campos')
+      return
+    }
+
+    if (horasOcupadas.includes(hora)) {
+      alert('Ese horario ya fue reservado. Por favor elegí otro.')
       return
     }
 
@@ -166,7 +208,7 @@ export default function Home() {
           : tipoFondo === 'imagen' && fondoImagenUrl 
             ? `url(${fondoImagenUrl}) center/cover no-repeat fixed` 
             : colorFondo,
-        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+        fontFamily: negocio?.tipo_fuente || "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
       }}
     >
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -175,7 +217,10 @@ export default function Home() {
         <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[3px] z-0"></div>
       )}
 
-      <div className={`max-w-md w-full bg-white/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl border border-white/40 relative z-10 transition-all ${bordes}`}>
+      <div 
+        className={`max-w-md w-full backdrop-blur-xl p-6 sm:p-8 shadow-2xl border border-white/40 relative z-10 transition-all ${bordes}`}
+        style={{ backgroundColor: negocio?.color_carta || 'rgba(255, 255, 255, 0.95)' }}
+      >
         
         {/* Barra Superior */}
         <div className="flex justify-between items-center mb-6">
@@ -356,22 +401,34 @@ export default function Home() {
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 mb-2 focus:outline-none"
                   />
 
-                  <div className="grid grid-cols-4 gap-1.5 max-h-32 overflow-y-auto p-1 bg-slate-50 border border-slate-200 rounded-xl">
-                    {HORARIOS.map((h) => (
-                      <button
-                        key={h}
-                        type="button"
-                        onClick={() => setHora(h)}
-                        className={`py-2 text-[11px] font-bold rounded-lg transition ${
-                          hora === h
-                            ? 'bg-rose-500 text-white shadow-md'
-                            : 'bg-white text-slate-600 border border-slate-200'
-                        }`}
-                      >
-                        {h}
-                      </button>
-                    ))}
-                  </div>
+                  {cargandoHorarios ? (
+                    <p className="text-xs text-slate-400 text-center py-3">Consultando disponibilidad...</p>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-1.5 max-h-32 overflow-y-auto p-1 bg-slate-50 border border-slate-200 rounded-xl">
+                      {HORARIOS.map((h) => {
+                        const estaOcupado = horasOcupadas.includes(h)
+                        const esSeleccionado = hora === h
+
+                        return (
+                          <button
+                            key={h}
+                            type="button"
+                            disabled={estaOcupado}
+                            onClick={() => setHora(h)}
+                            className={`py-2 text-[11px] font-bold rounded-lg transition ${
+                              estaOcupado
+                                ? 'bg-slate-200 text-slate-400 line-through cursor-not-allowed border border-slate-300'
+                                : esSeleccionado
+                                ? 'bg-rose-500 text-white shadow-md'
+                                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            {h}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -417,7 +474,7 @@ export default function Home() {
 
       </div>
 
-      {/* MODAL DE COMPARTIR CON GMAIL, LINKEDIN Y MÁS */}
+      {/* MODAL DE COMPARTIR */}
       {modalCompartir && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white max-w-sm w-full rounded-3xl p-6 shadow-2xl border border-slate-100 relative space-y-4">
