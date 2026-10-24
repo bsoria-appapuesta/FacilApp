@@ -43,7 +43,7 @@ export default function Home() {
   const [servicios, setServicios] = useState<any[]>([])
   const [servicioSel, setServicioSel] = useState<any>(null)
   
-  // Si es null, el formulario de turno está cerrado
+  // Formulario colapsable para solicitar turnos
   const [seccionAbierta, setSeccionAbierta] = useState<'turnos' | null>(null)
   const [modalCompartir, setModalCompartir] = useState(false)
   const [copiado, setCopiado] = useState(false)
@@ -260,7 +260,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* MÓDULOS DE REDES SOCIALES: LOGO + NOMBRE DE LA RED + @ O NÚMERO */}
+        {/* Redes Sociales */}
         <div className="space-y-3 mb-6">
           {redesList.map((red) => (
             <a
@@ -287,7 +287,7 @@ export default function Home() {
             </a>
           ))}
 
-          {/* BOTÓN PRINCIPAL PARA DESPLEGAR/OCULTAR TURNOS */}
+          {/* Botón Colapsable para Turnos */}
           <button
             onClick={() => setSeccionAbierta(seccionAbierta === 'turnos' ? null : 'turnos')}
             style={{ backgroundColor: colorPrincipal }}
@@ -306,7 +306,7 @@ export default function Home() {
           </button>
         </div>
 
-        {/* FORMULARIO DE RESERVAS (DESPLEGABLE / OCULTABLE) */}
+        {/* Formulario que se despliega si tocan el botón */}
         {seccionAbierta === 'turnos' && (
           <div className="border-t border-slate-100 pt-5 space-y-4 mb-6">
             {exito ? (
@@ -446,7 +446,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* LISTADO FIJO DE SERVICIOS */}
+        {/* LISTADO FIJO Y PERMANENTE DE SERVICIOS */}
         <div className="border-t border-slate-100 pt-5 space-y-3 mb-6">
           <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-slate-400" />
@@ -524,7 +524,7 @@ export default function Home() {
 
       </div>
 
-      {/* MODAL DE COMPARTIR */}
+      {/* Modal Compartir */}
       {modalCompartir && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white max-w-sm w-full rounded-3xl p-6 shadow-2xl border border-slate-100 relative space-y-4">
