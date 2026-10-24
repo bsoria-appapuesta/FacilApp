@@ -14,7 +14,9 @@ import {
   CheckCircle2,
   Share2,
   Pencil,
-  X
+  X,
+  ExternalLink,
+  Globe
 } from 'lucide-react'
 
 import { 
@@ -22,12 +24,20 @@ import {
   FaInstagram, 
   FaTiktok, 
   FaFacebook, 
-  FaLinkedin 
+  FaLinkedin,
+  FaYoutube
 } from 'react-icons/fa'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+interface RedItem {
+  id: string
+  plataforma: 'whatsapp' | 'instagram' | 'facebook' | 'tiktok' | 'linkedin' | 'youtube' | 'web'
+  titulo: string
+  url: string
+}
 
 export default function AdminPage() {
   const [tab, setTab] = useState<'turnos' | 'servicios' | 'marca'>('turnos')
@@ -47,12 +57,12 @@ export default function AdminPage() {
   const [ubicacion, setUbicacion] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
-  
-  // Redes Sociales
-  const [instagram, setInstagram] = useState('')
-  const [tiktok, setTiktok] = useState('')
-  const [facebook, setFacebook] = useState('')
-  const [linkedin, setLinkedin] = useState('')
+
+  // Gestor de Redes Sociales
+  const [redes, setRedes] = useState<RedItem[]>([])
+  const [redPlataforma, setRedPlataforma] = useState<RedItem['plataforma']>('instagram')
+  const [redTitulo, setRedTitulo] = useState('')
+  const [redUrl, setRedUrl] = useState('')
 
   const [colorPrincipal, setColorPrincipal] = useState('#6366f1')
   const [colorFondo, setColorFondo] = useState('#0f172a')
@@ -62,7 +72,7 @@ export default function AdminPage() {
   const [fondoImagenUrl, setFondoImagenUrl] = useState('')
   const [logoUrl, setLogoUrl] = useState('')
 
-  // Catálogo Visual / Galería con fotos y precio
+  // Catálogo Visual / Galería
   const [galeria, setGaleria] = useState<any[]>([])
   const [itemTitulo, setItemTitulo] = useState('')
   const [itemPrecio, setItemPrecio] = useState('')
@@ -80,11 +90,57 @@ export default function AdminPage() {
       setUbicacion(negData.ubicacion || '')
       setDescripcion(negData.descripcion || '')
       setWhatsapp(negData.whatsapp || '')
-      
-      setInstagram(negData.instagram || negData.instagram_username || '')
-      setTiktok(negData.tiktok || negData.tiktok_username || '')
-      setFacebook(negData.facebook || '')
-      setLinkedin(negData.linkedin || '')
+
+      // Cargar redes sociales guardadas
+      if (Array.isArray(negData.redes_sociales) && negData.redes_sociales.length > 0) {
+        setRedes(negData.redes_sociales)
+      } else {
+        // Migración automática de campos sueltos viejos si existen
+        const iniciales: RedItem[] = []
+        if (negData.whatsapp) {
+          iniciales.push({
+            id: 'wa-1',
+            plataforma: 'whatsapp',
+            titulo: 'WhatsApp Directo',
+            url: `https://wa.me/${negData.whatsapp.replace(/\D/g, '')}`
+          })
+        }
+        if (negData.instagram || negData.instagram_username) {
+          const u = (negData.instagram || negData.instagram_username).replace('@', '')
+          iniciales.push({
+            id: 'ig-1',
+            plataforma: 'instagram',
+            titulo: `@${u}`,
+            url: `https://instagram.com/${u}`
+          })
+        }
+        if (negData.tiktok || negData.tiktok_username) {
+          const t = (negData.tiktok || negData.tiktok_username).replace('@', '')
+          iniciales.push({
+            id: 'tk-1',
+            plataforma: 'tiktok',
+            titulo: `@${t}`,
+            url: `https://tiktok.com/@${t}`
+          })
+        }
+        if (negData.facebook) {
+          iniciales.push({
+            id: 'fb-1',
+            plataforma: 'facebook',
+            titulo: 'Facebook',
+            url: negData.facebook.startsWith('http') ? negData.facebook : `https://facebook.com/${negData.facebook}`
+          })
+        }
+        if (negData.linkedin) {
+          iniciales.push({
+            id: 'lk-1',
+            plataforma: 'linkedin',
+            titulo: 'LinkedIn',
+            url: negData.linkedin.startsWith('http') ? negData.linkedin : `https://linkedin.com/in/${negData.linkedin}`
+          })
+        }
+        setRedes(iniciales)
+      }
 
       setColorPrincipal(negData.color_principal || '#6366f1')
       setColorFondo(negData.color_fondo || '#0f172a')
@@ -158,7 +214,7 @@ export default function AdminPage() {
     }
   }
 
-  // GUARDAR / EDITAR SERVICIO
+  // GESTOR DE SERVICIOS
   async function handleGuardarServicio(e: React.FormEvent) {
     e.preventDefault()
     if (!nomServicio || !precioServicio || !negocio) {
@@ -182,7 +238,7 @@ export default function AdminPage() {
         alert('Error al editar servicio: ' + error.message)
       } else {
         cancelarEdicionServicio()
-        alert('¡Servicio actualizado con éxito!')
+        alert('¡Servicio actualizado!')
         cargarDatos()
       }
     } else {
@@ -235,11 +291,71 @@ export default function AdminPage() {
     if (error) {
       alert('Error al eliminar servicio: ' + error.message)
     } else {
-      alert('Servicio eliminado')
       cargarDatos()
     }
   }
 
+  // GESTOR DE REDES SOCIALES
+  function handleAgregarRed() {
+    if (!redUrl.trim()) {
+      alert('Por favor ingresá la URL o enlace directo de la red')
+      return
+    }
+
+    let urlFinal = redUrl.trim()
+    if (redPlataforma === 'whatsapp') {
+      const num = urlFinal.replace(/\D/g, '')
+      if (!urlFinal.startsWith('http')) {
+        urlFinal = `https://wa.me/${num}`
+      }
+    } else if (!urlFinal.startsWith('http://') && !urlFinal.startsWith('https://')) {
+      if (redPlataforma === 'instagram') urlFinal = `https://instagram.com/${urlFinal.replace('@', '')}`
+      else if (redPlataforma === 'tiktok') urlFinal = `https://tiktok.com/@${urlFinal.replace('@', '')}`
+      else if (redPlataforma === 'facebook') urlFinal = `https://facebook.com/${urlFinal}`
+      else if (redPlataforma === 'linkedin') urlFinal = `https://linkedin.com/in/${urlFinal}`
+      else if (redPlataforma === 'youtube') urlFinal = `https://youtube.com/@${urlFinal.replace('@', '')}`
+      else urlFinal = `https://${urlFinal}`
+    }
+
+    const defaultTitulos: Record<RedItem['plataforma'], string> = {
+      whatsapp: 'WhatsApp Directo',
+      instagram: 'Instagram Oficial',
+      facebook: 'Página de Facebook',
+      tiktok: 'TikTok',
+      linkedin: 'Perfil de LinkedIn',
+      youtube: 'Canal de YouTube',
+      web: 'Sitio Web'
+    }
+
+    const nuevoItem: RedItem = {
+      id: `${Date.now()}`,
+      plataforma: redPlataforma,
+      titulo: redTitulo.trim() || defaultTitulos[redPlataforma],
+      url: urlFinal
+    }
+
+    setRedes([...redes, nuevoItem])
+    setRedTitulo('')
+    setRedUrl('')
+  }
+
+  function handleEliminarRed(id: string) {
+    setRedes(redes.filter((r) => r.id !== id))
+  }
+
+  function renderIconoRed(plat: RedItem['plataforma']) {
+    switch (plat) {
+      case 'whatsapp': return <FaWhatsapp className="w-5 h-5 text-emerald-400" />
+      case 'instagram': return <FaInstagram className="w-5 h-5 text-pink-400" />
+      case 'tiktok': return <FaTiktok className="w-5 h-5 text-white" />
+      case 'facebook': return <FaFacebook className="w-5 h-5 text-blue-400" />
+      case 'linkedin': return <FaLinkedin className="w-5 h-5 text-sky-400" />
+      case 'youtube': return <FaYoutube className="w-5 h-5 text-rose-500" />
+      default: return <Globe className="w-5 h-5 text-indigo-400" />
+    }
+  }
+
+  // GALERÍA
   function handleAgregarItemGaleria() {
     if (!itemTitulo || !itemImagenUrl) {
       alert('Subí una imagen y escribí un título para el producto')
@@ -257,10 +373,10 @@ export default function AdminPage() {
   }
 
   function handleEliminarItemGaleria(index: number) {
-    const actualizada = galeria.filter((_, i) => i !== index)
-    setGaleria(actualizada)
+    setGaleria(galeria.filter((_, i) => i !== index))
   }
 
+  // GUARDAR TODO
   async function handleGuardarMarca(e: React.FormEvent) {
     e.preventDefault()
     if (!negocio) return
@@ -273,10 +389,7 @@ export default function AdminPage() {
         ubicacion,
         descripcion,
         whatsapp,
-        instagram,
-        tiktok,
-        facebook,
-        linkedin,
+        redes_sociales: redes,
         color_principal: colorPrincipal,
         color_fondo: colorFondo,
         color_carta: colorCarta,
@@ -292,7 +405,7 @@ export default function AdminPage() {
     if (error) {
       alert('Error al guardar cambios: ' + error.message)
     } else {
-      alert('¡Todos los cambios de diseño, redes y fotos fueron guardados!')
+      alert('¡Todos los cambios de redes, diseño y fotos fueron guardados!')
       cargarDatos()
     }
   }
@@ -336,7 +449,7 @@ export default function AdminPage() {
               tab === 'marca' ? 'bg-indigo-600 text-white' : 'text-slate-400'
             }`}
           >
-            Edición de página
+            Edición de página & Redes
           </button>
         </div>
 
@@ -388,7 +501,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* PESTAÑA 2: SERVICIOS CON EDICIÓN Y ELIMINACIÓN */}
+        {/* PESTAÑA 2: SERVICIOS */}
         {tab === 'servicios' && (
           <div className="space-y-6">
             <form onSubmit={handleGuardarServicio} className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-4">
@@ -483,7 +596,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* PESTAÑA 3: EDICIÓN DE PÁGINA */}
+        {/* PESTAÑA 3: EDICIÓN DE PÁGINA & REDES */}
         {tab === 'marca' && (
           <form onSubmit={handleGuardarMarca} className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-6">
             <h2 className="text-lg font-bold text-white">Edición de página y Estilos</h2>
@@ -512,7 +625,7 @@ export default function AdminPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">WhatsApp de Reservas</label>
+                <label className="block text-xs font-bold text-slate-400 mb-1">WhatsApp para Notificaciones de Turnos</label>
                 <input
                   type="text"
                   value={whatsapp}
@@ -546,94 +659,108 @@ export default function AdminPage() {
               />
             </div>
 
-            {/* SECCIÓN DISEÑO DE REDES SOCIALES EN TARJETAS CON ESTILO */}
+            {/* SECCIÓN REDES SOCIALES: NOMBRE + URL DIRECTA */}
             <div className="border-t border-slate-700 pt-5 space-y-4">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Share2 className="w-4 h-4 text-indigo-400" />
-                Redes Sociales Oficiales
-              </h3>
-              <p className="text-xs text-slate-400">Completá sólo las que utilices. Podés pegar el link directo o tu nombre de usuario.</p>
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Share2 className="w-4 h-4 text-indigo-400" />
+                  Botones y Enlaces de Redes Sociales
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Podés definir el nombre visible del botón (o tu @usuario) y la URL exacta a donde dirigirá al cliente.
+                </p>
+              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-700 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
-                    <FaWhatsapp className="w-5 h-5" />
+              {/* Formulario para agregar una red */}
+              <div className="bg-slate-900 p-4 rounded-2xl border border-slate-700 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Plataforma</label>
+                    <select
+                      value={redPlataforma}
+                      onChange={(e) => setRedPlataforma(e.target.value as RedItem['plataforma'])}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                    >
+                      <option value="whatsapp">WhatsApp</option>
+                      <option value="instagram">Instagram</option>
+                      <option value="facebook">Facebook</option>
+                      <option value="tiktok">TikTok</option>
+                      <option value="linkedin">LinkedIn</option>
+                      <option value="youtube">YouTube</option>
+                      <option value="web">Sitio Web / Link Libre</option>
+                    </select>
                   </div>
-                  <div className="flex-1">
-                    <label className="block text-[11px] font-bold text-slate-300">WhatsApp Directo</label>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Texto o Nombre / @ (Visible)</label>
                     <input
                       type="text"
-                      placeholder="Ej. 1122334455"
-                      value={whatsapp}
-                      onChange={(e) => setWhatsapp(e.target.value)}
-                      className="w-full bg-transparent text-xs text-white focus:outline-none mt-0.5"
+                      placeholder="Ej: @tu_marca o Seguinos"
+                      value={redTitulo}
+                      onChange={(e) => setRedTitulo(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Enlace / URL de Destino (Link)</label>
+                    <input
+                      type="text"
+                      placeholder="https://... o tu usuario"
+                      value={redUrl}
+                      onChange={(e) => setRedUrl(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
                     />
                   </div>
                 </div>
 
-                <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-700 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-400 flex items-center justify-center shrink-0 border border-pink-500/20">
-                    <FaInstagram className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-[11px] font-bold text-slate-300">Instagram</label>
-                    <input
-                      type="text"
-                      placeholder="Ej. @tu_marca"
-                      value={instagram}
-                      onChange={(e) => setInstagram(e.target.value)}
-                      className="w-full bg-transparent text-xs text-white focus:outline-none mt-0.5"
-                    />
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleAgregarRed}
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-indigo-300 font-bold py-2.5 rounded-xl text-xs border border-indigo-500/30 flex items-center justify-center gap-1.5 transition"
+                >
+                  <Plus className="w-4 h-4" /> Agregar Red Social a la Página
+                </button>
+              </div>
 
-                <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-700 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-slate-800 text-white flex items-center justify-center shrink-0 border border-slate-700">
-                    <FaTiktok className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-[11px] font-bold text-slate-300">TikTok</label>
-                    <input
-                      type="text"
-                      placeholder="Ej. @tu_cuenta"
-                      value={tiktok}
-                      onChange={(e) => setTiktok(e.target.value)}
-                      className="w-full bg-transparent text-xs text-white focus:outline-none mt-0.5"
-                    />
-                  </div>
-                </div>
+              {/* Lista de redes añadidas */}
+              <div className="space-y-2">
+                {redes.length === 0 ? (
+                  <p className="text-xs text-slate-500 text-center py-3 bg-slate-900/50 rounded-xl">
+                    No agregaste ninguna red todavía.
+                  </p>
+                ) : (
+                  redes.map((r) => (
+                    <div key={r.id} className="bg-slate-900 p-3.5 rounded-2xl border border-slate-700 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center shrink-0">
+                          {renderIconoRed(r.plataforma)}
+                        </div>
+                        <div className="truncate">
+                          <p className="text-xs font-bold text-white truncate">{r.titulo}</p>
+                          <a
+                            href={r.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] text-slate-400 hover:text-indigo-400 flex items-center gap-1 truncate"
+                          >
+                            <span className="truncate">{r.url}</span>
+                            <ExternalLink className="w-3 h-3 shrink-0" />
+                          </a>
+                        </div>
+                      </div>
 
-                <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-700 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/20">
-                    <FaFacebook className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-[11px] font-bold text-slate-300">Facebook</label>
-                    <input
-                      type="text"
-                      placeholder="Ej. tu_pagina"
-                      value={facebook}
-                      onChange={(e) => setFacebook(e.target.value)}
-                      className="w-full bg-transparent text-xs text-white focus:outline-none mt-0.5"
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-700 flex items-center gap-3 sm:col-span-2">
-                  <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center shrink-0 border border-sky-500/20">
-                    <FaLinkedin className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-[11px] font-bold text-slate-300">LinkedIn</label>
-                    <input
-                      type="text"
-                      placeholder="Ej. tu_perfil_profesional"
-                      value={linkedin}
-                      onChange={(e) => setLinkedin(e.target.value)}
-                      className="w-full bg-transparent text-xs text-white focus:outline-none mt-0.5"
-                    />
-                  </div>
-                </div>
+                      <button
+                        type="button"
+                        onClick={() => handleEliminarRed(r.id)}
+                        className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-xl transition shrink-0"
+                        title="Eliminar red"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
