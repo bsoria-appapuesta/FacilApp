@@ -15,7 +15,8 @@ import {
   Check, 
   Clock, 
   ShieldAlert, 
-  Globe
+  Globe,
+  ChevronDown
 } from 'lucide-react'
 
 import { 
@@ -43,6 +44,9 @@ export default function Home() {
   const [servicios, setServicios] = useState<any[]>([])
   const [servicioSel, setServicioSel] = useState<any>(null)
   
+  // Estado para desplegar/cerrar la lista de servicios
+  const [serviciosDesplegados, setServiciosDesplegados] = useState(false)
+
   // Formulario colapsable para solicitar turnos
   const [seccionAbierta, setSeccionAbierta] = useState<'turnos' | null>(null)
   const [modalCompartir, setModalCompartir] = useState(false)
@@ -306,7 +310,7 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Formulario que se despliega si tocan el botón */}
+        {/* Formulario de Reservas */}
         {seccionAbierta === 'turnos' && (
           <div className="border-t border-slate-100 pt-5 space-y-4 mb-6">
             {exito ? (
@@ -351,7 +355,7 @@ export default function Home() {
                             <p className="font-bold text-slate-800 text-xs">{s.nombre}</p>
                             <div className="flex items-center gap-2 text-[10px] text-slate-500">
                               <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> {s.duracion_minutos || 30} min
+                                <Clock className="w-3 h-3 text-slate-400" /> {s.duracion_minutos || 30} min
                               </span>
                               {s.requiere_seña && (
                                 <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-md font-bold text-[9px]">
@@ -446,60 +450,74 @@ export default function Home() {
           </div>
         )}
 
-        {/* LISTADO DE SERVICIOS TIPO MENÚ / LISTA LIMPIA */}
+        {/* LISTA DESPLEGABLE DE SERVICIOS */}
         <div className="border-t border-slate-100 pt-5 space-y-3 mb-6">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-slate-400" />
-              Nuestros Servicios
-            </p>
-            <span className="text-[10px] text-slate-400">Tocá para reservar</span>
-          </div>
+          <button
+            type="button"
+            onClick={() => setServiciosDesplegados(!serviciosDesplegados)}
+            className="w-full bg-white hover:bg-slate-50/80 border border-slate-200/80 p-3.5 rounded-2xl flex items-center justify-between shadow-sm transition active:scale-[0.99]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <p className="font-extrabold text-slate-900 text-sm">Nuestros Servicios</p>
+                <p className="text-xs text-slate-400 font-medium">Tocá para ver lista y precios</p>
+              </div>
+            </div>
+            <ChevronDown 
+              className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${serviciosDesplegados ? 'rotate-180 text-slate-700' : ''}`} 
+            />
+          </button>
 
-          <div className="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-sm overflow-hidden">
-            {servicios.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-4">
-                No hay servicios cargados actualmente.
-              </p>
-            ) : (
-              servicios.map((s) => (
-                <div
-                  key={s.id}
-                  onClick={() => {
-                    setServicioSel(s)
-                    setSeccionAbierta('turnos')
-                  }}
-                  className="p-3.5 hover:bg-slate-50 transition-colors flex justify-between items-center cursor-pointer group"
-                >
-                  <div className="space-y-0.5">
-                    <p className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 transition-colors">
-                      {s.nombre}
-                    </p>
-                    <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-slate-400" /> {s.duracion_minutos || 30} min
-                      </span>
-                      {s.requiere_seña && (
-                        <span className="bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-bold text-[9px]">
-                          Seña: ${s.monto_seña}
+          {/* Contenido desplegado */}
+          {serviciosDesplegados && (
+            <div className="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-sm overflow-hidden transition-all duration-300">
+              {servicios.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-4">
+                  No hay servicios cargados actualmente.
+                </p>
+              ) : (
+                servicios.map((s) => (
+                  <div
+                    key={s.id}
+                    onClick={() => {
+                      setServicioSel(s)
+                      setSeccionAbierta('turnos')
+                    }}
+                    className="p-3.5 hover:bg-slate-50 transition-colors flex justify-between items-center cursor-pointer group"
+                  >
+                    <div className="space-y-0.5">
+                      <p className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 transition-colors">
+                        {s.nombre}
+                      </p>
+                      <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-slate-400" /> {s.duracion_minutos || 30} min
                         </span>
-                      )}
+                        {s.requiere_seña && (
+                          <span className="bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-bold text-[9px]">
+                            Seña: ${s.monto_seña}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-right flex items-center gap-2">
+                      <span 
+                        style={{ color: colorPrincipal }}
+                        className="font-black text-sm tracking-tight"
+                      >
+                        ${s.precio}
+                      </span>
+                      <span className="text-slate-300 group-hover:text-slate-500 text-xs transition-colors">›</span>
                     </div>
                   </div>
-
-                  <div className="text-right flex items-center gap-2">
-                    <span 
-                      style={{ color: colorPrincipal }}
-                      className="font-black text-sm tracking-tight"
-                    >
-                      ${s.precio}
-                    </span>
-                    <span className="text-slate-300 group-hover:text-slate-500 text-xs transition-colors">›</span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         {/* Catálogo Visual de Galería */}
