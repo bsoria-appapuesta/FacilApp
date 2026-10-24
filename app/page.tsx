@@ -3,562 +3,666 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { 
-  Share2, 
   Calendar, 
-  Plus, 
-  MapPin, 
-  ExternalLink, 
-  ImageIcon, 
   Settings, 
-  X, 
-  Copy, 
-  Check,
-  Clock,
-  ShieldAlert
+  Clock, 
+  Plus, 
+  Upload, 
+  Check, 
+  Image as ImageIcon,
+  Trash2,
+  CheckCircle2,
+  Share2
 } from 'lucide-react'
-
-import { 
-  FaWhatsapp, 
-  FaInstagram, 
-  FaTiktok, 
-  FaFacebook, 
-  FaTwitter, 
-  FaLinkedin, 
-  FaGlobe, 
-  FaEnvelope 
-} from 'react-icons/fa'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-const HORARIOS = [
-  '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-  '12:00', '12:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'
-]
-
-export default function Home() {
+export default function AdminPage() {
+  const [tab, setTab] = useState<'turnos' | 'servicios' | 'marca'>('turnos')
   const [negocio, setNegocio] = useState<any>(null)
+  const [turnos, setTurnos] = useState<any[]>([])
   const [servicios, setServicios] = useState<any[]>([])
-  const [servicioSel, setServicioSel] = useState<any>(null)
-  
-  const [seccionAbierta, setSeccionAbierta] = useState<'turnos' | null>('turnos')
-  const [modalCompartir, setModalCompartir] = useState(false)
-  const [copiado, setCopiado] = useState(false)
-  
-  // Formulario de reserva
-  const [nombre, setNombre] = useState('')
-  const [whatsapp, setWhatsapp] = useState('')
-  const [fecha, setFecha] = useState('')
-  const [hora, setHora] = useState('10:00')
-  const [horasOcupadas, setHorasOcupadas] = useState<string[]>([])
-  const [cargandoHorarios, setCargandoHorarios] = useState(false)
   const [cargando, setCargando] = useState(false)
-  const [exito, setExito] = useState(false)
-  const [linkWa, setLinkWa] = useState('')
+
+  // Formulario Nuevo Servicio
+  const [nomServicio, setNomServicio] = useState('')
+  const [precioServicio, setPrecioServicio] = useState('')
+  const [duracionServicio, setDuracionServicio] = useState('30')
+
+  // Formulario Edición de Página / Estilos
+  const [nombreNegocio, setNombreNegocio] = useState('')
+  const [ubicacion, setUbicacion] = useState('')
+  const [descripcion, setDescripcion] = useState('')
+  const [whatsapp, setWhatsapp] = useState('')
+  
+  // Redes Sociales Nuevas
+  const [instagram, setInstagram] = useState('')
+  const [tiktok, setTiktok] = useState('')
+  const [facebook, setFacebook] = useState('')
+  const [linkedin, setLinkedin] = useState('')
+
+  const [colorPrincipal, setColorPrincipal] = useState('#6366f1')
+  const [colorFondo, setColorFondo] = useState('#0f172a')
+  const [colorCarta, setColorCarta] = useState('#ffffff')
+  const [tipoFuente, setTipoFuente] = useState('sans-serif')
+  const [tipoFondo, setTipoFondo] = useState('color')
+  const [fondoImagenUrl, setFondoImagenUrl] = useState('')
+  const [logoUrl, setLogoUrl] = useState('')
+
+  // Catálogo Visual / Galería con fotos y precio
+  const [galeria, setGaleria] = useState<any[]>([])
+  const [itemTitulo, setItemTitulo] = useState('')
+  const [itemPrecio, setItemPrecio] = useState('')
+  const [itemImagenUrl, setItemImagenUrl] = useState('')
 
   useEffect(() => {
-    cargarPerfil()
+    cargarDatos()
   }, [])
 
-  useEffect(() => {
-    if (fecha && negocio) {
-      cargarTurnosOcupados(fecha)
-    }
-  }, [fecha, negocio])
-
-  async function cargarPerfil() {
-    const { data: negData } = await supabase
-      .from('negocios')
-      .select('*')
-      .limit(1)
-      .single()
-
+  async function cargarDatos() {
+    const { data: negData } = await supabase.from('negocios').select('*').limit(1).single()
     if (negData) {
       setNegocio(negData)
+      setNombreNegocio(negData.nombre || '')
+      setUbicacion(negData.ubicacion || '')
+      setDescripcion(negData.descripcion || '')
+      setWhatsapp(negData.whatsapp || '')
+      
+      // Cargar Redes Sociales
+      setInstagram(negData.instagram || negData.instagram_username || '')
+      setTiktok(negData.tiktok || negData.tiktok_username || '')
+      setFacebook(negData.facebook || '')
+      setLinkedin(negData.linkedin || '')
+
+      setColorPrincipal(negData.color_principal || '#6366f1')
+      setColorFondo(negData.color_fondo || '#0f172a')
+      setColorCarta(negData.color_carta || '#ffffff')
+      setTipoFuente(negData.tipo_fuente || 'sans-serif')
+      setTipoFondo(negData.tipo_fondo || 'color')
+      setFondoImagenUrl(negData.fondo_imagen_url || '')
+      setLogoUrl(negData.logo_url || '')
+      setGaleria(negData.galeria_detallada || [])
+
+      const { data: turnosData } = await supabase
+        .from('turnos')
+        .select('*, servicios(nombre)')
+        .eq('negocio_id', negData.id)
+        .order('fecha_hora', { ascending: false })
+
+      if (turnosData) setTurnos(turnosData)
+
       const { data: servData } = await supabase
         .from('servicios')
         .select('*')
         .eq('negocio_id', negData.id)
-        .eq('activo', true)
 
-      if (servData && servData.length > 0) {
-        setServicios(servData)
-        setServicioSel(servData[0])
-      }
+      if (servData) setServicios(servData)
     }
   }
 
-  async function cargarTurnosOcupados(fechaSeleccionada: string) {
-    setCargandoHorarios(true)
-    const inicioDia = `${fechaSeleccionada}T00:00:00`
-    const finDia = `${fechaSeleccionada}T23:59:59`
+  // Subir Foto (Logo, Fondo o Producto de Catálogo) desde dispositivo
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>, campo: 'logo' | 'fondo' | 'catalogo') {
+    const file = e.target.files?.[0]
+    if (!file) return
 
-    const { data: turnosData } = await supabase
-      .from('turnos')
-      .select('fecha_hora')
-      .eq('negocio_id', negocio.id)
-      .gte('fecha_hora', inicioDia)
-      .lte('fecha_hora', finDia)
-      .in('estado', ['pendiente', 'confirmado'])
+    setCargando(true)
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${Math.random()}.${fileExt}`
 
-    if (turnosData) {
-      const horasReservadas = turnosData.map((t: any) => {
-        const date = new Date(t.fecha_hora)
-        const hh = String(date.getHours()).padStart(2, '0')
-        const mm = String(date.getMinutes()).padStart(2, '0')
-        return `${hh}:${mm}`
-      })
-      setHorasOcupadas(horasReservadas)
-    } else {
-      setHorasOcupadas([])
-    }
-    setCargandoHorarios(false)
-  }
+    const { error: uploadError } = await supabase.storage
+      .from('facilapp-uploads')
+      .upload(fileName, file)
 
-  const handleCopiarLink = () => {
-    navigator.clipboard.writeText(window.location.href)
-    setCopiado(true)
-    setTimeout(() => setCopiado(false), 2000)
-  }
-
-  const handleReservar = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!nombre || !whatsapp || !fecha || !hora || !servicioSel) {
-      alert('Por favor completá todos los campos')
+    if (uploadError) {
+      alert('Error al subir imagen: ' + uploadError.message)
+      setCargando(false)
       return
     }
 
-    if (horasOcupadas.includes(hora)) {
-      alert('Ese horario ya fue reservado. Por favor elegí otro.')
+    const { data: publicUrlData } = supabase.storage
+      .from('facilapp-uploads')
+      .getPublicUrl(fileName)
+
+    setCargando(false)
+    if (campo === 'logo') setLogoUrl(publicUrlData.publicUrl)
+    if (campo === 'fondo') setFondoImagenUrl(publicUrlData.publicUrl)
+    if (campo === 'catalogo') setItemImagenUrl(publicUrlData.publicUrl)
+    alert('Imagen subida correctamente')
+  }
+
+  // CONFIRMAR TURNO DESDE ADMIN
+  async function handleConfirmarTurno(turnoId: string) {
+    setCargando(true)
+    const { error } = await supabase
+      .from('turnos')
+      .update({ estado: 'confirmado' })
+      .eq('id', turnoId)
+
+    setCargando(false)
+    if (error) {
+      alert('Error al confirmar turno: ' + error.message)
+    } else {
+      alert('¡Turno confirmado con éxito!')
+      cargarDatos()
+    }
+  }
+
+  // GUARDAR NUEVO SERVICIO
+  async function handleAgregarServicio(e: React.FormEvent) {
+    e.preventDefault()
+    if (!nomServicio || !precioServicio || !negocio) {
+      alert('Completá nombre y precio del servicio')
       return
     }
 
     setCargando(true)
-    const fechaHora = new Date(`${fecha}T${hora}:00`).toISOString()
-
-    const { error } = await supabase.from('turnos').insert([
+    const { error } = await supabase.from('servicios').insert([
       {
         negocio_id: negocio.id,
-        servicio_id: servicioSel.id,
-        cliente_nombre: nombre,
-        cliente_whatsapp: whatsapp,
-        fecha_hora: fechaHora,
-        monto_cobrado: servicioSel.precio || 0,
-        estado: 'pendiente'
+        nombre: nomServicio,
+        precio: parseFloat(precioServicio),
+        duracion_minutos: parseInt(duracionServicio || '30'),
+        activo: true
       }
     ])
 
     setCargando(false)
-
     if (error) {
-      alert('Error al guardar la reserva: ' + error.message)
+      alert('Error al guardar servicio: ' + error.message)
     } else {
-      setExito(true)
-      const textoSena = servicioSel.requiere_seña 
-        ? `%0A⚠️ *Reserva / Seña requerida:* $${servicioSel.monto_seña}` 
-        : ''
-
-      const msg = `¡Hola ${negocio.nombre}! 👋%0AMi nombre es *${nombre}*.%0A%0AQuiero reservar:%0A📌 *Servicio:* ${servicioSel.nombre}%0A📅 *Fecha:* ${fecha}%0A⏰ *Hora:* ${hora} hs%0A💰 *Precio:* $${servicioSel.precio}${textoSena}%0A%0A¿Me confirmás el turno?`
-      setLinkWa(`https://wa.me/${negocio.whatsapp}?text=${msg}`)
+      setNomServicio('')
+      setPrecioServicio('')
+      setDuracionServicio('30')
+      alert('¡Servicio guardado con éxito!')
+      cargarDatos()
     }
   }
 
-  const colorPrincipal = negocio?.color_principal || '#6366f1'
-  const colorFondo = negocio?.color_fondo || '#0f172a'
-  const tipoFondo = negocio?.tipo_fondo || 'degradado'
-  const fondoDegradado = negocio?.fondo_degradado || 'linear-gradient(to bottom, #1e293b, #0f172a)'
-  const fondoImagenUrl = negocio?.fondo_imagen_url || ''
-  const bordes = negocio?.bordes_redondeados || 'rounded-3xl'
-
-  const getRedSocialIcon = (tipo: string) => {
-    switch (tipo.toLowerCase()) {
-      case 'whatsapp': return <FaWhatsapp className="w-5 h-5 text-emerald-500" />
-      case 'instagram': return <FaInstagram className="w-5 h-5 text-pink-500" />
-      case 'tiktok': return <FaTiktok className="w-5 h-5 text-slate-900" />
-      case 'facebook': return <FaFacebook className="w-5 h-5 text-blue-600" />
-      case 'linkedin': return <FaLinkedin className="w-5 h-5 text-sky-600" />
-      case 'twitter': return <FaTwitter className="w-5 h-5 text-sky-400" />
-      default: return <FaGlobe className="w-5 h-5 text-indigo-500" />
+  // AGREGAR ITEM A GALERÍA / CATÁLOGO DE FOTOS
+  function handleAgregarItemGaleria() {
+    if (!itemTitulo || !itemImagenUrl) {
+      alert('Subí una imagen y escribí un título para el producto')
+      return
     }
+    const nuevo = {
+      titulo: itemTitulo,
+      precio: itemPrecio,
+      imagen_url: itemImagenUrl
+    }
+    setGaleria([...galeria, nuevo])
+    setItemTitulo('')
+    setItemPrecio('')
+    setItemImagenUrl('')
   }
 
-  // Si tiene redes cargadas las usa, sino arma las básicas por defecto
-  const redesList = (negocio?.redes_sociales && negocio.redes_sociales.length > 0)
-    ? negocio.redes_sociales
-    : [
-        ...(negocio?.whatsapp ? [{ tipo: 'whatsapp', titulo: 'WhatsApp Directo', url: `https://wa.me/${negocio.whatsapp}` }] : []),
-        ...(negocio?.instagram_username ? [{ tipo: 'instagram', titulo: 'Instagram Oficial', url: `https://instagram.com/${negocio.instagram_username.replace('@','')}` }] : []),
-        ...(negocio?.tiktok_username ? [{ tipo: 'tiktok', titulo: 'TikTok', url: `https://tiktok.com/@${negocio.tiktok_username.replace('@','')}` }] : [])
-      ]
+  function handleEliminarItemGaleria(index: number) {
+    const actualizada = galeria.filter((_, i) => i !== index)
+    setGaleria(actualizada)
+  }
 
-  const galeriaLista = negocio?.galeria_detallada?.length > 0
-    ? negocio.galeria_detallada
-    : []
+  // GUARDAR EDICIÓN DE PÁGINA Y COLORES
+  async function handleGuardarMarca(e: React.FormEvent) {
+    e.preventDefault()
+    if (!negocio) return
 
-  const urlActual = typeof window !== 'undefined' ? window.location.href : ''
+    setCargando(true)
+    const { error } = await supabase
+      .from('negocios')
+      .update({
+        nombre: nombreNegocio,
+        ubicacion,
+        descripcion,
+        whatsapp,
+        instagram,
+        tiktok,
+        facebook,
+        linkedin,
+        color_principal: colorPrincipal,
+        color_fondo: colorFondo,
+        color_carta: colorCarta,
+        tipo_fuente: tipoFuente,
+        tipo_fondo: tipoFondo,
+        fondo_imagen_url: fondoImagenUrl,
+        logo_url: logoUrl,
+        galeria_detallada: galeria
+      })
+      .eq('id', negocio.id)
+
+    setCargando(false)
+    if (error) {
+      alert('Error al guardar cambios: ' + error.message)
+    } else {
+      alert('¡Todos los cambios de diseño, redes y fotos fueron guardados!')
+      cargarDatos()
+    }
+  }
 
   return (
-    <div 
-      className="min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center relative transition-all duration-500 text-sm"
-      style={{ 
-        background: tipoFondo === 'degradado' 
-          ? fondoDegradado 
-          : tipoFondo === 'imagen' && fondoImagenUrl 
-            ? `url(${fondoImagenUrl}) center/cover no-repeat fixed` 
-            : colorFondo,
-        fontFamily: negocio?.tipo_fuente || "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
-      }}
-    >
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-
-      {tipoFondo === 'imagen' && (
-        <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[3px] z-0"></div>
-      )}
-
-      <div 
-        className={`max-w-md w-full backdrop-blur-xl p-6 sm:p-8 shadow-2xl border border-white/40 relative z-10 transition-all ${bordes}`}
-        style={{ backgroundColor: negocio?.color_carta || 'rgba(255, 255, 255, 0.95)' }}
-      >
+    <div className="min-h-screen bg-slate-900 text-slate-100 p-4 sm:p-8">
+      <div className="max-w-4xl mx-auto space-y-6">
         
-        {/* Barra Superior */}
-        <div className="flex justify-between items-center mb-6">
-          <a
-            href="/admin"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold transition border border-slate-200/60 shadow-sm text-xs"
-            title="Edición de página"
-          >
-            <Settings className="w-3.5 h-3.5 text-rose-500" />
-            <span>Edición de página</span>
-          </a>
-
-          <button
-            onClick={() => setModalCompartir(true)}
-            className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl flex items-center justify-center transition shadow-sm border border-slate-200/50 active:scale-95"
-            title="Compartir"
-          >
-            <Share2 className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Perfil del Negocio */}
-        <div className="text-center mb-6 space-y-3">
-          <div className="w-24 h-24 bg-slate-900 rounded-full mx-auto flex items-center justify-center text-white font-black text-3xl border-4 border-white shadow-xl overflow-hidden ring-4 ring-slate-100/50">
-            {negocio?.logo_url ? (
-              <img src={negocio.logo_url} alt={negocio.nombre} className="w-full h-full object-cover" />
-            ) : (
-              negocio?.nombre?.charAt(0) || 'F'
-            )}
-          </div>
-
+        {/* Encabezado */}
+        <div className="flex justify-between items-center bg-slate-800 p-6 rounded-3xl border border-slate-700">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              {negocio ? negocio.nombre : 'Cargando...'}
-            </h1>
-            
-            <p className="text-xs font-semibold text-slate-500 mt-1 flex items-center justify-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-rose-500 inline" />
-              {negocio?.ubicacion || 'Buenos Aires, Argentina'}
-            </p>
-
-            {negocio?.descripcion && (
-              <p className="text-xs text-slate-600 mt-2 px-4 leading-relaxed font-medium">
-                {negocio.descripcion}
-              </p>
-            )}
+            <h1 className="text-2xl font-black text-white">Panel Administrador</h1>
+            <p className="text-xs text-slate-400 mt-1">Configura todo tu sitio web desde aquí</p>
           </div>
+          <a href="/" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-xs font-bold">
+            Ver Mi Página 🚀
+          </a>
         </div>
 
-        {/* Módulos de Redes Sociales */}
-        <div className="space-y-3 mb-6">
-          {redesList.map((red: any, idx: number) => {
-            const urlSegura = red.url?.startsWith('http') ? red.url : `https://${red.url}`
-            return (
-              <a
-                key={idx}
-                href={urlSegura}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`w-full bg-white hover:bg-slate-50/80 border border-slate-200/80 p-3.5 flex items-center justify-between shadow-sm transition-all active:scale-[0.99] ${bordes}`}
-              >
-                <div className="flex items-center gap-3">
-                  {getRedSocialIcon(red.tipo || 'web')}
-                  <span className="font-bold text-slate-800">{red.titulo}</span>
-                </div>
-                <ExternalLink className="w-4 h-4 text-slate-300" />
-              </a>
-            )
-          })}
-
-          {/* Botón Principal para Desplegar Turnos */}
+        {/* Pestañas */}
+        <div className="flex gap-2 bg-slate-800 p-1.5 rounded-2xl border border-slate-700">
           <button
-            onClick={() => setSeccionAbierta(seccionAbierta === 'turnos' ? null : 'turnos')}
-            style={{ backgroundColor: colorPrincipal }}
-            className={`w-full text-white p-4 flex items-center justify-between shadow-lg transition-all active:scale-[0.99] mt-4 ${bordes}`}
+            onClick={() => setTab('turnos')}
+            className={`flex-1 py-3 text-xs font-bold rounded-xl transition ${
+              tab === 'turnos' ? 'bg-indigo-600 text-white' : 'text-slate-400'
+            }`}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
-                <Calendar className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="font-extrabold block">Solicitar Turno / Pedido</span>
-                <span className="text-[10px] text-white/80 block">Consultá horarios disponibles</span>
-              </div>
-            </div>
-            <Plus className={`w-5 h-5 transition-transform duration-300 ${seccionAbierta === 'turnos' ? 'rotate-45' : ''}`} />
+            Turnos Reservados
+          </button>
+          <button
+            onClick={() => setTab('servicios')}
+            className={`flex-1 py-3 text-xs font-bold rounded-xl transition ${
+              tab === 'servicios' ? 'bg-indigo-600 text-white' : 'text-slate-400'
+            }`}
+          >
+            Gestor de Servicios
+          </button>
+          <button
+            onClick={() => setTab('marca')}
+            className={`flex-1 py-3 text-xs font-bold rounded-xl transition ${
+              tab === 'marca' ? 'bg-indigo-600 text-white' : 'text-slate-400'
+            }`}
+          >
+            Edición de página
           </button>
         </div>
 
-        {/* Formulario de Reservas */}
-        {seccionAbierta === 'turnos' && (
-          <div className="border-t border-slate-100 pt-5 space-y-4">
-            {exito ? (
-              <div className="text-center space-y-4 py-2">
-                <div className="bg-emerald-50 text-emerald-900 p-5 rounded-2xl border border-emerald-200 shadow-sm">
-                  <div className="w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto mb-2 text-xl font-bold shadow-md">
-                    ✓
-                  </div>
-                  <p className="font-bold text-base">¡Reserva Enviada!</p>
-                  <p className="text-xs text-slate-600 mt-1">
-                    El turno se guardó en el sistema. Confirmalo por WhatsApp:
-                  </p>
-                </div>
-                
-                <a
-                  href={linkWa}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 transition text-center shadow-lg shadow-emerald-500/25 ${bordes}`}
-                >
-                  📲 Confirmar por WhatsApp
-                </a>
-              </div>
-            ) : (
-              <form onSubmit={handleReservar} className="space-y-4">
-                <div>
-                  <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
-                    1. Seleccioná el Servicio / Producto
-                  </label>
-                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-                    {servicios.map((s) => {
-                      const esSel = servicioSel?.id === s.id
-                      return (
-                        <div
-                          key={s.id}
-                          onClick={() => setServicioSel(s)}
-                          className={`p-3.5 rounded-2xl border-2 transition cursor-pointer flex justify-between items-center ${
-                            esSel ? 'border-rose-500 bg-rose-50/30' : 'border-slate-100 bg-slate-50/50'
-                          }`}
-                        >
-                          <div className="space-y-1">
-                            <p className="font-bold text-slate-800">{s.nombre}</p>
-                            <div className="flex items-center gap-2 text-[10px] text-slate-500">
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> {s.duracion_minutos || 30} min
-                              </span>
-                              {s.requiere_seña && (
-                                <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-md font-bold flex items-center gap-0.5">
-                                  <ShieldAlert className="w-3 h-3" /> Requiere reserva (${s.monto_seña})
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <span className="font-black text-rose-600 text-xs bg-rose-100/80 px-2.5 py-1 rounded-xl">
-                            ${s.precio}
+        {/* PESTAÑA 1: TURNOS */}
+        {tab === 'turnos' && (
+          <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-4">
+            <h2 className="text-lg font-bold text-white">Listado de Reservas</h2>
+            <div className="space-y-3">
+              {turnos.length === 0 ? (
+                <p className="text-xs text-slate-400 py-4 text-center">No hay reservas guardadas.</p>
+              ) : (
+                turnos.map((t) => {
+                  const f = new Date(t.fecha_hora)
+                  const esConfirmado = t.estado === 'confirmado'
+                  return (
+                    <div key={t.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-700 flex justify-between items-center flex-wrap gap-3">
+                      <div>
+                        <p className="font-bold text-sm text-white">{t.cliente_nombre}</p>
+                        <p className="text-xs text-indigo-400">WhatsApp: {t.cliente_whatsapp}</p>
+                        <p className="text-xs text-slate-400">Servicio: {t.servicios?.nombre || 'General'}</p>
+                      </div>
+                      <div className="text-right flex items-center gap-3">
+                        <div>
+                          <span className="bg-slate-800 text-slate-200 text-xs px-3 py-1 rounded-xl font-bold block border border-slate-700">
+                            {f.toLocaleDateString()} {f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} hs
                           </span>
+                          <span className="text-xs font-black text-emerald-400 block mt-1">${t.monto_cobrado}</span>
                         </div>
-                      )
-                    })}
-                  </div>
-                </div>
 
-                <div>
-                  <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                    2. Tus Datos
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Nombre y Apellido"
-                    value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 mb-2 focus:outline-none"
-                  />
-                  <input
-                    type="tel"
-                    placeholder="Tu WhatsApp (ej. 1122334455)"
-                    value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                    3. Fecha y Horario
-                  </label>
-                  <input
-                    type="date"
-                    value={fecha}
-                    onChange={(e) => setFecha(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 mb-2 focus:outline-none"
-                  />
-
-                  {cargandoHorarios ? (
-                    <p className="text-xs text-slate-400 text-center py-3">Consultando disponibilidad...</p>
-                  ) : (
-                    <div className="grid grid-cols-4 gap-1.5 max-h-32 overflow-y-auto p-1 bg-slate-50 border border-slate-200 rounded-xl">
-                      {HORARIOS.map((h) => {
-                        const estaOcupado = horasOcupadas.includes(h)
-                        const esSeleccionado = hora === h
-
-                        return (
+                        {/* BOTÓN DE CONFIRMAR TURNO */}
+                        {esConfirmado ? (
+                          <span className="flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-3 py-1.5 rounded-xl">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Confirmado
+                          </span>
+                        ) : (
                           <button
-                            key={h}
-                            type="button"
-                            disabled={estaOcupado}
-                            onClick={() => setHora(h)}
-                            className={`py-2 text-[11px] font-bold rounded-lg transition ${
-                              estaOcupado
-                                ? 'bg-slate-200 text-slate-400 line-through cursor-not-allowed border border-slate-300'
-                                : esSeleccionado
-                                ? 'bg-rose-500 text-white shadow-md'
-                                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-                            }`}
+                            onClick={() => handleConfirmarTurno(t.id)}
+                            disabled={cargando}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-2 rounded-xl transition shadow-md"
                           >
-                            {h}
+                            Confirmar Turno
                           </button>
-                        )
-                      })}
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={cargando}
-                  style={{ backgroundColor: colorPrincipal }}
-                  className={`w-full text-white font-bold py-3.5 transition shadow-lg disabled:opacity-50 ${bordes}`}
-                >
-                  {cargando ? 'Procesando...' : 'Confirmar Reserva ✨'}
-                </button>
-              </form>
-            )}
+                  )
+                })
+              )}
+            </div>
           </div>
         )}
 
-        {/* Catálogo Visual */}
-        {galeriaLista.length > 0 && (
-          <div className="border-t border-slate-100 pt-5 space-y-3 mt-6">
-            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <ImageIcon className="w-3.5 h-3.5 text-slate-400" />
-              Catálogo de Servicios & Productos
-            </p>
+        {/* PESTAÑA 2: SERVICIOS */}
+        {tab === 'servicios' && (
+          <div className="space-y-6">
+            <form onSubmit={handleAgregarServicio} className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-4">
+              <h2 className="text-lg font-bold text-white">Agregar Nuevo Servicio</h2>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {galeriaLista.map((item: any, i: number) => (
-                <div key={i} className="bg-slate-50/80 rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm flex flex-col justify-between">
-                  <div className="aspect-square bg-slate-200 overflow-hidden relative">
-                    <img src={item.imagen_url} alt={item.titulo} className="w-full h-full object-cover" />
-                    {item.precio && (
-                      <span className="absolute bottom-2 right-2 bg-slate-900/90 text-white font-black text-[10px] px-2 py-0.5 rounded-lg border border-white/20">
-                        ${item.precio}
-                      </span>
-                    )}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input
+                  type="text"
+                  placeholder="Nombre del servicio"
+                  value={nomServicio}
+                  onChange={(e) => setNomServicio(e.target.value)}
+                  className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                  required
+                />
+                <input
+                  type="number"
+                  placeholder="Precio ($)"
+                  value={precioServicio}
+                  onChange={(e) => setPrecioServicio(e.target.value)}
+                  className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                  required
+                />
+                <input
+                  type="number"
+                  placeholder="Tiempo estimado (min)"
+                  value={duracionServicio}
+                  onChange={(e) => setDuracionServicio(e.target.value)}
+                  className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={cargando}
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-2xl text-xs"
+              >
+                {cargando ? 'Guardando...' : 'Guardar Servicio'}
+              </button>
+            </form>
+
+            <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-3">
+              <h3 className="text-sm font-bold text-slate-400">Servicios Activos</h3>
+              {servicios.map((s) => (
+                <div key={s.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
+                  <div>
+                    <p className="font-bold text-sm text-white">{s.nombre}</p>
+                    <p className="text-xs text-slate-400">⏱️ {s.duracion_minutos || 30} minutos</p>
                   </div>
-                  <div className="p-2">
-                    <p className="font-bold text-slate-800 text-[11px] line-clamp-1">{item.titulo}</p>
-                  </div>
+                  <span className="font-black text-emerald-400">${s.precio}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
+        {/* PESTAÑA 3: EDICIÓN DE PÁGINA, COLORES Y CATÁLOGO DE FOTOS */}
+        {tab === 'marca' && (
+          <form onSubmit={handleGuardarMarca} className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-6">
+            <h2 className="text-lg font-bold text-white">Edición de página y Estilos</h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Nombre del Negocio</label>
+                <input
+                  type="text"
+                  value={nombreNegocio}
+                  onChange={(e) => setNombreNegocio(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Ubicación</label>
+                <input
+                  type="text"
+                  value={ubicacion}
+                  onChange={(e) => setUbicacion(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">WhatsApp del Negocio</label>
+                <input
+                  type="text"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  placeholder="Ej: 5491122334455"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Tipo de Letra / Tipografía</label>
+                <select
+                  value={tipoFuente}
+                  onChange={(e) => setTipoFuente(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                >
+                  <option value="sans-serif">Sans-Serif Moderno</option>
+                  <option value="serif">Serif Elegante</option>
+                  <option value="monospace">Monospace Técnico</option>
+                  <option value="cursive">Cursive Cursiva</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-400 mb-1">Descripción</label>
+              <textarea
+                value={descripcion}
+                onChange={(e) => setDescripcion(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white h-20"
+              />
+            </div>
+
+            {/* SECCIÓN NUEVA: ENLACES A REDES SOCIALES */}
+            <div className="border-t border-slate-700 pt-5 space-y-4">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Share2 className="w-4 h-4 text-indigo-400" />
+                Redes Sociales (Pegá el link o tu usuario)
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Instagram</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: tu_usuario o https://instagram.com/tu_usuario"
+                    value={instagram}
+                    onChange={(e) => setInstagram(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">TikTok</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: @tu_usuario o https://tiktok.com/@tu_usuario"
+                    value={tiktok}
+                    onChange={(e) => setTiktok(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Facebook</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: tu_pagina o https://facebook.com/tu_pagina"
+                    value={facebook}
+                    onChange={(e) => setFacebook(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">LinkedIn</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: tu_perfil o https://linkedin.com/in/tu_perfil"
+                    value={linkedin}
+                    onChange={(e) => setLinkedin(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* SECCIÓN DE COLORES MODIFICABLES */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Color Fondo Principal</label>
+                <input
+                  type="color"
+                  value={colorFondo}
+                  onChange={(e) => setColorFondo(e.target.value)}
+                  className="w-full h-10 bg-slate-900 border border-slate-700 rounded-xl cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Color Carta / Tarjeta</label>
+                <input
+                  type="color"
+                  value={colorCarta}
+                  onChange={(e) => setColorCarta(e.target.value)}
+                  className="w-full h-10 bg-slate-900 border border-slate-700 rounded-xl cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Color Botón Acción</label>
+                <input
+                  type="color"
+                  value={colorPrincipal}
+                  onChange={(e) => setColorPrincipal(e.target.value)}
+                  className="w-full h-10 bg-slate-900 border border-slate-700 rounded-xl cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* FOTO DE FONDO DESDE DISPOSITIVO */}
+            <div className="space-y-2 pt-2">
+              <label className="block text-xs font-bold text-slate-400">Usar Imagen de Fondo en la Web</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTipoFondo('color')}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold ${tipoFondo === 'color' ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-slate-400'}`}
+                >
+                  Usar Color
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTipoFondo('imagen')}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold ${tipoFondo === 'imagen' ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-slate-400'}`}
+                >
+                  Usar Imagen
+                </button>
+              </div>
+
+              {tipoFondo === 'imagen' && (
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleFileUpload(e, 'fondo')}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-400 mt-2"
+                />
+              )}
+            </div>
+
+            {/* FOTO DE LOGO */}
+            <div>
+              <label className="block text-xs font-bold text-slate-400 mb-1">Subir Logo desde el Dispositivo</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFileUpload(e, 'logo')}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-400"
+              />
+            </div>
+
+            {/* CATÁLOGO VISUAL / GALERÍA CON FOTOS, PRECIOS Y DETALLES */}
+            <div className="border-t border-slate-700 pt-5 space-y-4">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-indigo-400" />
+                Catálogo Visual de Productos / Fotos con Precio
+              </h3>
+
+              <div className="bg-slate-900 p-4 rounded-2xl border border-slate-700 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Título del Producto / Trabajo"
+                    value={itemTitulo}
+                    onChange={(e) => setItemTitulo(e.target.value)}
+                    className="bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Precio ($) Opcional"
+                    value={itemPrecio}
+                    onChange={(e) => setItemPrecio(e.target.value)}
+                    className="bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">Seleccionar foto desde tu dispositivo:</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileUpload(e, 'catalogo')}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-xs text-slate-400"
+                  />
+                </div>
+
+                {itemImagenUrl && (
+                  <div className="flex items-center gap-3 bg-slate-800 p-2 rounded-xl">
+                    <img src={itemImagenUrl} alt="Vista previa" className="w-12 h-12 object-cover rounded-lg" />
+                    <span className="text-xs text-emerald-400 font-bold">✓ Imagen lista para agregar</span>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleAgregarItemGaleria}
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-indigo-300 font-bold py-2.5 rounded-xl text-xs border border-indigo-500/30"
+                >
+                  + Agregar Foto al Catálogo
+                </button>
+              </div>
+
+              {/* LISTA DE FOTOS AGREGADAS */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {galeria.map((item, index) => (
+                  <div key={index} className="bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden relative">
+                    <img src={item.imagen_url} alt={item.titulo} className="w-full h-28 object-cover" />
+                    <div className="p-2 space-y-1">
+                      <p className="font-bold text-xs text-white truncate">{item.titulo}</p>
+                      {item.precio && <p className="text-xs text-emerald-400 font-black">${item.precio}</p>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleEliminarItemGaleria(index)}
+                      className="absolute top-2 right-2 bg-rose-600/90 text-white p-1.5 rounded-lg text-xs"
+                      title="Eliminar foto"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={cargando}
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-2xl text-xs transition shadow-lg"
+            >
+              {cargando ? 'Guardando...' : 'Guardar Todos los Cambios'}
+            </button>
+          </form>
+        )}
+
       </div>
-
-      {/* Modal Compartir */}
-      {modalCompartir && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white max-w-sm w-full rounded-3xl p-6 shadow-2xl border border-slate-100 relative space-y-4">
-            
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="font-black text-slate-900 text-base">Compartir Perfil</h3>
-              <button
-                onClick={() => setModalCompartir(false)}
-                className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-500">Seleccioná la plataforma para compartir tu enlace:</p>
-
-            <div className="grid grid-cols-2 gap-2.5">
-              <a
-                href={`https://api.whatsapp.com/send?text=Mirá%20mi%20perfil%20oficial:%20${encodeURIComponent(urlActual)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-emerald-100 transition"
-              >
-                <FaWhatsapp className="w-4 h-4 text-emerald-600" />
-                <span>WhatsApp</span>
-              </a>
-
-              <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(urlActual)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-3 bg-blue-50 text-blue-800 border border-blue-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-blue-100 transition"
-              >
-                <FaFacebook className="w-4 h-4 text-blue-600" />
-                <span>Facebook</span>
-              </a>
-
-              <a
-                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(urlActual)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-3 bg-slate-100 text-slate-800 border border-slate-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-slate-200 transition"
-              >
-                <FaTwitter className="w-4 h-4 text-sky-500" />
-                <span>X / Twitter</span>
-              </a>
-
-              <a
-                href={`https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=&su=Perfil%20Oficial&body=Te%20comparto%20mi%20perfil%20oficial:%20${encodeURIComponent(urlActual)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-3 bg-rose-50 text-rose-800 border border-rose-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-rose-100 transition"
-              >
-                <FaEnvelope className="w-4 h-4 text-rose-600" />
-                <span>Gmail</span>
-              </a>
-
-              <a
-                href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(urlActual)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-3 bg-sky-50 text-sky-800 border border-sky-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-sky-100 transition col-span-2"
-              >
-                <FaLinkedin className="w-4 h-4 text-sky-700" />
-                <span>LinkedIn</span>
-              </a>
-            </div>
-
-            <div className="pt-2 border-t border-slate-100">
-              <button
-                onClick={handleCopiarLink}
-                className="w-full bg-slate-900 text-white font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-2 active:scale-95 transition"
-              >
-                {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                <span>{copiado ? '¡Copiado al Portapapeles!' : 'Copiar Enlace Directo'}</span>
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
     </div>
   )
 }
