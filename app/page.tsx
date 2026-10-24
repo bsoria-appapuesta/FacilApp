@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 import { 
   Share2, 
   Calendar, 
+  Plus,
   MapPin, 
   ExternalLink, 
   ImageIcon, 
@@ -14,7 +15,6 @@ import {
   Check, 
   Clock, 
   ShieldAlert, 
-  ChevronRight,
   Globe
 } from 'lucide-react'
 
@@ -43,7 +43,8 @@ export default function Home() {
   const [servicios, setServicios] = useState<any[]>([])
   const [servicioSel, setServicioSel] = useState<any>(null)
   
-  const [modalReserva, setModalReserva] = useState(false)
+  // Si es null, el formulario de turno está cerrado
+  const [seccionAbierta, setSeccionAbierta] = useState<'turnos' | null>(null)
   const [modalCompartir, setModalCompartir] = useState(false)
   const [copiado, setCopiado] = useState(false)
   
@@ -85,6 +86,7 @@ export default function Home() {
 
       if (servData && servData.length > 0) {
         setServicios(servData)
+        setServicioSel(servData[0])
       }
     }
   }
@@ -120,12 +122,6 @@ export default function Home() {
     navigator.clipboard.writeText(window.location.href)
     setCopiado(true)
     setTimeout(() => setCopiado(false), 2000)
-  }
-
-  const abrirReservaConServicio = (servicio: any) => {
-    setServicioSel(servicio)
-    setExito(false)
-    setModalReserva(true)
   }
 
   const handleReservar = async (e: React.FormEvent) => {
@@ -189,9 +185,7 @@ export default function Home() {
     }
   }
 
-  // Lista de redes dinámicas
   const redesList: any[] = Array.isArray(negocio?.redes_sociales) ? negocio.redes_sociales : []
-
   const galeriaLista = negocio?.galeria_detallada?.length > 0 ? negocio.galeria_detallada : []
   const urlActual = typeof window !== 'undefined' ? window.location.href : ''
 
@@ -266,7 +260,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* MÓDULOS DE REDES SOCIALES: NOMBRE Y ENLACE DIRECTO */}
+        {/* MÓDULOS DE REDES SOCIALES: LOGO + NOMBRE DE LA RED + @ O NÚMERO */}
         <div className="space-y-3 mb-6">
           {redesList.map((red) => (
             <a
@@ -276,124 +270,54 @@ export default function Home() {
               rel="noopener noreferrer"
               className={`w-full bg-white hover:bg-slate-50/80 border border-slate-200/80 p-3.5 flex items-center justify-between shadow-sm transition-all active:scale-[0.99] ${bordes}`}
             >
-              <div className="flex items-center gap-3">
-                {getRedSocialIcon(red.plataforma || 'web')}
-                <span className="font-bold text-slate-800">{red.titulo}</span>
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                  {getRedSocialIcon(red.plataforma || 'web')}
+                </div>
+                <div className="text-left overflow-hidden">
+                  <span className="font-extrabold text-slate-900 block leading-tight truncate">
+                    {red.nombreRed || 'Red Social'}
+                  </span>
+                  <span className="text-xs text-slate-500 block truncate font-medium">
+                    {red.usuarioODetalle}
+                  </span>
+                </div>
               </div>
-              <ExternalLink className="w-4 h-4 text-slate-300" />
+              <ExternalLink className="w-4 h-4 text-slate-300 shrink-0" />
             </a>
           ))}
-        </div>
 
-        {/* LISTADO FIJO Y PERMANENTE DE SERVICIOS */}
-        <div className="border-t border-slate-100 pt-5 space-y-3 mb-6">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-slate-400" />
-              Nuestros Servicios & Turnos
-            </p>
-            <span className="text-[10px] text-slate-400">Tocá para reservar</span>
-          </div>
-
-          <div className="space-y-2">
-            {servicios.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-4 bg-slate-50 rounded-2xl">
-                No hay servicios disponibles en este momento.
-              </p>
-            ) : (
-              servicios.map((s) => (
-                <div
-                  key={s.id}
-                  onClick={() => abrirReservaConServicio(s)}
-                  className={`p-3.5 rounded-2xl border border-slate-200/80 bg-white hover:bg-slate-50/90 hover:border-slate-300 transition-all cursor-pointer flex justify-between items-center shadow-sm active:scale-[0.99]`}
-                >
-                  <div className="space-y-1">
-                    <p className="font-bold text-slate-800 text-sm">{s.nombre}</p>
-                    <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-slate-400" /> {s.duracion_minutos || 30} min
-                      </span>
-                      {s.requiere_seña && (
-                        <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-md font-bold flex items-center gap-0.5 text-[10px]">
-                          <ShieldAlert className="w-3 h-3" /> Seña: ${s.monto_seña}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span 
-                      style={{ color: colorPrincipal }}
-                      className="font-black text-sm bg-slate-100 px-2.5 py-1 rounded-xl"
-                    >
-                      ${s.precio}
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-slate-300" />
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Catálogo Visual de Galería */}
-        {galeriaLista.length > 0 && (
-          <div className="border-t border-slate-100 pt-5 space-y-3">
-            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <ImageIcon className="w-3.5 h-3.5 text-slate-400" />
-              Catálogo de Trabajos / Fotos
-            </p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {galeriaLista.map((item: any, i: number) => (
-                <div key={i} className="bg-slate-50/80 rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm flex flex-col justify-between">
-                  <div className="aspect-square bg-slate-200 overflow-hidden relative">
-                    <img src={item.imagen_url} alt={item.titulo} className="w-full h-full object-cover" />
-                    {item.precio && (
-                      <span className="absolute bottom-2 right-2 bg-slate-900/90 text-white font-black text-[10px] px-2 py-0.5 rounded-lg border border-white/20">
-                        ${item.precio}
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-2">
-                    <p className="font-bold text-slate-800 text-[11px] line-clamp-1">{item.titulo}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-      </div>
-
-      {/* MODAL PARA AGENDAR TURNO */}
-      {modalReserva && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white max-w-sm w-full rounded-3xl p-6 shadow-2xl border border-slate-100 relative space-y-4 max-h-[90vh] overflow-y-auto">
-            
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservar Turno</span>
-                <h3 className="font-black text-slate-900 text-base">{servicioSel?.nombre}</h3>
-                <span className="text-xs font-black text-emerald-600">${servicioSel?.precio}</span>
+          {/* BOTÓN PRINCIPAL PARA DESPLEGAR/OCULTAR TURNOS */}
+          <button
+            onClick={() => setSeccionAbierta(seccionAbierta === 'turnos' ? null : 'turnos')}
+            style={{ backgroundColor: colorPrincipal }}
+            className={`w-full text-white p-4 flex items-center justify-between shadow-lg transition-all active:scale-[0.99] mt-4 ${bordes}`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
+                <Calendar className="w-5 h-5" />
               </div>
-              <button
-                onClick={() => setModalReserva(false)}
-                className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="text-left">
+                <span className="font-extrabold block">Solicitar Turno / Pedido</span>
+                <span className="text-[10px] text-white/80 block">Consultá horarios disponibles</span>
+              </div>
             </div>
+            <Plus className={`w-5 h-5 transition-transform duration-300 ${seccionAbierta === 'turnos' ? 'rotate-45' : ''}`} />
+          </button>
+        </div>
 
+        {/* FORMULARIO DE RESERVAS (DESPLEGABLE / OCULTABLE) */}
+        {seccionAbierta === 'turnos' && (
+          <div className="border-t border-slate-100 pt-5 space-y-4 mb-6">
             {exito ? (
               <div className="text-center space-y-4 py-2">
                 <div className="bg-emerald-50 text-emerald-900 p-5 rounded-2xl border border-emerald-200 shadow-sm">
                   <div className="w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto mb-2 text-xl font-bold shadow-md">
                     ✓
                   </div>
-                  <p className="font-bold text-base">¡Reserva Registrada!</p>
+                  <p className="font-bold text-base">¡Reserva Enviada!</p>
                   <p className="text-xs text-slate-600 mt-1">
-                    Para finalizar, enviá la confirmación directa por WhatsApp:
+                    El turno se guardó en el sistema. Confirmalo por WhatsApp:
                   </p>
                 </div>
                 
@@ -403,14 +327,51 @@ export default function Home() {
                   rel="noopener noreferrer"
                   className={`block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 transition text-center shadow-lg shadow-emerald-500/25 ${bordes}`}
                 >
-                  📲 Enviar Confirmación por WhatsApp
+                  📲 Confirmar por WhatsApp
                 </a>
               </div>
             ) : (
               <form onSubmit={handleReservar} className="space-y-4">
                 <div>
+                  <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
+                    1. Seleccioná el Servicio
+                  </label>
+                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                    {servicios.map((s) => {
+                      const esSel = servicioSel?.id === s.id
+                      return (
+                        <div
+                          key={s.id}
+                          onClick={() => setServicioSel(s)}
+                          className={`p-3 rounded-2xl border-2 transition cursor-pointer flex justify-between items-center ${
+                            esSel ? 'border-rose-500 bg-rose-50/30' : 'border-slate-100 bg-slate-50/50'
+                          }`}
+                        >
+                          <div className="space-y-0.5">
+                            <p className="font-bold text-slate-800 text-xs">{s.nombre}</p>
+                            <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" /> {s.duracion_minutos || 30} min
+                              </span>
+                              {s.requiere_seña && (
+                                <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-md font-bold text-[9px]">
+                                  Seña: ${s.monto_seña}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <span className="font-black text-rose-600 text-xs bg-rose-100/80 px-2 py-0.5 rounded-lg">
+                            ${s.precio}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div>
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                    1. Tus Datos
+                    2. Tus Datos
                   </label>
                   <input
                     type="text"
@@ -432,7 +393,7 @@ export default function Home() {
 
                 <div>
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                    2. Fecha y Horario
+                    3. Fecha y Horario
                   </label>
                   <input
                     type="date"
@@ -482,10 +443,86 @@ export default function Home() {
                 </button>
               </form>
             )}
+          </div>
+        )}
 
+        {/* LISTADO FIJO DE SERVICIOS */}
+        <div className="border-t border-slate-100 pt-5 space-y-3 mb-6">
+          <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+            Nuestros Servicios
+          </p>
+
+          <div className="space-y-2">
+            {servicios.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-4 bg-slate-50 rounded-2xl">
+                No hay servicios cargados actualmente.
+              </p>
+            ) : (
+              servicios.map((s) => (
+                <div
+                  key={s.id}
+                  onClick={() => {
+                    setServicioSel(s)
+                    setSeccionAbierta('turnos')
+                  }}
+                  className={`p-3.5 rounded-2xl border border-slate-200/80 bg-white hover:bg-slate-50/90 transition flex justify-between items-center shadow-sm cursor-pointer`}
+                >
+                  <div className="space-y-1">
+                    <p className="font-bold text-slate-800 text-sm">{s.nombre}</p>
+                    <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-slate-400" /> {s.duracion_minutos || 30} min
+                      </span>
+                      {s.requiere_seña && (
+                        <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-md font-bold text-[10px] flex items-center gap-0.5">
+                          <ShieldAlert className="w-3 h-3" /> Seña: ${s.monto_seña}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <span 
+                    style={{ color: colorPrincipal }}
+                    className="font-black text-sm bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-100"
+                  >
+                    ${s.precio}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </div>
-      )}
+
+        {/* Catálogo Visual de Galería */}
+        {galeriaLista.length > 0 && (
+          <div className="border-t border-slate-100 pt-5 space-y-3">
+            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <ImageIcon className="w-3.5 h-3.5 text-slate-400" />
+              Catálogo de Servicios & Productos
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {galeriaLista.map((item: any, i: number) => (
+                <div key={i} className="bg-slate-50/80 rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm flex flex-col justify-between">
+                  <div className="aspect-square bg-slate-200 overflow-hidden relative">
+                    <img src={item.imagen_url} alt={item.titulo} className="w-full h-full object-cover" />
+                    {item.precio && (
+                      <span className="absolute bottom-2 right-2 bg-slate-900/90 text-white font-black text-[10px] px-2 py-0.5 rounded-lg border border-white/20">
+                        ${item.precio}
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-2">
+                    <p className="font-bold text-slate-800 text-[11px] line-clamp-1">{item.titulo}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
 
       {/* MODAL DE COMPARTIR */}
       {modalCompartir && (

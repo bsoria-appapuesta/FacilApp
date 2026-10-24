@@ -35,7 +35,8 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey)
 interface RedItem {
   id: string
   plataforma: 'whatsapp' | 'instagram' | 'facebook' | 'tiktok' | 'linkedin' | 'youtube' | 'web'
-  titulo: string
+  nombreRed: string
+  usuarioODetalle: string
   url: string
 }
 
@@ -61,7 +62,8 @@ export default function AdminPage() {
   // Gestor de Redes Sociales
   const [redes, setRedes] = useState<RedItem[]>([])
   const [redPlataforma, setRedPlataforma] = useState<RedItem['plataforma']>('instagram')
-  const [redTitulo, setRedTitulo] = useState('')
+  const [redNombre, setRedNombre] = useState('Instagram')
+  const [redUsuario, setRedUsuario] = useState('')
   const [redUrl, setRedUrl] = useState('')
 
   const [colorPrincipal, setColorPrincipal] = useState('#6366f1')
@@ -91,17 +93,16 @@ export default function AdminPage() {
       setDescripcion(negData.descripcion || '')
       setWhatsapp(negData.whatsapp || '')
 
-      // Cargar redes sociales guardadas
       if (Array.isArray(negData.redes_sociales) && negData.redes_sociales.length > 0) {
         setRedes(negData.redes_sociales)
       } else {
-        // Migración automática de campos sueltos viejos si existen
         const iniciales: RedItem[] = []
         if (negData.whatsapp) {
           iniciales.push({
             id: 'wa-1',
             plataforma: 'whatsapp',
-            titulo: 'WhatsApp Directo',
+            nombreRed: 'WhatsApp',
+            usuarioODetalle: negData.whatsapp,
             url: `https://wa.me/${negData.whatsapp.replace(/\D/g, '')}`
           })
         }
@@ -110,7 +111,8 @@ export default function AdminPage() {
           iniciales.push({
             id: 'ig-1',
             plataforma: 'instagram',
-            titulo: `@${u}`,
+            nombreRed: 'Instagram',
+            usuarioODetalle: `@${u}`,
             url: `https://instagram.com/${u}`
           })
         }
@@ -119,7 +121,8 @@ export default function AdminPage() {
           iniciales.push({
             id: 'tk-1',
             plataforma: 'tiktok',
-            titulo: `@${t}`,
+            nombreRed: 'TikTok',
+            usuarioODetalle: `@${t}`,
             url: `https://tiktok.com/@${t}`
           })
         }
@@ -127,7 +130,8 @@ export default function AdminPage() {
           iniciales.push({
             id: 'fb-1',
             plataforma: 'facebook',
-            titulo: 'Facebook',
+            nombreRed: 'Facebook',
+            usuarioODetalle: negData.facebook,
             url: negData.facebook.startsWith('http') ? negData.facebook : `https://facebook.com/${negData.facebook}`
           })
         }
@@ -135,7 +139,8 @@ export default function AdminPage() {
           iniciales.push({
             id: 'lk-1',
             plataforma: 'linkedin',
-            titulo: 'LinkedIn',
+            nombreRed: 'LinkedIn',
+            usuarioODetalle: negData.linkedin,
             url: negData.linkedin.startsWith('http') ? negData.linkedin : `https://linkedin.com/in/${negData.linkedin}`
           })
         }
@@ -214,7 +219,6 @@ export default function AdminPage() {
     }
   }
 
-  // GESTOR DE SERVICIOS
   async function handleGuardarServicio(e: React.FormEvent) {
     e.preventDefault()
     if (!nomServicio || !precioServicio || !negocio) {
@@ -295,47 +299,61 @@ export default function AdminPage() {
     }
   }
 
-  // GESTOR DE REDES SOCIALES
+  function cambiarPlataformaRed(plat: RedItem['plataforma']) {
+    setRedPlataforma(plat)
+    const nombres: Record<RedItem['plataforma'], string> = {
+      whatsapp: 'WhatsApp',
+      instagram: 'Instagram',
+      facebook: 'Facebook',
+      tiktok: 'TikTok',
+      linkedin: 'LinkedIn',
+      youtube: 'YouTube',
+      web: 'Sitio Web'
+    }
+    setRedNombre(nombres[plat])
+  }
+
   function handleAgregarRed() {
-    if (!redUrl.trim()) {
-      alert('Por favor ingresá la URL o enlace directo de la red')
+    if (!redUsuario.trim() && !redUrl.trim()) {
+      alert('Completá el usuario/número y el link de la red')
       return
     }
 
     let urlFinal = redUrl.trim()
-    if (redPlataforma === 'whatsapp') {
-      const num = urlFinal.replace(/\D/g, '')
-      if (!urlFinal.startsWith('http')) {
-        urlFinal = `https://wa.me/${num}`
+    if (!urlFinal) {
+      if (redPlataforma === 'whatsapp') {
+        urlFinal = `https://wa.me/${redUsuario.replace(/\D/g, '')}`
+      } else if (redPlataforma === 'instagram') {
+        urlFinal = `https://instagram.com/${redUsuario.replace('@', '')}`
+      } else if (redPlataforma === 'tiktok') {
+        urlFinal = `https://tiktok.com/@${redUsuario.replace('@', '')}`
+      } else if (redPlataforma === 'facebook') {
+        urlFinal = `https://facebook.com/${redUsuario}`
+      } else if (redPlataforma === 'linkedin') {
+        urlFinal = `https://linkedin.com/in/${redUsuario}`
+      } else if (redPlataforma === 'youtube') {
+        urlFinal = `https://youtube.com/@${redUsuario.replace('@', '')}`
+      } else {
+        urlFinal = `https://${redUsuario}`
       }
     } else if (!urlFinal.startsWith('http://') && !urlFinal.startsWith('https://')) {
-      if (redPlataforma === 'instagram') urlFinal = `https://instagram.com/${urlFinal.replace('@', '')}`
-      else if (redPlataforma === 'tiktok') urlFinal = `https://tiktok.com/@${urlFinal.replace('@', '')}`
-      else if (redPlataforma === 'facebook') urlFinal = `https://facebook.com/${urlFinal}`
-      else if (redPlataforma === 'linkedin') urlFinal = `https://linkedin.com/in/${urlFinal}`
-      else if (redPlataforma === 'youtube') urlFinal = `https://youtube.com/@${urlFinal.replace('@', '')}`
-      else urlFinal = `https://${urlFinal}`
-    }
-
-    const defaultTitulos: Record<RedItem['plataforma'], string> = {
-      whatsapp: 'WhatsApp Directo',
-      instagram: 'Instagram Oficial',
-      facebook: 'Página de Facebook',
-      tiktok: 'TikTok',
-      linkedin: 'Perfil de LinkedIn',
-      youtube: 'Canal de YouTube',
-      web: 'Sitio Web'
+      if (redPlataforma === 'whatsapp') {
+        urlFinal = `https://wa.me/${urlFinal.replace(/\D/g, '')}`
+      } else {
+        urlFinal = `https://${urlFinal}`
+      }
     }
 
     const nuevoItem: RedItem = {
       id: `${Date.now()}`,
       plataforma: redPlataforma,
-      titulo: redTitulo.trim() || defaultTitulos[redPlataforma],
+      nombreRed: redNombre.trim() || 'Red Social',
+      usuarioODetalle: redUsuario.trim() || urlFinal,
       url: urlFinal
     }
 
     setRedes([...redes, nuevoItem])
-    setRedTitulo('')
+    setRedUsuario('')
     setRedUrl('')
   }
 
@@ -355,7 +373,6 @@ export default function AdminPage() {
     }
   }
 
-  // GALERÍA
   function handleAgregarItemGaleria() {
     if (!itemTitulo || !itemImagenUrl) {
       alert('Subí una imagen y escribí un título para el producto')
@@ -376,7 +393,6 @@ export default function AdminPage() {
     setGaleria(galeria.filter((_, i) => i !== index))
   }
 
-  // GUARDAR TODO
   async function handleGuardarMarca(e: React.FormEvent) {
     e.preventDefault()
     if (!negocio) return
@@ -659,26 +675,25 @@ export default function AdminPage() {
               />
             </div>
 
-            {/* SECCIÓN REDES SOCIALES: NOMBRE + URL DIRECTA */}
+            {/* SECCIÓN REDES SOCIALES: LOGO + NOMBRE DE LA RED + @ / NÚMERO */}
             <div className="border-t border-slate-700 pt-5 space-y-4">
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Share2 className="w-4 h-4 text-indigo-400" />
-                  Botones y Enlaces de Redes Sociales
+                  Botones de Redes Sociales
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Podés definir el nombre visible del botón (o tu @usuario) y la URL exacta a donde dirigirá al cliente.
+                  Se muestra el logo de la red, el nombre principal (ej. Instagram) y abajo el @usuario o número.
                 </p>
               </div>
 
-              {/* Formulario para agregar una red */}
               <div className="bg-slate-900 p-4 rounded-2xl border border-slate-700 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-400 mb-1">Plataforma</label>
                     <select
                       value={redPlataforma}
-                      onChange={(e) => setRedPlataforma(e.target.value as RedItem['plataforma'])}
+                      onChange={(e) => cambiarPlataformaRed(e.target.value as RedItem['plataforma'])}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
                     >
                       <option value="whatsapp">WhatsApp</option>
@@ -687,31 +702,42 @@ export default function AdminPage() {
                       <option value="tiktok">TikTok</option>
                       <option value="linkedin">LinkedIn</option>
                       <option value="youtube">YouTube</option>
-                      <option value="web">Sitio Web / Link Libre</option>
+                      <option value="web">Sitio Web</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Texto o Nombre / @ (Visible)</label>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Nombre de la Red</label>
                     <input
                       type="text"
-                      placeholder="Ej: @tu_marca o Seguinos"
-                      value={redTitulo}
-                      onChange={(e) => setRedTitulo(e.target.value)}
+                      placeholder="Ej. Instagram, WhatsApp..."
+                      value={redNombre}
+                      onChange={(e) => setRedNombre(e.target.value)}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Enlace / URL de Destino (Link)</label>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Texto abajo (@ o Número)</label>
                     <input
                       type="text"
-                      placeholder="https://... o tu usuario"
-                      value={redUrl}
-                      onChange={(e) => setRedUrl(e.target.value)}
+                      placeholder="Ej. @tu_negocio o +54 9 11..."
+                      value={redUsuario}
+                      onChange={(e) => setRedUsuario(e.target.value)}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Enlace / URL directa (Opcional si pusiste @ o número arriba)</label>
+                  <input
+                    type="text"
+                    placeholder="https://... (si lo dejas vacío se genera solo con el @ o número)"
+                    value={redUrl}
+                    onChange={(e) => setRedUrl(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                  />
                 </div>
 
                 <button
@@ -719,7 +745,7 @@ export default function AdminPage() {
                   onClick={handleAgregarRed}
                   className="w-full bg-slate-800 hover:bg-slate-700 text-indigo-300 font-bold py-2.5 rounded-xl text-xs border border-indigo-500/30 flex items-center justify-center gap-1.5 transition"
                 >
-                  <Plus className="w-4 h-4" /> Agregar Red Social a la Página
+                  <Plus className="w-4 h-4" /> Agregar Red Social
                 </button>
               </div>
 
@@ -733,31 +759,34 @@ export default function AdminPage() {
                   redes.map((r) => (
                     <div key={r.id} className="bg-slate-900 p-3.5 rounded-2xl border border-slate-700 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700">
                           {renderIconoRed(r.plataforma)}
                         </div>
                         <div className="truncate">
-                          <p className="text-xs font-bold text-white truncate">{r.titulo}</p>
-                          <a
-                            href={r.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[11px] text-slate-400 hover:text-indigo-400 flex items-center gap-1 truncate"
-                          >
-                            <span className="truncate">{r.url}</span>
-                            <ExternalLink className="w-3 h-3 shrink-0" />
-                          </a>
+                          <p className="text-xs font-bold text-white truncate">{r.nombreRed}</p>
+                          <p className="text-[11px] text-slate-400 truncate">{r.usuarioODetalle}</p>
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleEliminarRed(r.id)}
-                        className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-xl transition shrink-0"
-                        title="Eliminar red"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={r.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition"
+                          title="Probar enlace"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleEliminarRed(r.id)}
+                          className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-xl transition"
+                          title="Eliminar red"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
