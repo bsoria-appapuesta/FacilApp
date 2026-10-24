@@ -12,8 +12,18 @@ import {
   Image as ImageIcon,
   Trash2,
   CheckCircle2,
-  Share2
+  Share2,
+  Pencil,
+  X
 } from 'lucide-react'
+
+import { 
+  FaWhatsapp, 
+  FaInstagram, 
+  FaTiktok, 
+  FaFacebook, 
+  FaLinkedin 
+} from 'react-icons/fa'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
@@ -26,7 +36,8 @@ export default function AdminPage() {
   const [servicios, setServicios] = useState<any[]>([])
   const [cargando, setCargando] = useState(false)
 
-  // Formulario Nuevo Servicio
+  // Formulario Nuevo / Edición Servicio
+  const [servicioEditandoId, setServicioEditandoId] = useState<string | null>(null)
   const [nomServicio, setNomServicio] = useState('')
   const [precioServicio, setPrecioServicio] = useState('')
   const [duracionServicio, setDuracionServicio] = useState('30')
@@ -96,6 +107,7 @@ export default function AdminPage() {
         .from('servicios')
         .select('*')
         .eq('negocio_id', negData.id)
+        .eq('activo', true)
 
       if (servData) setServicios(servData)
     }
@@ -146,7 +158,8 @@ export default function AdminPage() {
     }
   }
 
-  async function handleAgregarServicio(e: React.FormEvent) {
+  // GUARDAR / EDITAR SERVICIO
+  async function handleGuardarServicio(e: React.FormEvent) {
     e.preventDefault()
     if (!nomServicio || !precioServicio || !negocio) {
       alert('Completá nombre y precio del servicio')
@@ -154,24 +167,75 @@ export default function AdminPage() {
     }
 
     setCargando(true)
-    const { error } = await supabase.from('servicios').insert([
-      {
-        negocio_id: negocio.id,
-        nombre: nomServicio,
-        precio: parseFloat(precioServicio),
-        duracion_minutos: parseInt(duracionServicio || '30'),
-        activo: true
+
+    if (servicioEditandoId) {
+      const { error } = await supabase.from('servicios')
+        .update({
+          nombre: nomServicio,
+          precio: parseFloat(precioServicio),
+          duracion_minutos: parseInt(duracionServicio || '30')
+        })
+        .eq('id', servicioEditandoId)
+
+      setCargando(false)
+      if (error) {
+        alert('Error al editar servicio: ' + error.message)
+      } else {
+        cancelarEdicionServicio()
+        alert('¡Servicio actualizado con éxito!')
+        cargarDatos()
       }
-    ])
+    } else {
+      const { error } = await supabase.from('servicios').insert([
+        {
+          negocio_id: negocio.id,
+          nombre: nomServicio,
+          precio: parseFloat(precioServicio),
+          duracion_minutos: parseInt(duracionServicio || '30'),
+          activo: true
+        }
+      ])
+
+      setCargando(false)
+      if (error) {
+        alert('Error al guardar servicio: ' + error.message)
+      } else {
+        setNomServicio('')
+        setPrecioServicio('')
+        setDuracionServicio('30')
+        alert('¡Servicio guardado con éxito!')
+        cargarDatos()
+      }
+    }
+  }
+
+  function iniciarEdicionServicio(serv: any) {
+    setServicioEditandoId(serv.id)
+    setNomServicio(serv.nombre || '')
+    setPrecioServicio(serv.precio ? String(serv.precio) : '')
+    setDuracionServicio(serv.duracion_minutos ? String(serv.duracion_minutos) : '30')
+  }
+
+  function cancelarEdicionServicio() {
+    setServicioEditandoId(null)
+    setNomServicio('')
+    setPrecioServicio('')
+    setDuracionServicio('30')
+  }
+
+  async function handleEliminarServicio(servicioId: string) {
+    if (!confirm('¿Estás seguro de eliminar este servicio?')) return
+
+    setCargando(true)
+    const { error } = await supabase.from('servicios')
+      .update({ activo: false })
+      .eq('id', servicioId)
 
     setCargando(false)
     if (error) {
-      alert('Error al guardar servicio: ' + error.message)
+      alert('Error al eliminar servicio: ' + error.message)
     } else {
-      setNomServicio('')
-      setPrecioServicio('')
-      setDuracionServicio('30')
-      alert('¡Servicio guardado con éxito!')
+      alert('Servicio eliminado')
       cargarDatos()
     }
   }
@@ -324,11 +388,24 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* PESTAÑA 2: SERVICIOS */}
+        {/* PESTAÑA 2: SERVICIOS CON EDICIÓN Y ELIMINACIÓN */}
         {tab === 'servicios' && (
           <div className="space-y-6">
-            <form onSubmit={handleAgregarServicio} className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-4">
-              <h2 className="text-lg font-bold text-white">Agregar Nuevo Servicio</h2>
+            <form onSubmit={handleGuardarServicio} className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-bold text-white">
+                  {servicioEditandoId ? '✏️ Editar Servicio' : '➕ Agregar Nuevo Servicio'}
+                </h2>
+                {servicioEditandoId && (
+                  <button
+                    type="button"
+                    onClick={cancelarEdicionServicio}
+                    className="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-700"
+                  >
+                    <X className="w-3.5 h-3.5" /> Cancelar Edición
+                  </button>
+                )}
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <input
@@ -360,23 +437,48 @@ export default function AdminPage() {
               <button
                 type="submit"
                 disabled={cargando}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-2xl text-xs"
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-2xl text-xs transition shadow-md"
               >
-                {cargando ? 'Guardando...' : 'Guardar Servicio'}
+                {cargando ? 'Guardando...' : servicioEditandoId ? 'Actualizar Servicio' : 'Guardar Servicio'}
               </button>
             </form>
 
             <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-3">
-              <h3 className="text-sm font-bold text-slate-400">Servicios Activos</h3>
-              {servicios.map((s) => (
-                <div key={s.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
-                  <div>
-                    <p className="font-bold text-sm text-white">{s.nombre}</p>
-                    <p className="text-xs text-slate-400">⏱️ {s.duracion_minutos || 30} minutos</p>
+              <h3 className="text-sm font-bold text-slate-400">Listado de Servicios Activos</h3>
+              {servicios.length === 0 ? (
+                <p className="text-xs text-slate-500 text-center py-4">No tenés servicios agregados.</p>
+              ) : (
+                servicios.map((s) => (
+                  <div key={s.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
+                    <div>
+                      <p className="font-bold text-sm text-white">{s.nombre}</p>
+                      <p className="text-xs text-slate-400">⏱️ {s.duracion_minutos || 30} minutos</p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="font-black text-emerald-400 text-sm">${s.precio}</span>
+                      
+                      <button
+                        type="button"
+                        onClick={() => iniciarEdicionServicio(s)}
+                        className="p-2 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 rounded-xl border border-indigo-500/30 transition"
+                        title="Editar servicio"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleEliminarServicio(s.id)}
+                        className="p-2 bg-rose-600/20 hover:bg-rose-600/40 text-rose-400 rounded-xl border border-rose-500/30 transition"
+                        title="Eliminar servicio"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <span className="font-black text-emerald-400">${s.precio}</span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         )}
@@ -410,7 +512,7 @@ export default function AdminPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">WhatsApp del Negocio</label>
+                <label className="block text-xs font-bold text-slate-400 mb-1">WhatsApp de Reservas</label>
                 <input
                   type="text"
                   value={whatsapp}
@@ -444,56 +546,93 @@ export default function AdminPage() {
               />
             </div>
 
-            {/* SECCIÓN REDES SOCIALES */}
+            {/* SECCIÓN DISEÑO DE REDES SOCIALES EN TARJETAS CON ESTILO */}
             <div className="border-t border-slate-700 pt-5 space-y-4">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Share2 className="w-4 h-4 text-indigo-400" />
-                Redes Sociales (Pegá el link o tu usuario)
+                Redes Sociales Oficiales
               </h3>
+              <p className="text-xs text-slate-400">Completá sólo las que utilices. Podés pegar el link directo o tu nombre de usuario.</p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Instagram</label>
-                  <input
-                    type="text"
-                    placeholder="Ej: tu_usuario o https://instagram.com/tu_usuario"
-                    value={instagram}
-                    onChange={(e) => setInstagram(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
-                  />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-700 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                    <FaWhatsapp className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[11px] font-bold text-slate-300">WhatsApp Directo</label>
+                    <input
+                      type="text"
+                      placeholder="Ej. 1122334455"
+                      value={whatsapp}
+                      onChange={(e) => setWhatsapp(e.target.value)}
+                      className="w-full bg-transparent text-xs text-white focus:outline-none mt-0.5"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">TikTok</label>
-                  <input
-                    type="text"
-                    placeholder="Ej: @tu_usuario o https://tiktok.com/@tu_usuario"
-                    value={tiktok}
-                    onChange={(e) => setTiktok(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
-                  />
+                <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-700 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-400 flex items-center justify-center shrink-0 border border-pink-500/20">
+                    <FaInstagram className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[11px] font-bold text-slate-300">Instagram</label>
+                    <input
+                      type="text"
+                      placeholder="Ej. @tu_marca"
+                      value={instagram}
+                      onChange={(e) => setInstagram(e.target.value)}
+                      className="w-full bg-transparent text-xs text-white focus:outline-none mt-0.5"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Facebook</label>
-                  <input
-                    type="text"
-                    placeholder="Ej: tu_pagina o https://facebook.com/tu_pagina"
-                    value={facebook}
-                    onChange={(e) => setFacebook(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
-                  />
+                <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-700 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-slate-800 text-white flex items-center justify-center shrink-0 border border-slate-700">
+                    <FaTiktok className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[11px] font-bold text-slate-300">TikTok</label>
+                    <input
+                      type="text"
+                      placeholder="Ej. @tu_cuenta"
+                      value={tiktok}
+                      onChange={(e) => setTiktok(e.target.value)}
+                      className="w-full bg-transparent text-xs text-white focus:outline-none mt-0.5"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">LinkedIn</label>
-                  <input
-                    type="text"
-                    placeholder="Ej: tu_perfil o https://linkedin.com/in/tu_perfil"
-                    value={linkedin}
-                    onChange={(e) => setLinkedin(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
-                  />
+                <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-700 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/20">
+                    <FaFacebook className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[11px] font-bold text-slate-300">Facebook</label>
+                    <input
+                      type="text"
+                      placeholder="Ej. tu_pagina"
+                      value={facebook}
+                      onChange={(e) => setFacebook(e.target.value)}
+                      className="w-full bg-transparent text-xs text-white focus:outline-none mt-0.5"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-700 flex items-center gap-3 sm:col-span-2">
+                  <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center shrink-0 border border-sky-500/20">
+                    <FaLinkedin className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[11px] font-bold text-slate-300">LinkedIn</label>
+                    <input
+                      type="text"
+                      placeholder="Ej. tu_perfil_profesional"
+                      value={linkedin}
+                      onChange={(e) => setLinkedin(e.target.value)}
+                      className="w-full bg-transparent text-xs text-white focus:outline-none mt-0.5"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
