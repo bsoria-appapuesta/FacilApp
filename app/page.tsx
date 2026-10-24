@@ -61,7 +61,6 @@ export default function Home() {
     cargarPerfil()
   }, [])
 
-  // Escuchar cuando cambia la fecha elegida para consultar los turnos ocupados
   useEffect(() => {
     if (fecha && negocio) {
       cargarTurnosOcupados(fecha)
@@ -90,7 +89,6 @@ export default function Home() {
     }
   }
 
-  // Consulta turnos ocupados en la fecha dada
   async function cargarTurnosOcupados(fechaSeleccionada: string) {
     setCargandoHorarios(true)
     const inicioDia = `${fechaSeleccionada}T00:00:00`
@@ -105,7 +103,6 @@ export default function Home() {
       .in('estado', ['pendiente', 'confirmado'])
 
     if (turnosData) {
-      // Extraemos solo la hora 'HH:MM' de las fechas guardadas
       const horasReservadas = turnosData.map((t: any) => {
         const date = new Date(t.fecha_hora)
         const hh = String(date.getHours()).padStart(2, '0')
@@ -180,17 +177,19 @@ export default function Home() {
       case 'instagram': return <FaInstagram className="w-5 h-5 text-pink-500" />
       case 'tiktok': return <FaTiktok className="w-5 h-5 text-slate-900" />
       case 'facebook': return <FaFacebook className="w-5 h-5 text-blue-600" />
+      case 'linkedin': return <FaLinkedin className="w-5 h-5 text-sky-600" />
       case 'twitter': return <FaTwitter className="w-5 h-5 text-sky-400" />
       default: return <FaGlobe className="w-5 h-5 text-indigo-500" />
     }
   }
 
-  const redesList = negocio?.redes_sociales?.length > 0 
-    ? negocio.redes_sociales 
+  // Si tiene redes cargadas las usa, sino arma las básicas por defecto
+  const redesList = (negocio?.redes_sociales && negocio.redes_sociales.length > 0)
+    ? negocio.redes_sociales
     : [
-        { tipo: 'whatsapp', titulo: 'WhatsApp Directo', url: `https://wa.me/${negocio?.whatsapp || ''}` },
-        { tipo: 'instagram', titulo: 'Instagram Oficial', url: `https://instagram.com/${negocio?.instagram_username || ''}` },
-        { tipo: 'tiktok', titulo: 'TikTok', url: `https://tiktok.com/@${negocio?.tiktok_username || ''}` }
+        ...(negocio?.whatsapp ? [{ tipo: 'whatsapp', titulo: 'WhatsApp Directo', url: `https://wa.me/${negocio.whatsapp}` }] : []),
+        ...(negocio?.instagram_username ? [{ tipo: 'instagram', titulo: 'Instagram Oficial', url: `https://instagram.com/${negocio.instagram_username.replace('@','')}` }] : []),
+        ...(negocio?.tiktok_username ? [{ tipo: 'tiktok', titulo: 'TikTok', url: `https://tiktok.com/@${negocio.tiktok_username.replace('@','')}` }] : [])
       ]
 
   const galeriaLista = negocio?.galeria_detallada?.length > 0
@@ -272,21 +271,24 @@ export default function Home() {
 
         {/* Módulos de Redes Sociales */}
         <div className="space-y-3 mb-6">
-          {redesList.map((red: any, idx: number) => (
-            <a
-              key={idx}
-              href={red.url || '#'}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`w-full bg-white hover:bg-slate-50/80 border border-slate-200/80 p-3.5 flex items-center justify-between shadow-sm transition-all active:scale-[0.99] ${bordes}`}
-            >
-              <div className="flex items-center gap-3">
-                {getRedSocialIcon(red.tipo || 'web')}
-                <span className="font-bold text-slate-800">{red.titulo}</span>
-              </div>
-              <ExternalLink className="w-4 h-4 text-slate-300" />
-            </a>
-          ))}
+          {redesList.map((red: any, idx: number) => {
+            const urlSegura = red.url?.startsWith('http') ? red.url : `https://${red.url}`
+            return (
+              <a
+                key={idx}
+                href={urlSegura}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`w-full bg-white hover:bg-slate-50/80 border border-slate-200/80 p-3.5 flex items-center justify-between shadow-sm transition-all active:scale-[0.99] ${bordes}`}
+              >
+                <div className="flex items-center gap-3">
+                  {getRedSocialIcon(red.tipo || 'web')}
+                  <span className="font-bold text-slate-800">{red.titulo}</span>
+                </div>
+                <ExternalLink className="w-4 h-4 text-slate-300" />
+              </a>
+            )
+          })}
 
           {/* Botón Principal para Desplegar Turnos */}
           <button
@@ -444,7 +446,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Catálogo Visual de Galería en la web del cliente */}
+        {/* Catálogo Visual */}
         {galeriaLista.length > 0 && (
           <div className="border-t border-slate-100 pt-5 space-y-3 mt-6">
             <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -474,9 +476,9 @@ export default function Home() {
 
       </div>
 
-      {/* MODAL DE COMPARTIR */}
+      {/* Modal Compartir */}
       {modalCompartir && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white max-w-sm w-full rounded-3xl p-6 shadow-2xl border border-slate-100 relative space-y-4">
             
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
