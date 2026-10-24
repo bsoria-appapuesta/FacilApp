@@ -446,16 +446,19 @@ export default function Home() {
           </div>
         )}
 
-        {/* LISTADO FIJO Y PERMANENTE DE SERVICIOS */}
+        {/* LISTADO DE SERVICIOS TIPO MENÚ / LISTA LIMPIA */}
         <div className="border-t border-slate-100 pt-5 space-y-3 mb-6">
-          <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-            Nuestros Servicios
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+              Nuestros Servicios
+            </p>
+            <span className="text-[10px] text-slate-400">Tocá para reservar</span>
+          </div>
 
-          <div className="space-y-2">
+          <div className="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-sm overflow-hidden">
             {servicios.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-4 bg-slate-50 rounded-2xl">
+              <p className="text-xs text-slate-400 text-center py-4">
                 No hay servicios cargados actualmente.
               </p>
             ) : (
@@ -466,28 +469,33 @@ export default function Home() {
                     setServicioSel(s)
                     setSeccionAbierta('turnos')
                   }}
-                  className={`p-3.5 rounded-2xl border border-slate-200/80 bg-white hover:bg-slate-50/90 transition flex justify-between items-center shadow-sm cursor-pointer`}
+                  className="p-3.5 hover:bg-slate-50 transition-colors flex justify-between items-center cursor-pointer group"
                 >
-                  <div className="space-y-1">
-                    <p className="font-bold text-slate-800 text-sm">{s.nombre}</p>
-                    <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                  <div className="space-y-0.5">
+                    <p className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 transition-colors">
+                      {s.nombre}
+                    </p>
+                    <div className="flex items-center gap-2 text-[11px] text-slate-400">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3 text-slate-400" /> {s.duracion_minutos || 30} min
                       </span>
                       {s.requiere_seña && (
-                        <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-md font-bold text-[10px] flex items-center gap-0.5">
-                          <ShieldAlert className="w-3 h-3" /> Seña: ${s.monto_seña}
+                        <span className="bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-bold text-[9px]">
+                          Seña: ${s.monto_seña}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <span 
-                    style={{ color: colorPrincipal }}
-                    className="font-black text-sm bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-100"
-                  >
-                    ${s.precio}
-                  </span>
+                  <div className="text-right flex items-center gap-2">
+                    <span 
+                      style={{ color: colorPrincipal }}
+                      className="font-black text-sm tracking-tight"
+                    >
+                      ${s.precio}
+                    </span>
+                    <span className="text-slate-300 group-hover:text-slate-500 text-xs transition-colors">›</span>
+                  </div>
                 </div>
               ))
             )}
