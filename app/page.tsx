@@ -15,8 +15,7 @@ import {
   Check, 
   Clock, 
   ShieldAlert, 
-  Globe,
-  ChevronDown
+  Globe
 } from 'lucide-react'
 
 import { 
@@ -44,18 +43,18 @@ export default function Home() {
   const [servicios, setServicios] = useState<any[]>([])
   const [servicioSel, setServicioSel] = useState<any>(null)
   
-  // Estado para desplegar/cerrar la lista de servicios
-  const [serviciosDesplegados, setServiciosDesplegados] = useState(false)
-
   // Formulario colapsable para solicitar turnos
   const [seccionAbierta, setSeccionAbierta] = useState<'turnos' | null>(null)
   const [modalCompartir, setModalCompartir] = useState(false)
   const [copiado, setCopiado] = useState(false)
   
-  // Formulario de reserva
+  // Obtener fecha de hoy en formato YYYY-MM-DD
+  const fechaHoy = new Date().toISOString().split('T')[0]
+
+  // Formulario de reserva con fecha de hoy por defecto
   const [nombre, setNombre] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
-  const [fecha, setFecha] = useState('')
+  const [fecha, setFecha] = useState(fechaHoy)
   const [hora, setHora] = useState('10:00')
   const [horasOcupadas, setHorasOcupadas] = useState<string[]>([])
   const [cargandoHorarios, setCargandoHorarios] = useState(false)
@@ -132,6 +131,12 @@ export default function Home() {
     e.preventDefault()
     if (!nombre || !whatsapp || !fecha || !hora || !servicioSel) {
       alert('Por favor completá todos los campos')
+      return
+    }
+
+    // Validación de fecha no menor a hoy
+    if (fecha < fechaHoy) {
+      alert('No podés seleccionar una fecha anterior a la de hoy.')
       return
     }
 
@@ -303,14 +308,14 @@ export default function Home() {
               </div>
               <div className="text-left">
                 <span className="font-extrabold block">Solicitar Turno / Pedido</span>
-                <span className="text-[10px] text-white/80 block">Consultá horarios disponibles</span>
+                <span className="text-[10px] text-white/80 block">Consultá servicios y horarios disponibles</span>
               </div>
             </div>
             <Plus className={`w-5 h-5 transition-transform duration-300 ${seccionAbierta === 'turnos' ? 'rotate-45' : ''}`} />
           </button>
         </div>
 
-        {/* Formulario de Reservas */}
+        {/* Formulario que se despliega al tocar "Solicitar Turno / Pedido" */}
         {seccionAbierta === 'turnos' && (
           <div className="border-t border-slate-100 pt-5 space-y-4 mb-6">
             {exito ? (
@@ -336,40 +341,59 @@ export default function Home() {
               </div>
             ) : (
               <form onSubmit={handleReservar} className="space-y-4">
+                
+                {/* LISTADO DE SERVICIOS ADENTRO DE SOLICITAR TURNO */}
                 <div>
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
                     1. Seleccioná el Servicio
                   </label>
-                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-                    {servicios.map((s) => {
-                      const esSel = servicioSel?.id === s.id
-                      return (
-                        <div
-                          key={s.id}
-                          onClick={() => setServicioSel(s)}
-                          className={`p-3 rounded-2xl border-2 transition cursor-pointer flex justify-between items-center ${
-                            esSel ? 'border-rose-500 bg-rose-50/30' : 'border-slate-100 bg-slate-50/50'
-                          }`}
-                        >
-                          <div className="space-y-0.5">
-                            <p className="font-bold text-slate-800 text-xs">{s.nombre}</p>
-                            <div className="flex items-center gap-2 text-[10px] text-slate-500">
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3 text-slate-400" /> {s.duracion_minutos || 30} min
-                              </span>
-                              {s.requiere_seña && (
-                                <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-md font-bold text-[9px]">
-                                  Seña: ${s.monto_seña}
+                  <div className="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-sm overflow-hidden max-h-60 overflow-y-auto">
+                    {servicios.length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-4">
+                        No hay servicios cargados actualmente.
+                      </p>
+                    ) : (
+                      servicios.map((s) => {
+                        const esSel = servicioSel?.id === s.id
+                        return (
+                          <div
+                            key={s.id}
+                            onClick={() => setServicioSel(s)}
+                            className={`p-3.5 transition-colors flex justify-between items-center cursor-pointer ${
+                              esSel ? 'bg-indigo-50/80' : 'hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className="space-y-0.5">
+                              <p className={`font-bold text-sm ${esSel ? 'text-indigo-600' : 'text-slate-800'}`}>
+                                {s.nombre}
+                              </p>
+                              <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3 text-slate-400" /> {s.duracion_minutos || 30} min
                                 </span>
-                              )}
+                                {s.requiere_seña && (
+                                  <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold text-[9px]">
+                                    Seña: ${s.monto_seña}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="text-right flex items-center gap-2">
+                              <span 
+                                style={{ color: colorPrincipal }}
+                                className="font-black text-sm tracking-tight"
+                              >
+                                ${s.precio}
+                              </span>
+                              <span className={`text-xs font-bold ${esSel ? 'text-indigo-600' : 'text-slate-300'}`}>
+                                {esSel ? '✓' : '›'}
+                              </span>
                             </div>
                           </div>
-                          <span className="font-black text-rose-600 text-xs bg-rose-100/80 px-2 py-0.5 rounded-lg">
-                            ${s.precio}
-                          </span>
-                        </div>
-                      )
-                    })}
+                        )
+                      })
+                    )}
                   </div>
                 </div>
 
@@ -401,6 +425,7 @@ export default function Home() {
                   </label>
                   <input
                     type="date"
+                    min={fechaHoy}
                     value={fecha}
                     onChange={(e) => setFecha(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 mb-2 focus:outline-none"
@@ -449,76 +474,6 @@ export default function Home() {
             )}
           </div>
         )}
-
-        {/* LISTA DESPLEGABLE DE SERVICIOS */}
-        <div className="border-t border-slate-100 pt-5 space-y-3 mb-6">
-          <button
-            type="button"
-            onClick={() => setServiciosDesplegados(!serviciosDesplegados)}
-            className="w-full bg-white hover:bg-slate-50/80 border border-slate-200/80 p-3.5 rounded-2xl flex items-center justify-between shadow-sm transition active:scale-[0.99]"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
-                <Calendar className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <p className="font-extrabold text-slate-900 text-sm">Nuestros Servicios</p>
-                <p className="text-xs text-slate-400 font-medium">Tocá para ver lista y precios</p>
-              </div>
-            </div>
-            <ChevronDown 
-              className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${serviciosDesplegados ? 'rotate-180 text-slate-700' : ''}`} 
-            />
-          </button>
-
-          {/* Contenido desplegado */}
-          {serviciosDesplegados && (
-            <div className="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-sm overflow-hidden transition-all duration-300">
-              {servicios.length === 0 ? (
-                <p className="text-xs text-slate-400 text-center py-4">
-                  No hay servicios cargados actualmente.
-                </p>
-              ) : (
-                servicios.map((s) => (
-                  <div
-                    key={s.id}
-                    onClick={() => {
-                      setServicioSel(s)
-                      setSeccionAbierta('turnos')
-                    }}
-                    className="p-3.5 hover:bg-slate-50 transition-colors flex justify-between items-center cursor-pointer group"
-                  >
-                    <div className="space-y-0.5">
-                      <p className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 transition-colors">
-                        {s.nombre}
-                      </p>
-                      <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-slate-400" /> {s.duracion_minutos || 30} min
-                        </span>
-                        {s.requiere_seña && (
-                          <span className="bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-bold text-[9px]">
-                            Seña: ${s.monto_seña}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="text-right flex items-center gap-2">
-                      <span 
-                        style={{ color: colorPrincipal }}
-                        className="font-black text-sm tracking-tight"
-                      >
-                        ${s.precio}
-                      </span>
-                      <span className="text-slate-300 group-hover:text-slate-500 text-xs transition-colors">›</span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-        </div>
 
         {/* Catálogo Visual de Galería */}
         {galeriaLista.length > 0 && (
