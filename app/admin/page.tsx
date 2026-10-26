@@ -16,7 +16,8 @@ import {
   Pencil,
   X,
   ExternalLink,
-  Globe
+  Globe,
+  UserPlus
 } from 'lucide-react'
 
 import { 
@@ -46,6 +47,20 @@ export default function AdminPage() {
   const [turnos, setTurnos] = useState<any[]>([])
   const [servicios, setServicios] = useState<any[]>([])
   const [cargando, setCargando] = useState(false)
+
+  // Configuración de Horarios
+  const [horaApertura, setHoraApertura] = useState('09:00')
+  const [horaCierre, setHoraCierre] = useState('18:00')
+  const [intervaloMinutos, setIntervaloMinutos] = useState(30)
+
+  // Turno Manual desde Admin
+  const [mostrarModalManual, setMostrarModalManual] = useState(false)
+  const fechaHoy = new Date().toISOString().split('T')[0]
+  const [manualNombre, setManualNombre] = useState('')
+  const [manualWhatsapp, setManualWhatsapp] = useState('')
+  const [manualServicioId, setManualServicioId] = useState('')
+  const [manualFecha, setManualFecha] = useState(fechaHoy)
+  const [manualHora, setManualHora] = useState('')
 
   // Formulario Nuevo / Edición Servicio
   const [servicioEditandoId, setServicioEditandoId] = useState<string | null>(null)
@@ -84,6 +99,23 @@ export default function AdminPage() {
     cargarDatos()
   }, [])
 
+  function generarHorarios(desde: string, hasta: string, paso: number): string[] {
+    const lista: string[] = []
+    const [hInicio, mInicio] = desde.split(':').map(Number)
+    const [hFin, mFin] = hasta.split(':').map(Number)
+
+    let actualMin = hInicio * 60 + mInicio
+    const limiteMin = hFin * 60 + mFin
+
+    while (actualMin <= limiteMin) {
+      const h = Math.floor(actualMin / 60)
+      const m = actualMin % 60
+      lista.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
+      actualMin += paso
+    }
+    return lista
+  }
+
   async function cargarDatos() {
     const { data: negData } = await supabase.from('negocios').select('*').limit(1).single()
     if (negData) {
@@ -93,58 +125,12 @@ export default function AdminPage() {
       setDescripcion(negData.descripcion || '')
       setWhatsapp(negData.whatsapp || '')
 
+      setHoraApertura(negData.hora_apertura || '09:00')
+      setHoraCierre(negData.hora_cierre || '18:00')
+      setIntervaloMinutos(negData.intervalo_minutos || 30)
+
       if (Array.isArray(negData.redes_sociales) && negData.redes_sociales.length > 0) {
         setRedes(negData.redes_sociales)
-      } else {
-        const iniciales: RedItem[] = []
-        if (negData.whatsapp) {
-          iniciales.push({
-            id: 'wa-1',
-            plataforma: 'whatsapp',
-            nombreRed: 'WhatsApp',
-            usuarioODetalle: negData.whatsapp,
-            url: `https://wa.me/${negData.whatsapp.replace(/\D/g, '')}`
-          })
-        }
-        if (negData.instagram || negData.instagram_username) {
-          const u = (negData.instagram || negData.instagram_username).replace('@', '')
-          iniciales.push({
-            id: 'ig-1',
-            plataforma: 'instagram',
-            nombreRed: 'Instagram',
-            usuarioODetalle: `@${u}`,
-            url: `https://instagram.com/${u}`
-          })
-        }
-        if (negData.tiktok || negData.tiktok_username) {
-          const t = (negData.tiktok || negData.tiktok_username).replace('@', '')
-          iniciales.push({
-            id: 'tk-1',
-            plataforma: 'tiktok',
-            nombreRed: 'TikTok',
-            usuarioODetalle: `@${t}`,
-            url: `https://tiktok.com/@${t}`
-          })
-        }
-        if (negData.facebook) {
-          iniciales.push({
-            id: 'fb-1',
-            plataforma: 'facebook',
-            nombreRed: 'Facebook',
-            usuarioODetalle: negData.facebook,
-            url: negData.facebook.startsWith('http') ? negData.facebook : `https://facebook.com/${negData.facebook}`
-          })
-        }
-        if (negData.linkedin) {
-          iniciales.push({
-            id: 'lk-1',
-            plataforma: 'linkedin',
-            nombreRed: 'LinkedIn',
-            usuarioODetalle: negData.linkedin,
-            url: negData.linkedin.startsWith('http') ? negData.linkedin : `https://linkedin.com/in/${negData.linkedin}`
-          })
-        }
-        setRedes(iniciales)
       }
 
       setColorPrincipal(negData.color_principal || '#6366f1')
@@ -170,7 +156,10 @@ export default function AdminPage() {
         .eq('negocio_id', negData.id)
         .eq('activo', true)
 
-      if (servData) setServicios(servData)
+      if (servData) {
+        setServicios(servData)
+        if (servData.length > 0) setManualServicioId(servData[0].id)
+      }
     }
   }
 
@@ -215,6 +204,42 @@ export default function AdminPage() {
       alert('Error al confirmar turno: ' + error.message)
     } else {
       alert('¡Turno confirmado con éxito!')
+      cargarDatos()
+    }
+  }
+
+  async function handleGuardarTurnoManual(e: React.FormEvent) {
+    e.preventDefault()
+    if (!manualNombre || !manualFecha || !manualHora || !manualServicioId) {
+      alert('Por favor completá los campos del turno')
+      return
+    }
+
+    setCargando(true)
+    const servElegido = servicios.find(s => s.id === manualServicioId)
+    const fechaHora = new Date(`${manualFecha}T${manualHora}:00`).toISOString()
+
+    const { error } = await supabase.from('turnos').insert([
+      {
+        negocio_id: negocio.id,
+        servicio_id: manualServicioId,
+        cliente_nombre: manualNombre,
+        cliente_whatsapp: manualWhatsapp || 'Manual Admin',
+        fecha_hora: fechaHora,
+        monto_cobrado: servElegido?.precio || 0,
+        estado: 'confirmado'
+      }
+    ])
+
+    setCargando(false)
+    if (error) {
+      alert('Error al crear turno: ' + error.message)
+    } else {
+      alert('¡Turno manual registrado y confirmado!')
+      setManualNombre('')
+      setManualWhatsapp('')
+      setManualHora('')
+      setMostrarModalManual(false)
       cargarDatos()
     }
   }
@@ -405,6 +430,9 @@ export default function AdminPage() {
         ubicacion,
         descripcion,
         whatsapp,
+        hora_apertura: horaApertura,
+        hora_cierre: horaCierre,
+        intervalo_minutos: parseInt(String(intervaloMinutos)),
         redes_sociales: redes,
         color_principal: colorPrincipal,
         color_fondo: colorFondo,
@@ -421,10 +449,12 @@ export default function AdminPage() {
     if (error) {
       alert('Error al guardar cambios: ' + error.message)
     } else {
-      alert('¡Todos los cambios de redes, diseño y fotos fueron guardados!')
+      alert('¡Configuración guardada correctamente!')
       cargarDatos()
     }
   }
+
+  const horariosDisponiblesManual = generarHorarios(horaApertura, horaCierre, intervaloMinutos)
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 p-4 sm:p-8">
@@ -472,7 +502,106 @@ export default function AdminPage() {
         {/* PESTAÑA 1: TURNOS */}
         {tab === 'turnos' && (
           <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-4">
-            <h2 className="text-lg font-bold text-white">Listado de Reservas</h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-bold text-white">Listado de Reservas</h2>
+              <button
+                onClick={() => setMostrarModalManual(true)}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition shadow-sm"
+              >
+                <UserPlus className="w-3.5 h-3.5" /> Nuevo Turno Manual
+              </button>
+            </div>
+
+            {/* Modal Turno Manual */}
+            {mostrarModalManual && (
+              <div className="bg-slate-900 border border-slate-700 p-5 rounded-2xl space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                  <h3 className="font-bold text-sm text-white">Agendar Turno Manualmente (Admin)</h3>
+                  <button onClick={() => setMostrarModalManual(false)} className="text-slate-400 hover:text-white">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleGuardarTurnoManual} className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] text-slate-400 mb-1">Nombre del Cliente</label>
+                      <input
+                        type="text"
+                        placeholder="Nombre completo"
+                        value={manualNombre}
+                        onChange={(e) => setManualNombre(e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-slate-400 mb-1">WhatsApp (Opcional)</label>
+                      <input
+                        type="text"
+                        placeholder="Número de contacto"
+                        value={manualWhatsapp}
+                        onChange={(e) => setManualWhatsapp(e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[11px] text-slate-400 mb-1">Servicio</label>
+                      <select
+                        value={manualServicioId}
+                        onChange={(e) => setManualServicioId(e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                        required
+                      >
+                        {servicios.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.nombre} (${s.precio})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] text-slate-400 mb-1">Fecha</label>
+                      <input
+                        type="date"
+                        value={manualFecha}
+                        onChange={(e) => setManualFecha(e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] text-slate-400 mb-1">Horario</label>
+                      <select
+                        value={manualHora}
+                        onChange={(e) => setManualHora(e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                        required
+                      >
+                        <option value="">Seleccionar horario</option>
+                        {horariosDisponiblesManual.map((h) => (
+                          <option key={h} value={h}>{h} hs</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={cargando}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs transition"
+                  >
+                    {cargando ? 'Guardando...' : 'Confirmar y Bloquear Horario'}
+                  </button>
+                </form>
+              </div>
+            )}
+
             <div className="space-y-3">
               {turnos.length === 0 ? (
                 <p className="text-xs text-slate-400 py-4 text-center">No hay reservas guardadas.</p>
@@ -617,6 +746,54 @@ export default function AdminPage() {
           <form onSubmit={handleGuardarMarca} className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-6">
             <h2 className="text-lg font-bold text-white">Edición de página y Estilos</h2>
 
+            {/* SECCIÓN CONFIGURACIÓN DE HORARIOS */}
+            <div className="bg-slate-900 p-4 rounded-2xl border border-slate-700 space-y-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Clock className="w-4 h-4 text-indigo-400" />
+                Configuración de Horarios para Turnos
+              </h3>
+              <p className="text-xs text-slate-400">
+                Definí el horario en el que atendés y cada cuánto tiempo das un turno.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Desde (Apertura)</label>
+                  <input
+                    type="time"
+                    value={horaApertura}
+                    onChange={(e) => setHoraApertura(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Hasta (Cierre)</label>
+                  <input
+                    type="time"
+                    value={horaCierre}
+                    onChange={(e) => setHoraCierre(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Turnos cada (Intervalo)</label>
+                  <select
+                    value={intervaloMinutos}
+                    onChange={(e) => setIntervaloMinutos(Number(e.target.value))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                  >
+                    <option value={15}>Cada 15 minutos</option>
+                    <option value={20}>Cada 20 minutos</option>
+                    <option value={30}>Cada 30 minutos</option>
+                    <option value={45}>Cada 45 minutos</option>
+                    <option value={60}>Cada 60 minutos (1 hora)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-400 mb-1">Nombre del Negocio</label>
@@ -675,16 +852,13 @@ export default function AdminPage() {
               />
             </div>
 
-            {/* SECCIÓN REDES SOCIALES: LOGO + NOMBRE DE LA RED + @ / NÚMERO */}
+            {/* SECCIÓN REDES SOCIALES */}
             <div className="border-t border-slate-700 pt-5 space-y-4">
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Share2 className="w-4 h-4 text-indigo-400" />
                   Botones de Redes Sociales
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Se muestra el logo de la red, el nombre principal (ej. Instagram) y abajo el @usuario o número.
-                </p>
               </div>
 
               <div className="bg-slate-900 p-4 rounded-2xl border border-slate-700 space-y-3">
@@ -730,10 +904,10 @@ export default function AdminPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Enlace / URL directa (Opcional si pusiste @ o número arriba)</label>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Enlace / URL directa</label>
                   <input
                     type="text"
-                    placeholder="https://... (si lo dejas vacío se genera solo con el @ o número)"
+                    placeholder="https://... (si lo dejas vacío se genera solo)"
                     value={redUrl}
                     onChange={(e) => setRedUrl(e.target.value)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
@@ -749,7 +923,6 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              {/* Lista de redes añadidas */}
               <div className="space-y-2">
                 {redes.length === 0 ? (
                   <p className="text-xs text-slate-500 text-center py-3 bg-slate-900/50 rounded-xl">
