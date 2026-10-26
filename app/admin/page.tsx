@@ -23,11 +23,8 @@ import {
   Check,
   TrendingUp,
   DollarSign,
-  ChevronLeft,
-  ChevronRight,
-  MessageCircle,
   Eye,
-  AlertTriangle
+  Camera
 } from 'lucide-react'
 
 import { 
@@ -63,7 +60,6 @@ export default function AdminPage() {
   const [horaCierre, setHoraCierre] = useState('18:00')
   const [intervaloMinutos, setIntervaloMinutos] = useState(30)
 
-  // Función de fecha local exacta
   const obtenerFechaLocal = () => {
     const d = new Date()
     const year = d.getFullYear()
@@ -81,7 +77,7 @@ export default function AdminPage() {
   const [manualFecha, setManualFecha] = useState(fechaHoy)
   const [manualHora, setManualHora] = useState('')
 
-  // Modal Edición / Reprogramación de Turno
+  // Modal Edición de Turno
   const [turnoAEditar, setTurnoAEditar] = useState<any | null>(null)
   const [editFecha, setEditFecha] = useState(fechaHoy)
   const [editHora, setEditHora] = useState('')
@@ -98,6 +94,7 @@ export default function AdminPage() {
   const [ubicacion, setUbicacion] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
+  const [logoUrl, setLogoUrl] = useState('')
 
   const [tipoFuente, setTipoFuente] = useState('Plus Jakarta Sans')
   const [tamanoFuente, setTamanoFuente] = useState('mediano')
@@ -113,7 +110,6 @@ export default function AdminPage() {
   const [colorCarta, setColorCarta] = useState('#ffffff')
   const [tipoFondo, setTipoFondo] = useState('color')
   const [fondoImagenUrl, setFondoImagenUrl] = useState('')
-  const [logoUrl, setLogoUrl] = useState('')
 
   // Catálogo Visual
   const [galeria, setGaleria] = useState<any[]>([])
@@ -154,6 +150,7 @@ export default function AdminPage() {
       setUbicacion(negData.ubicacion || '')
       setDescripcion(negData.descripcion || '')
       setWhatsapp(negData.whatsapp || '')
+      setLogoUrl(negData.logo_url || '')
 
       setHoraApertura(negData.hora_apertura || '09:00')
       setHoraCierre(negData.hora_cierre || '18:00')
@@ -171,7 +168,6 @@ export default function AdminPage() {
       setColorCarta(negData.color_carta || '#ffffff')
       setTipoFondo(negData.tipo_fondo || 'color')
       setFondoImagenUrl(negData.fondo_imagen_url || '')
-      setLogoUrl(negData.logo_url || '')
       setGaleria(negData.galeria_detallada || [])
 
       const { data: turnosData } = await supabase
@@ -221,7 +217,24 @@ export default function AdminPage() {
     if (campo === 'logo') setLogoUrl(publicUrlData.publicUrl)
     if (campo === 'fondo') setFondoImagenUrl(publicUrlData.publicUrl)
     if (campo === 'catalogo') setItemImagenUrl(publicUrlData.publicUrl)
-    alert('Imagen cargada correctamente')
+    alert('Imagen cargada con éxito')
+  }
+
+  // Confirmar y redirigir a WhatsApp de inmediato
+  async function handleConfirmarTurno(turno: any) {
+    setCargando(true)
+    const { error } = await supabase
+      .from('turnos')
+      .update({ estado: 'confirmado' })
+      .eq('id', turno.id)
+
+    setCargando(false)
+    if (error) {
+      alert('Error: ' + error.message)
+    } else {
+      cargarDatos()
+      avisarWhatsApp(turno, 'confirmar')
+    }
   }
 
   async function handleCambiarEstadoTurno(turnoId: string, nuevoEstado: 'confirmado' | 'finalizado') {
@@ -232,18 +245,13 @@ export default function AdminPage() {
       .eq('id', turnoId)
 
     setCargando(false)
-    if (error) {
-      alert('Error: ' + error.message)
-    } else {
-      cargarDatos()
-    }
+    if (!error) cargarDatos()
   }
 
-  // Notificar por WhatsApp
   function avisarWhatsApp(turno: any, accion: 'confirmar' | 'reprogramar' | 'cancelar', nuevaFecha = '', nuevaHora = '') {
     const celular = turno.cliente_whatsapp?.replace(/\D/g, '') || ''
     if (!celular) {
-      alert('Este turno no tiene número de WhatsApp registrado.')
+      alert('El cliente no tiene un teléfono de WhatsApp registrado.')
       return
     }
 
@@ -254,22 +262,20 @@ export default function AdminPage() {
 
     let mensaje = ''
     if (accion === 'confirmar') {
-      mensaje = `¡Hola ${turno.cliente_nombre}! Te confirmamos tu turno para *${nombreServicio}* el día *${fechaTxt}* a las *${horaTxt} hs* en *${negocio?.nombre || 'nuestro local'}*. ¡Te esperamos!`
+      mensaje = `¡Hola ${turno.cliente_nombre}! Te confirmo tu turno para *${nombreServicio}* el día *${fechaTxt}* a las *${horaTxt} hs* en *${negocio?.nombre || 'nuestro local'}*. ¡Te esperamos!`
     } else if (accion === 'reprogramar') {
-      mensaje = `¡Hola ${turno.cliente_nombre}! Tu turno para *${nombreServicio}* ha sido reprogramado con éxito para el día *${nuevaFecha}* a las *${nuevaHora} hs*. Cualquier duda nos escribes.`
+      mensaje = `¡Hola ${turno.cliente_nombre}! Tu turno para *${nombreServicio}* ha sido reprogramado para el día *${nuevaFecha}* a las *${nuevaHora} hs*.`
     } else if (accion === 'cancelar') {
-      mensaje = `Hola ${turno.cliente_nombre}. Te informamos que tu reserva para *${nombreServicio}* del día *${fechaTxt}* a las *${horaTxt} hs* ha sido cancelada. Si deseas reprogramar, contáctanos.`
+      mensaje = `Hola ${turno.cliente_nombre}. Te informamos que tu reserva para *${nombreServicio}* del día *${fechaTxt}* a las *${horaTxt} hs* ha sido cancelada.`
     }
 
     window.open(`https://wa.me/${celular}?text=${encodeURIComponent(mensaje)}`, '_blank')
   }
 
-  // Eliminar / Cancelar Turno con aviso opcional
   async function handleEliminarTurno(turno: any) {
     if (!confirm(`¿Estás seguro de cancelar el turno de ${turno.cliente_nombre}?`)) return
 
-    const enviarAviso = confirm('¿Deseas enviar un mensaje de cancelación por WhatsApp al cliente?')
-    if (enviarAviso) {
+    if (confirm('¿Deseas enviar el aviso de cancelación por WhatsApp al cliente?')) {
       avisarWhatsApp(turno, 'cancelar')
     }
 
@@ -277,14 +283,9 @@ export default function AdminPage() {
     const { error } = await supabase.from('turnos').delete().eq('id', turno.id)
     setCargando(false)
 
-    if (error) {
-      alert('Error al cancelar turno: ' + error.message)
-    } else {
-      cargarDatos()
-    }
+    if (!error) cargarDatos()
   }
 
-  // Guardar Reprogramación de Turno
   async function handleGuardarReprogramacion(e: React.FormEvent) {
     e.preventDefault()
     if (!turnoAEditar || !editFecha || !editHora) return
@@ -304,11 +305,8 @@ export default function AdminPage() {
 
     setCargando(false)
 
-    if (error) {
-      alert('Error al reprogramar: ' + error.message)
-    } else {
-      const enviarAviso = confirm('¿Deseas notificar la reprogramación por WhatsApp al cliente?')
-      if (enviarAviso) {
+    if (!error) {
+      if (confirm('¿Notificar la nueva fecha y hora por WhatsApp al cliente?')) {
         avisarWhatsApp(turnoAEditar, 'reprogramar', editFecha, editHora)
       }
       setTurnoAEditar(null)
@@ -340,9 +338,7 @@ export default function AdminPage() {
     ])
 
     setCargando(false)
-    if (error) {
-      alert('Error: ' + error.message)
-    } else {
+    if (!error) {
       setManualNombre('')
       setManualWhatsapp('')
       setManualHora('')
@@ -428,7 +424,10 @@ export default function AdminPage() {
   }
 
   function handleAgregarRed() {
-    if (!redUsuario.trim() && !redUrl.trim()) return
+    if (!redUsuario.trim() && !redUrl.trim()) {
+      alert('Ingresá el usuario o la URL de la red.')
+      return
+    }
 
     let urlFinal = redUrl.trim()
     if (!urlFinal) {
@@ -464,7 +463,7 @@ export default function AdminPage() {
     switch (plat) {
       case 'whatsapp': return <FaWhatsapp className="w-5 h-5 text-emerald-400" />
       case 'instagram': return <FaInstagram className="w-5 h-5 text-pink-400" />
-      case 'tiktok': return <FaTiktok className="w-5 h-5 text-white" />
+      case 'tiktok': return <FaTiktok className="w-5 h-5 text-slate-100" />
       case 'facebook': return <FaFacebook className="w-5 h-5 text-blue-400" />
       case 'linkedin': return <FaLinkedin className="w-5 h-5 text-sky-400" />
       case 'youtube': return <FaYoutube className="w-5 h-5 text-rose-500" />
@@ -497,6 +496,7 @@ export default function AdminPage() {
         ubicacion,
         descripcion,
         whatsapp,
+        logo_url: logoUrl,
         hora_apertura: horaApertura,
         hora_cierre: horaCierre,
         intervalo_minutos: parseInt(String(intervaloMinutos)),
@@ -508,17 +508,16 @@ export default function AdminPage() {
         color_carta: colorCarta,
         tipo_fondo: tipoFondo,
         fondo_imagen_url: fondoImagenUrl,
-        logo_url: logoUrl,
         galeria_detallada: galeria
       })
       .eq('id', negocio.id)
 
     setCargando(false)
-    if (error) {
-      alert('Error: ' + error.message)
-    } else {
-      alert('¡Guardado exitosamente!')
+    if (!error) {
+      alert('¡Configuración guardada exitosamente!')
       cargarDatos()
+    } else {
+      alert('Error: ' + error.message)
     }
   }
 
@@ -528,7 +527,6 @@ export default function AdminPage() {
   const turnosConfirmados = turnos.filter(t => t.estado === 'confirmado')
   const turnosHistorial = turnos.filter(t => t.estado === 'finalizado')
 
-  // Filtros Historial
   const turnosFiltradosHistorial = turnosHistorial.filter(t => {
     if (filtroHistorial === 'todo') return true
     const fechaTurno = t.fecha_hora.split('T')[0]
@@ -547,7 +545,6 @@ export default function AdminPage() {
     ? Math.round(totalRecaudado / turnosFiltradosHistorial.length) 
     : 0
 
-  // Datos para Gráficos
   const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
   const facturacionPorDiaSemana = [0, 0, 0, 0, 0, 0, 0]
   const ventasPorServicio: Record<string, { cantidad: number, total: number }> = {}
@@ -660,7 +657,7 @@ export default function AdminPage() {
             <div className="flex justify-between items-center flex-wrap gap-3 bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">
               <div>
                 <h2 className="text-lg font-black text-white">Turnos Reservados</h2>
-                <p className="text-xs text-slate-400">Confirmá, reprogramá o avisá a tus clientes por WhatsApp</p>
+                <p className="text-xs text-slate-400">Confirmá y abrí el chat de WhatsApp al instante</p>
               </div>
               <button
                 onClick={() => setMostrarModalManual(true)}
@@ -730,7 +727,7 @@ export default function AdminPage() {
                       disabled={cargando}
                       className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs transition"
                     >
-                      Guardar Reprogramación
+                      Guardar y Notificar
                     </button>
                     <button
                       type="button"
@@ -839,18 +836,10 @@ export default function AdminPage() {
 
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => avisarWhatsApp(t, 'confirmar')}
-                            className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 p-2.5 rounded-xl border border-emerald-500/30 transition flex items-center gap-1.5 text-xs font-bold"
-                            title="Avisar por WhatsApp"
+                            onClick={() => handleConfirmarTurno(t)}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5 shadow"
                           >
-                            <FaWhatsapp className="w-4 h-4" /> Enviar WA
-                          </button>
-
-                          <button
-                            onClick={() => handleCambiarEstadoTurno(t.id, 'confirmado')}
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center gap-1"
-                          >
-                            <Check className="w-3.5 h-3.5" /> Confirmar
+                            <FaWhatsapp className="w-4 h-4" /> Confirmar & Abrir WA
                           </button>
 
                           <button
@@ -889,6 +878,14 @@ export default function AdminPage() {
 
                         <div className="flex items-center gap-2">
                           <button
+                            onClick={() => avisarWhatsApp(t, 'confirmar')}
+                            className="p-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 rounded-xl border border-emerald-500/30 transition text-xs font-bold flex items-center gap-1"
+                            title="Abrir chat de WhatsApp"
+                          >
+                            <FaWhatsapp className="w-3.5 h-3.5" /> Chat
+                          </button>
+
+                          <button
                             onClick={() => {
                               setTurnoAEditar(t)
                               setEditFecha(t.fecha_hora.split('T')[0])
@@ -897,7 +894,6 @@ export default function AdminPage() {
                               setEditServicioId(t.servicio_id)
                             }}
                             className="p-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 rounded-xl border border-indigo-500/30 transition text-xs font-bold flex items-center gap-1"
-                            title="Reprogramar Turno"
                           >
                             <Pencil className="w-3.5 h-3.5" /> Reprogramar
                           </button>
@@ -912,7 +908,6 @@ export default function AdminPage() {
                           <button
                             onClick={() => handleEliminarTurno(t)}
                             className="p-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 rounded-xl border border-rose-500/30 transition"
-                            title="Cancelar Turno"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -975,7 +970,7 @@ export default function AdminPage() {
               <button
                 type="submit"
                 disabled={cargando}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-2xl text-xs transition shadow-lg shadow-indigo-600/20"
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-2xl text-xs transition shadow-lg"
               >
                 {cargando ? 'Guardando...' : servicioEditandoId ? 'Actualizar Servicio' : 'Guardar Servicio'}
               </button>
@@ -1144,17 +1139,45 @@ export default function AdminPage() {
           </form>
         )}
 
-        {/* PESTAÑA 4: DATOS & REDES + LIVE PREVIEW */}
+        {/* PESTAÑA 4: DATOS & REDES + FOTO ARRIBA + LIVE PREVIEW */}
         {tab === 'marca' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            {/* Formulario a la izquierda */}
             <form onSubmit={handleGuardarConfiguracion} className="lg:col-span-7 bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
               <div>
                 <h2 className="text-lg font-black text-white">Datos del Negocio, Redes & Diseño</h2>
-                <p className="text-xs text-slate-400">Editá tus datos y mirá la vista previa al lado</p>
+                <p className="text-xs text-slate-400">Configurá la foto de perfil, datos y enlaces</p>
               </div>
 
+              {/* FOTO DE PERFIL / LOGO ARRIBA DE TODO */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+                <label className="block text-xs font-extrabold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-indigo-400" />
+                  Foto de Perfil / Logo Oficial
+                </label>
+                
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-900 border-2 border-indigo-500 overflow-hidden flex items-center justify-center shrink-0">
+                    {logoUrl ? (
+                      <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-white font-black text-xl">{nombreNegocio?.charAt(0) || 'F'}</span>
+                    )}
+                  </div>
+
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, 'logo')}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-slate-400"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">Formato cuadrado recomendado (PNG o JPG)</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Datos Principales */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1">Nombre</label>
@@ -1178,7 +1201,7 @@ export default function AdminPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">WhatsApp de Contacto</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">WhatsApp de Notificaciones</label>
                   <input
                     type="text"
                     value={whatsapp}
@@ -1198,7 +1221,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Fuentes y Tamaños */}
+              {/* Tipografía y Tamaños */}
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
                 <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Tipografía & Estilo</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1263,69 +1286,101 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Redes */}
+              {/* Redes Sociales con URL e Íconos */}
               <div className="border-t border-slate-800 pt-4 space-y-3">
-                <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Redes Sociales</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <select
-                    value={redPlataforma}
-                    onChange={(e) => cambiarPlataformaRed(e.target.value as RedItem['plataforma'])}
-                    className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"
+                <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Enlaces de Redes Sociales</h3>
+                
+                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">Plataforma</label>
+                      <select
+                        value={redPlataforma}
+                        onChange={(e) => cambiarPlataformaRed(e.target.value as RedItem['plataforma'])}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                      >
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="linkedin">LinkedIn</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="web">Sitio Web</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">Texto del Botón</label>
+                      <input
+                        type="text"
+                        placeholder="Ej. Instagram"
+                        value={redNombre}
+                        onChange={(e) => setRedNombre(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">Detalle (@ o número)</label>
+                      <input
+                        type="text"
+                        placeholder="@usuario"
+                        value={redUsuario}
+                        onChange={(e) => setRedUsuario(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">URL / Link Directo</label>
+                    <input
+                      type="text"
+                      placeholder="https://... (si lo dejas vacío se genera solo con tu usuario)"
+                      value={redUrl}
+                      onChange={(e) => setRedUrl(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAgregarRed}
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-indigo-300 font-bold py-2.5 rounded-xl text-xs border border-indigo-500/30 flex items-center justify-center gap-1.5"
                   >
-                    <option value="whatsapp">WhatsApp</option>
-                    <option value="instagram">Instagram</option>
-                    <option value="facebook">Facebook</option>
-                    <option value="tiktok">TikTok</option>
-                    <option value="linkedin">LinkedIn</option>
-                    <option value="youtube">YouTube</option>
-                    <option value="web">Web</option>
-                  </select>
-
-                  <input
-                    type="text"
-                    placeholder="Nombre"
-                    value={redNombre}
-                    onChange={(e) => setRedNombre(e.target.value)}
-                    className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"
-                  />
-
-                  <input
-                    type="text"
-                    placeholder="@usuario"
-                    value={redUsuario}
-                    onChange={(e) => setRedUsuario(e.target.value)}
-                    className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"
-                  />
+                    <Plus className="w-4 h-4" /> Agregar Red Social
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleAgregarRed}
-                  className="w-full bg-slate-950 hover:bg-slate-800 text-indigo-300 font-bold py-2 rounded-xl text-xs border border-indigo-500/30"
-                >
-                  + Agregar Red
-                </button>
-
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {redes.map((r) => (
-                    <div key={r.id} className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
-                      <span className="text-xs font-bold text-white">{r.nombreRed} ({r.usuarioODetalle})</span>
-                      <button type="button" onClick={() => handleEliminarRed(r.id)} className="text-rose-400">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                    <div key={r.id} className="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center shrink-0 border border-slate-800">
+                          {renderIconoRed(r.plataforma)}
+                        </div>
+                        <div className="truncate">
+                          <p className="text-xs font-bold text-white truncate">{r.nombreRed}</p>
+                          <p className="text-[10px] text-slate-400 truncate">{r.usuarioODetalle} • {r.url}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={r.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 text-slate-400 hover:text-white"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                        <button type="button" onClick={() => handleEliminarRed(r.id)} className="text-rose-400 p-1.5">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">Subir Logo</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileUpload(e, 'logo')}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-400"
-                />
               </div>
 
               <button
@@ -1337,7 +1392,7 @@ export default function AdminPage() {
               </button>
             </form>
 
-            {/* LIVE PREVIEW (Celular en miniatura a la derecha) */}
+            {/* LIVE PREVIEW A LA DERECHA */}
             <div className="lg:col-span-5 flex flex-col items-center">
               <div className="sticky top-6 w-full max-w-[320px] bg-slate-900 border-4 border-slate-700 rounded-[40px] p-3 shadow-2xl overflow-hidden">
                 <div className="w-20 h-4 bg-slate-800 rounded-full mx-auto mb-3"></div>
@@ -1364,7 +1419,10 @@ export default function AdminPage() {
                     <div className="mt-4 space-y-2">
                       {redes.map(r => (
                         <div key={r.id} className="bg-slate-50 border border-slate-200 p-2 rounded-xl flex items-center justify-between text-[11px] font-bold text-slate-800">
-                          <span>{r.nombreRed}</span>
+                          <div className="flex items-center gap-2">
+                            {renderIconoRed(r.plataforma)}
+                            <span>{r.nombreRed}</span>
+                          </div>
                           <span className="text-slate-400">›</span>
                         </div>
                       ))}
@@ -1388,7 +1446,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* PESTAÑA 5: HISTORIAL & BALANCES CON GRÁFICOS */}
+        {/* PESTAÑA 5: HISTORIAL */}
         {tab === 'historial' && (
           <div className="space-y-6">
             <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
@@ -1398,7 +1456,7 @@ export default function AdminPage() {
                     <BarChart3 className="w-5 h-5 text-indigo-400" />
                     Estadísticas & Balances Financieros
                   </h2>
-                  <p className="text-xs text-slate-400">Control de ingresos y rendimiento por turnos completados</p>
+                  <p className="text-xs text-slate-400">Control de ingresos por turnos finalizados</p>
                 </div>
 
                 <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-xs">
@@ -1435,7 +1493,7 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {/* Tarjetas Principales */}
+              {/* Tarjetas de Balance */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                 <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-1">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -1469,10 +1527,8 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* GRÁFICOS DE BARRAS */}
+            {/* GRÁFICOS */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
-              {/* Gráfico 1: Facturación por Día de la Semana */}
               <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
                 <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">
                   Facturación por Día de la Semana ($)
@@ -1499,7 +1555,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Gráfico 2: Servicios más Pedidos */}
               <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
                 <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">
                   Servicios Más Vendidos
@@ -1529,10 +1584,8 @@ export default function AdminPage() {
                   )}
                 </div>
               </div>
-
             </div>
 
-            {/* Lista Detallada */}
             <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-3 shadow-xl">
               <h3 className="text-sm font-bold text-slate-300">Detalle de Turnos Facturados</h3>
               <div className="space-y-2">

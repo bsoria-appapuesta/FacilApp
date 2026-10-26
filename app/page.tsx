@@ -42,7 +42,6 @@ export default function Home() {
   const [modalCompartir, setModalCompartir] = useState(false)
   const [copiado, setCopiado] = useState(false)
   
-  // Función de fecha local exacta sin UTC
   const obtenerFechaLocal = () => {
     const d = new Date()
     const year = d.getFullYear()
@@ -64,7 +63,7 @@ export default function Home() {
 
   const [horariosDisponibles, setHorariosDisponibles] = useState<string[]>([])
 
-  // Estado para el Calendario Visual
+  // Calendario Visual
   const [mesActual, setMesActual] = useState(new Date().getMonth())
   const [anioActual, setAnioActual] = useState(new Date().getFullYear())
 
@@ -213,7 +212,6 @@ export default function Home() {
     }
   }
 
-  // Generador de días para Calendario Visual
   const nombresMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
   const primerDiaMes = new Date(anioActual, mesActual, 1).getDay()
   const totalDiasMes = new Date(anioActual, mesActual + 1, 0).getDate()
@@ -460,7 +458,6 @@ export default function Home() {
                   </label>
 
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 mb-2 shadow-sm">
-                    {/* Header Calendario */}
                     <div className="flex justify-between items-center mb-3">
                       <span className="font-extrabold text-xs text-slate-800">
                         {nombresMeses[mesActual]} {anioActual}
@@ -483,12 +480,10 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* Días semana */}
                     <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-1">
                       <span>D</span><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span>
                     </div>
 
-                    {/* Días del mes */}
                     <div className="grid grid-cols-7 gap-1 text-center">
                       {Array.from({ length: primerDiaMes }).map((_, i) => (
                         <div key={`empty-${i}`} className="p-1.5"></div>
@@ -604,23 +599,26 @@ export default function Home() {
 
       </div>
 
-      {/* Modal Compartir */}
+      {/* MODAL COMPARTIR COMPLETO */}
       {modalCompartir && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white max-w-sm w-full rounded-3xl p-6 shadow-2xl border border-slate-100 relative space-y-4">
+            
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h3 className="font-black text-slate-900 text-base">Compartir Perfil</h3>
-              <button onClick={() => setModalCompartir(false)} className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
+              <button onClick={() => setModalCompartir(false)} className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
+            <p className="text-xs text-slate-500">Seleccioná una red social para enviar tu perfil:</p>
+
             <div className="grid grid-cols-2 gap-2.5">
               <a
-                href={`https://api.whatsapp.com/send?text=Mirá%20mi%20perfil:%20${encodeURIComponent(urlActual)}`}
+                href={`https://api.whatsapp.com/send?text=Mirá%20mi%20perfil%20oficial:%20${encodeURIComponent(urlActual)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-2xl flex items-center gap-2 font-bold text-xs"
+                className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-emerald-100 transition"
               >
                 <FaWhatsapp className="w-4 h-4 text-emerald-600" />
                 <span>WhatsApp</span>
@@ -630,20 +628,79 @@ export default function Home() {
                 href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(urlActual)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 bg-blue-50 text-blue-800 border border-blue-200 rounded-2xl flex items-center gap-2 font-bold text-xs"
+                className="p-3 bg-blue-50 text-blue-800 border border-blue-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-blue-100 transition"
               >
                 <FaFacebook className="w-4 h-4 text-blue-600" />
                 <span>Facebook</span>
               </a>
+
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(urlActual)
+                  alert('¡Enlace copiado! Abrí Instagram y pegalo en tu historia o mensaje directo.')
+                  window.open('https://instagram.com', '_blank')
+                }}
+                className="p-3 bg-pink-50 text-pink-800 border border-pink-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-pink-100 transition"
+              >
+                <FaInstagram className="w-4 h-4 text-pink-600" />
+                <span>Instagram</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(urlActual)
+                  alert('¡Enlace copiado! Abrí TikTok para compartirlo en tu bio o mensaje.')
+                  window.open('https://tiktok.com', '_blank')
+                }}
+                className="p-3 bg-slate-100 text-slate-800 border border-slate-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-slate-200 transition"
+              >
+                <FaTiktok className="w-4 h-4 text-slate-900" />
+                <span>TikTok</span>
+              </button>
+
+              <a
+                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(urlActual)}&text=Mirá%20mi%20perfil%20oficial`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 bg-sky-50 text-sky-800 border border-sky-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-sky-100 transition"
+              >
+                <FaTwitter className="w-4 h-4 text-sky-500" />
+                <span>X / Twitter</span>
+              </a>
+
+              <a
+                href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(urlActual)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 bg-sky-50 text-sky-800 border border-sky-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-sky-100 transition"
+              >
+                <FaLinkedin className="w-4 h-4 text-sky-700" />
+                <span>LinkedIn</span>
+              </a>
+
+              <a
+                href={`https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=&su=Perfil%20Oficial&body=Te%20comparto%20mi%20perfil%20oficial:%20${encodeURIComponent(urlActual)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 bg-rose-50 text-rose-800 border border-rose-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-rose-100 transition col-span-2"
+              >
+                <FaEnvelope className="w-4 h-4 text-rose-600" />
+                <span>Gmail</span>
+              </a>
             </div>
 
-            <button
-              onClick={handleCopiarLink}
-              className="w-full bg-slate-900 text-white font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-2"
-            >
-              {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-              <span>{copiado ? '¡Copiado!' : 'Copiar Enlace'}</span>
-            </button>
+            <div className="pt-2 border-t border-slate-100">
+              <button
+                onClick={handleCopiarLink}
+                className="w-full bg-slate-900 text-white font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-2 active:scale-95 transition"
+              >
+                {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                <span>{copiado ? '¡Copiado al Portapapeles!' : 'Copiar Enlace Directo'}</span>
+              </button>
+            </div>
+
           </div>
         </div>
       )}
