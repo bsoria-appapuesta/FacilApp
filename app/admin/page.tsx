@@ -17,7 +17,10 @@ import {
   X,
   ExternalLink,
   Globe,
-  UserPlus
+  UserPlus,
+  LayoutDashboard,
+  Scissors,
+  Palette
 } from 'lucide-react'
 
 import { 
@@ -55,7 +58,16 @@ export default function AdminPage() {
 
   // Turno Manual desde Admin
   const [mostrarModalManual, setMostrarModalManual] = useState(false)
-  const fechaHoy = new Date().toISOString().split('T')[0]
+  
+  const obtenerFechaLocal = () => {
+    const d = new Date()
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  const fechaHoy = obtenerFechaLocal()
+
   const [manualNombre, setManualNombre] = useState('')
   const [manualWhatsapp, setManualWhatsapp] = useState('')
   const [manualServicioId, setManualServicioId] = useState('')
@@ -457,64 +469,100 @@ export default function AdminPage() {
   const horariosDisponiblesManual = generarHorarios(horaApertura, horaCierre, intervaloMinutos)
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-4 sm:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        
-        {/* Encabezado */}
-        <div className="flex justify-between items-center bg-slate-800 p-6 rounded-3xl border border-slate-700">
-          <div>
-            <h1 className="text-2xl font-black text-white">Panel Administrador</h1>
-            <p className="text-xs text-slate-400 mt-1">Configura todo tu sitio web desde aquí</p>
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
+      
+      {/* MENÚ DE COSTADO (SIDEBAR LATERAL) */}
+      <aside className="w-full md:w-64 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 p-5 flex flex-col justify-between shrink-0">
+        <div className="space-y-6">
+          
+          {/* Logo / Título Admin */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center font-black text-white text-lg shadow-lg shadow-indigo-600/30">
+              {negocio?.nombre?.charAt(0) || 'A'}
+            </div>
+            <div>
+              <h1 className="font-extrabold text-sm text-white leading-tight truncate max-w-[150px]">
+                {negocio?.nombre || 'Administración'}
+              </h1>
+              <p className="text-[11px] text-slate-400">Panel de Control</p>
+            </div>
           </div>
-          <a href="/" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-xs font-bold">
-            Ver Mi Página 🚀
+
+          {/* Botones de Navegación Lateral */}
+          <nav className="space-y-1.5">
+            <button
+              onClick={() => setTab('turnos')}
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
+                tab === 'turnos'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                  : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+              }`}
+            >
+              <Calendar className="w-4 h-4 shrink-0" />
+              <span>Turnos Reservados</span>
+            </button>
+
+            <button
+              onClick={() => setTab('servicios')}
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
+                tab === 'servicios'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                  : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+              }`}
+            >
+              <Scissors className="w-4 h-4 shrink-0" />
+              <span>Gestor de Servicios</span>
+            </button>
+
+            <button
+              onClick={() => setTab('marca')}
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
+                tab === 'marca'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                  : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+              }`}
+            >
+              <Palette className="w-4 h-4 shrink-0" />
+              <span>Página, Redes & Horas</span>
+            </button>
+          </nav>
+
+        </div>
+
+        {/* Botón Ver Mi Página abajo del menú */}
+        <div className="pt-4 border-t border-slate-800/80 mt-6 md:mt-0">
+          <a
+            href="/"
+            className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border border-slate-700/60 transition shadow-sm"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            <span>Ver Mi Página Web</span>
           </a>
         </div>
+      </aside>
 
-        {/* Pestañas */}
-        <div className="flex gap-2 bg-slate-800 p-1.5 rounded-2xl border border-slate-700">
-          <button
-            onClick={() => setTab('turnos')}
-            className={`flex-1 py-3 text-xs font-bold rounded-xl transition ${
-              tab === 'turnos' ? 'bg-indigo-600 text-white' : 'text-slate-400'
-            }`}
-          >
-            Turnos Reservados
-          </button>
-          <button
-            onClick={() => setTab('servicios')}
-            className={`flex-1 py-3 text-xs font-bold rounded-xl transition ${
-              tab === 'servicios' ? 'bg-indigo-600 text-white' : 'text-slate-400'
-            }`}
-          >
-            Gestor de Servicios
-          </button>
-          <button
-            onClick={() => setTab('marca')}
-            className={`flex-1 py-3 text-xs font-bold rounded-xl transition ${
-              tab === 'marca' ? 'bg-indigo-600 text-white' : 'text-slate-400'
-            }`}
-          >
-            Edición de página & Redes
-          </button>
-        </div>
-
+      {/* ÁREA DE CONTENIDO PRINCIPAL (DERECHA) */}
+      <main className="flex-1 p-4 sm:p-8 overflow-y-auto max-w-5xl">
+        
         {/* PESTAÑA 1: TURNOS */}
         {tab === 'turnos' && (
-          <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-bold text-white">Listado de Reservas</h2>
+          <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
+            <div className="flex justify-between items-center flex-wrap gap-3">
+              <div>
+                <h2 className="text-lg font-black text-white">Listado de Reservas</h2>
+                <p className="text-xs text-slate-400">Turnos agendados desde la web o manualmente</p>
+              </div>
               <button
                 onClick={() => setMostrarModalManual(true)}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 transition shadow-lg shadow-emerald-600/20"
               >
-                <UserPlus className="w-3.5 h-3.5" /> Nuevo Turno Manual
+                <UserPlus className="w-4 h-4" /> Nuevo Turno Manual
               </button>
             </div>
 
             {/* Modal Turno Manual */}
             {mostrarModalManual && (
-              <div className="bg-slate-900 border border-slate-700 p-5 rounded-2xl space-y-4">
+              <div className="bg-slate-950 border border-slate-800 p-5 rounded-2xl space-y-4 shadow-2xl">
                 <div className="flex justify-between items-center border-b border-slate-800 pb-2">
                   <h3 className="font-bold text-sm text-white">Agendar Turno Manualmente (Admin)</h3>
                   <button onClick={() => setMostrarModalManual(false)} className="text-slate-400 hover:text-white">
@@ -525,35 +573,35 @@ export default function AdminPage() {
                 <form onSubmit={handleGuardarTurnoManual} className="space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Nombre del Cliente</label>
+                      <label className="block text-[11px] text-slate-400 mb-1 font-semibold">Nombre del Cliente</label>
                       <input
                         type="text"
                         placeholder="Nombre completo"
                         value={manualNombre}
                         onChange={(e) => setManualNombre(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">WhatsApp (Opcional)</label>
+                      <label className="block text-[11px] text-slate-400 mb-1 font-semibold">WhatsApp (Opcional)</label>
                       <input
                         type="text"
                         placeholder="Número de contacto"
                         value={manualWhatsapp}
                         onChange={(e) => setManualWhatsapp(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Servicio</label>
+                      <label className="block text-[11px] text-slate-400 mb-1 font-semibold">Servicio</label>
                       <select
                         value={manualServicioId}
                         onChange={(e) => setManualServicioId(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none"
                         required
                       >
                         {servicios.map((s) => (
@@ -565,22 +613,23 @@ export default function AdminPage() {
                     </div>
 
                     <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Fecha</label>
+                      <label className="block text-[11px] text-slate-400 mb-1 font-semibold">Fecha</label>
                       <input
                         type="date"
+                        min={fechaHoy}
                         value={manualFecha}
                         onChange={(e) => setManualFecha(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Horario</label>
+                      <label className="block text-[11px] text-slate-400 mb-1 font-semibold">Horario</label>
                       <select
                         value={manualHora}
                         onChange={(e) => setManualHora(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none"
                         required
                       >
                         <option value="">Seleccionar horario</option>
@@ -594,7 +643,7 @@ export default function AdminPage() {
                   <button
                     type="submit"
                     disabled={cargando}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs transition"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-md"
                   >
                     {cargando ? 'Guardando...' : 'Confirmar y Bloquear Horario'}
                   </button>
@@ -604,13 +653,13 @@ export default function AdminPage() {
 
             <div className="space-y-3">
               {turnos.length === 0 ? (
-                <p className="text-xs text-slate-400 py-4 text-center">No hay reservas guardadas.</p>
+                <p className="text-xs text-slate-400 py-6 text-center">No hay reservas guardadas.</p>
               ) : (
                 turnos.map((t) => {
                   const f = new Date(t.fecha_hora)
                   const esConfirmado = t.estado === 'confirmado'
                   return (
-                    <div key={t.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-700 flex justify-between items-center flex-wrap gap-3">
+                    <div key={t.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center flex-wrap gap-3">
                       <div>
                         <p className="font-bold text-sm text-white">{t.cliente_nombre}</p>
                         <p className="text-xs text-indigo-400">WhatsApp: {t.cliente_whatsapp}</p>
@@ -618,7 +667,7 @@ export default function AdminPage() {
                       </div>
                       <div className="text-right flex items-center gap-3">
                         <div>
-                          <span className="bg-slate-800 text-slate-200 text-xs px-3 py-1 rounded-xl font-bold block border border-slate-700">
+                          <span className="bg-slate-900 text-slate-200 text-xs px-3 py-1 rounded-xl font-bold block border border-slate-800">
                             {f.toLocaleDateString()} {f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} hs
                           </span>
                           <span className="text-xs font-black text-emerald-400 block mt-1">${t.monto_cobrado}</span>
@@ -649,16 +698,16 @@ export default function AdminPage() {
         {/* PESTAÑA 2: SERVICIOS */}
         {tab === 'servicios' && (
           <div className="space-y-6">
-            <form onSubmit={handleGuardarServicio} className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-4">
+            <form onSubmit={handleGuardarServicio} className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
               <div className="flex justify-between items-center">
-                <h2 className="text-lg font-bold text-white">
+                <h2 className="text-lg font-black text-white">
                   {servicioEditandoId ? '✏️ Editar Servicio' : '➕ Agregar Nuevo Servicio'}
                 </h2>
                 {servicioEditandoId && (
                   <button
                     type="button"
                     onClick={cancelarEdicionServicio}
-                    className="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-700"
+                    className="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800"
                   >
                     <X className="w-3.5 h-3.5" /> Cancelar Edición
                   </button>
@@ -671,7 +720,7 @@ export default function AdminPage() {
                   placeholder="Nombre del servicio"
                   value={nomServicio}
                   onChange={(e) => setNomServicio(e.target.value)}
-                  className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                  className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none"
                   required
                 />
                 <input
@@ -679,7 +728,7 @@ export default function AdminPage() {
                   placeholder="Precio ($)"
                   value={precioServicio}
                   onChange={(e) => setPrecioServicio(e.target.value)}
-                  className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                  className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none"
                   required
                 />
                 <input
@@ -687,7 +736,7 @@ export default function AdminPage() {
                   placeholder="Tiempo estimado (min)"
                   value={duracionServicio}
                   onChange={(e) => setDuracionServicio(e.target.value)}
-                  className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                  className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none"
                   required
                 />
               </div>
@@ -695,19 +744,19 @@ export default function AdminPage() {
               <button
                 type="submit"
                 disabled={cargando}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-2xl text-xs transition shadow-md"
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-2xl text-xs transition shadow-lg shadow-indigo-600/20"
               >
                 {cargando ? 'Guardando...' : servicioEditandoId ? 'Actualizar Servicio' : 'Guardar Servicio'}
               </button>
             </form>
 
-            <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-3">
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-3 shadow-xl">
               <h3 className="text-sm font-bold text-slate-400">Listado de Servicios Activos</h3>
               {servicios.length === 0 ? (
                 <p className="text-xs text-slate-500 text-center py-4">No tenés servicios agregados.</p>
               ) : (
                 servicios.map((s) => (
-                  <div key={s.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
+                  <div key={s.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
                     <div>
                       <p className="font-bold text-sm text-white">{s.nombre}</p>
                       <p className="text-xs text-slate-400">⏱️ {s.duracion_minutos || 30} minutos</p>
@@ -743,11 +792,14 @@ export default function AdminPage() {
 
         {/* PESTAÑA 3: EDICIÓN DE PÁGINA & REDES */}
         {tab === 'marca' && (
-          <form onSubmit={handleGuardarMarca} className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-6">
-            <h2 className="text-lg font-bold text-white">Edición de página y Estilos</h2>
+          <form onSubmit={handleGuardarMarca} className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
+            <div>
+              <h2 className="text-lg font-black text-white">Edición de página y Estilos</h2>
+              <p className="text-xs text-slate-400">Personalizá tus horarios, redes y diseño</p>
+            </div>
 
             {/* SECCIÓN CONFIGURACIÓN DE HORARIOS */}
-            <div className="bg-slate-900 p-4 rounded-2xl border border-slate-700 space-y-3">
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Clock className="w-4 h-4 text-indigo-400" />
                 Configuración de Horarios para Turnos
@@ -763,7 +815,7 @@ export default function AdminPage() {
                     type="time"
                     value={horaApertura}
                     onChange={(e) => setHoraApertura(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none"
                   />
                 </div>
 
@@ -773,7 +825,7 @@ export default function AdminPage() {
                     type="time"
                     value={horaCierre}
                     onChange={(e) => setHoraCierre(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none"
                   />
                 </div>
 
@@ -782,7 +834,7 @@ export default function AdminPage() {
                   <select
                     value={intervaloMinutos}
                     onChange={(e) => setIntervaloMinutos(Number(e.target.value))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none"
                   >
                     <option value={15}>Cada 15 minutos</option>
                     <option value={20}>Cada 20 minutos</option>
@@ -801,7 +853,7 @@ export default function AdminPage() {
                   type="text"
                   value={nombreNegocio}
                   onChange={(e) => setNombreNegocio(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none"
                 />
               </div>
 
@@ -811,7 +863,7 @@ export default function AdminPage() {
                   type="text"
                   value={ubicacion}
                   onChange={(e) => setUbicacion(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none"
                 />
               </div>
             </div>
@@ -824,7 +876,7 @@ export default function AdminPage() {
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
                   placeholder="Ej: 5491122334455"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none"
                 />
               </div>
 
@@ -833,7 +885,7 @@ export default function AdminPage() {
                 <select
                   value={tipoFuente}
                   onChange={(e) => setTipoFuente(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none"
                 >
                   <option value="sans-serif">Sans-Serif Moderno</option>
                   <option value="serif">Serif Elegante</option>
@@ -848,12 +900,12 @@ export default function AdminPage() {
               <textarea
                 value={descripcion}
                 onChange={(e) => setDescripcion(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white h-20"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white h-20 focus:outline-none"
               />
             </div>
 
             {/* SECCIÓN REDES SOCIALES */}
-            <div className="border-t border-slate-700 pt-5 space-y-4">
+            <div className="border-t border-slate-800 pt-5 space-y-4">
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Share2 className="w-4 h-4 text-indigo-400" />
@@ -861,14 +913,14 @@ export default function AdminPage() {
                 </h3>
               </div>
 
-              <div className="bg-slate-900 p-4 rounded-2xl border border-slate-700 space-y-3">
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-400 mb-1">Plataforma</label>
                     <select
                       value={redPlataforma}
                       onChange={(e) => cambiarPlataformaRed(e.target.value as RedItem['plataforma'])}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none"
                     >
                       <option value="whatsapp">WhatsApp</option>
                       <option value="instagram">Instagram</option>
@@ -887,7 +939,7 @@ export default function AdminPage() {
                       placeholder="Ej. Instagram, WhatsApp..."
                       value={redNombre}
                       onChange={(e) => setRedNombre(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none"
                     />
                   </div>
 
@@ -898,7 +950,7 @@ export default function AdminPage() {
                       placeholder="Ej. @tu_negocio o +54 9 11..."
                       value={redUsuario}
                       onChange={(e) => setRedUsuario(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none"
                     />
                   </div>
                 </div>
@@ -910,14 +962,14 @@ export default function AdminPage() {
                     placeholder="https://... (si lo dejas vacío se genera solo)"
                     value={redUrl}
                     onChange={(e) => setRedUrl(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none"
                   />
                 </div>
 
                 <button
                   type="button"
                   onClick={handleAgregarRed}
-                  className="w-full bg-slate-800 hover:bg-slate-700 text-indigo-300 font-bold py-2.5 rounded-xl text-xs border border-indigo-500/30 flex items-center justify-center gap-1.5 transition"
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-indigo-300 font-bold py-2.5 rounded-xl text-xs border border-indigo-500/30 flex items-center justify-center gap-1.5 transition"
                 >
                   <Plus className="w-4 h-4" /> Agregar Red Social
                 </button>
@@ -925,14 +977,14 @@ export default function AdminPage() {
 
               <div className="space-y-2">
                 {redes.length === 0 ? (
-                  <p className="text-xs text-slate-500 text-center py-3 bg-slate-900/50 rounded-xl">
+                  <p className="text-xs text-slate-500 text-center py-3 bg-slate-950 rounded-xl">
                     No agregaste ninguna red todavía.
                   </p>
                 ) : (
                   redes.map((r) => (
-                    <div key={r.id} className="bg-slate-900 p-3.5 rounded-2xl border border-slate-700 flex items-center justify-between gap-3">
+                    <div key={r.id} className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700">
+                        <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center shrink-0 border border-slate-800">
                           {renderIconoRed(r.plataforma)}
                         </div>
                         <div className="truncate">
@@ -946,7 +998,7 @@ export default function AdminPage() {
                           href={r.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition"
+                          className="p-2 text-slate-400 hover:text-white hover:bg-slate-900 rounded-xl transition"
                           title="Probar enlace"
                         >
                           <ExternalLink className="w-4 h-4" />
@@ -974,7 +1026,7 @@ export default function AdminPage() {
                   type="color"
                   value={colorFondo}
                   onChange={(e) => setColorFondo(e.target.value)}
-                  className="w-full h-10 bg-slate-900 border border-slate-700 rounded-xl cursor-pointer"
+                  className="w-full h-10 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer"
                 />
               </div>
 
@@ -984,7 +1036,7 @@ export default function AdminPage() {
                   type="color"
                   value={colorCarta}
                   onChange={(e) => setColorCarta(e.target.value)}
-                  className="w-full h-10 bg-slate-900 border border-slate-700 rounded-xl cursor-pointer"
+                  className="w-full h-10 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer"
                 />
               </div>
 
@@ -994,7 +1046,7 @@ export default function AdminPage() {
                   type="color"
                   value={colorPrincipal}
                   onChange={(e) => setColorPrincipal(e.target.value)}
-                  className="w-full h-10 bg-slate-900 border border-slate-700 rounded-xl cursor-pointer"
+                  className="w-full h-10 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer"
                 />
               </div>
             </div>
@@ -1006,14 +1058,14 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={() => setTipoFondo('color')}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold ${tipoFondo === 'color' ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-slate-400'}`}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold ${tipoFondo === 'color' ? 'bg-indigo-600 text-white' : 'bg-slate-950 text-slate-400'}`}
                 >
                   Usar Color
                 </button>
                 <button
                   type="button"
                   onClick={() => setTipoFondo('imagen')}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold ${tipoFondo === 'imagen' ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-slate-400'}`}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold ${tipoFondo === 'imagen' ? 'bg-indigo-600 text-white' : 'bg-slate-950 text-slate-400'}`}
                 >
                   Usar Imagen
                 </button>
@@ -1024,7 +1076,7 @@ export default function AdminPage() {
                   type="file"
                   accept="image/*"
                   onChange={(e) => handleFileUpload(e, 'fondo')}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-400 mt-2"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-400 mt-2"
                 />
               )}
             </div>
@@ -1036,32 +1088,32 @@ export default function AdminPage() {
                 type="file"
                 accept="image/*"
                 onChange={(e) => handleFileUpload(e, 'logo')}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-400"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-400"
               />
             </div>
 
             {/* CATÁLOGO VISUAL / GALERÍA */}
-            <div className="border-t border-slate-700 pt-5 space-y-4">
+            <div className="border-t border-slate-800 pt-5 space-y-4">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <ImageIcon className="w-4 h-4 text-indigo-400" />
                 Catálogo Visual de Productos / Fotos con Precio
               </h3>
 
-              <div className="bg-slate-900 p-4 rounded-2xl border border-slate-700 space-y-3">
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input
                     type="text"
                     placeholder="Título del Producto / Trabajo"
                     value={itemTitulo}
                     onChange={(e) => setItemTitulo(e.target.value)}
-                    className="bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                    className="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none"
                   />
                   <input
                     type="text"
                     placeholder="Precio ($) Opcional"
                     value={itemPrecio}
                     onChange={(e) => setItemPrecio(e.target.value)}
-                    className="bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                    className="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none"
                   />
                 </div>
 
@@ -1071,12 +1123,12 @@ export default function AdminPage() {
                     type="file"
                     accept="image/*"
                     onChange={(e) => handleFileUpload(e, 'catalogo')}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-xs text-slate-400"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-slate-400"
                   />
                 </div>
 
                 {itemImagenUrl && (
-                  <div className="flex items-center gap-3 bg-slate-800 p-2 rounded-xl">
+                  <div className="flex items-center gap-3 bg-slate-900 p-2 rounded-xl">
                     <img src={itemImagenUrl} alt="Vista previa" className="w-12 h-12 object-cover rounded-lg" />
                     <span className="text-xs text-emerald-400 font-bold">✓ Imagen lista para agregar</span>
                   </div>
@@ -1085,7 +1137,7 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={handleAgregarItemGaleria}
-                  className="w-full bg-slate-800 hover:bg-slate-700 text-indigo-300 font-bold py-2.5 rounded-xl text-xs border border-indigo-500/30"
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-indigo-300 font-bold py-2.5 rounded-xl text-xs border border-indigo-500/30"
                 >
                   + Agregar Foto al Catálogo
                 </button>
@@ -1093,7 +1145,7 @@ export default function AdminPage() {
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {galeria.map((item, index) => (
-                  <div key={index} className="bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden relative">
+                  <div key={index} className="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden relative">
                     <img src={item.imagen_url} alt={item.titulo} className="w-full h-28 object-cover" />
                     <div className="p-2 space-y-1">
                       <p className="font-bold text-xs text-white truncate">{item.titulo}</p>
@@ -1115,14 +1167,14 @@ export default function AdminPage() {
             <button
               type="submit"
               disabled={cargando}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-2xl text-xs transition shadow-lg"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-2xl text-xs transition shadow-lg shadow-indigo-600/20"
             >
               {cargando ? 'Guardando...' : 'Guardar Todos los Cambios'}
             </button>
           </form>
         )}
 
-      </div>
+      </main>
     </div>
   )
 }

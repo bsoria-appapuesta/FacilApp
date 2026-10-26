@@ -31,11 +31,6 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-const HORARIOS = [
-  '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-  '12:00', '12:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'
-]
-
 export default function Home() {
   const [negocio, setNegocio] = useState<any>(null)
   const [servicios, setServicios] = useState<any[]>([])
@@ -45,7 +40,15 @@ export default function Home() {
   const [modalCompartir, setModalCompartir] = useState(false)
   const [copiado, setCopiado] = useState(false)
   
-  const fechaHoy = new Date().toISOString().split('T')[0]
+  // Cálculo de fecha local precisa para evitar el desfasaje de UTC
+  const obtenerFechaLocal = () => {
+    const d = new Date()
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  const fechaHoy = obtenerFechaLocal()
 
   const [nombre, setNombre] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
@@ -57,6 +60,8 @@ export default function Home() {
   const [exito, setExito] = useState(false)
   const [linkWa, setLinkWa] = useState('')
 
+  const [horariosDisponibles, setHorariosDisponibles] = useState<string[]>([])
+
   useEffect(() => {
     cargarPerfil()
   }, [])
@@ -67,6 +72,23 @@ export default function Home() {
     }
   }, [fecha, negocio])
 
+  function generarHorarios(desde: string, hasta: string, paso: number): string[] {
+    const lista: string[] = []
+    const [hInicio, mInicio] = desde.split(':').map(Number)
+    const [hFin, mFin] = hasta.split(':').map(Number)
+
+    let actualMin = hInicio * 60 + mInicio
+    const limiteMin = hFin * 60 + mFin
+
+    while (actualMin <= limiteMin) {
+      const h = Math.floor(actualMin / 60)
+      const m = actualMin % 60
+      lista.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
+      actualMin += paso
+    }
+    return lista
+  }
+
   async function cargarPerfil() {
     const { data: negData } = await supabase
       .from('negocios')
@@ -76,6 +98,12 @@ export default function Home() {
 
     if (negData) {
       setNegocio(negData)
+
+      const apertura = negData.hora_apertura || '09:00'
+      const cierre = negData.hora_cierre || '18:00'
+      const intervalo = negData.intervalo_minutos || 30
+      setHorariosDisponibles(generarHorarios(apertura, cierre, intervalo))
+
       const { data: servData } = await supabase
         .from('servicios')
         .select('*')
@@ -116,7 +144,7 @@ export default function Home() {
     setCargandoHorarios(false)
   }
 
-  // Validación de hora transcurrida si la fecha es hoy
+  // Comprueba si el horario ya pasó con respecto a la hora local
   const esHoraPasada = (horario: string) => {
     if (fecha !== fechaHoy) return false
     const ahora = new Date()
@@ -324,7 +352,7 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Formulario que se despliega al tocar "Solicitar Turno / Pedido" */}
+        {/* Formulario de Reserva */}
         {seccionAbierta === 'turnos' && (
           <div className="border-t border-slate-100 pt-5 space-y-4 mb-6">
             {exito ? (
@@ -351,7 +379,7 @@ export default function Home() {
             ) : (
               <form onSubmit={handleReservar} className="space-y-4">
                 
-                {/* 1. SELECTOR DESPLEGABLE DE SERVICIOS */}
+                {/* 1. SELECTOR DE SERVICIOS */}
                 <div>
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
                     1. Seleccioná el Servicio
@@ -373,7 +401,7 @@ export default function Home() {
                   </select>
                 </div>
 
-                {/* 2. TUS DATOS */}
+                {/* 2. DATOS */}
                 <div>
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
                     2. Tus Datos
@@ -396,7 +424,7 @@ export default function Home() {
                   />
                 </div>
 
-                {/* 3. FECHA Y HORARIO */}
+                {/* 3. FECHA Y HORARIOS CALCULADOS DINÁMICAMENTE */}
                 <div>
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
                     3. Fecha y Horario
@@ -416,8 +444,8 @@ export default function Home() {
                   {cargandoHorarios ? (
                     <p className="text-xs text-slate-400 text-center py-3">Consultando disponibilidad...</p>
                   ) : (
-                    <div className="grid grid-cols-4 gap-1.5 max-h-32 overflow-y-auto p-1 bg-slate-50 border border-slate-200 rounded-xl">
-                      {HORARIOS.map((h) => {
+                    <div className="grid grid-cols-4 gap-1.5 max-h-36 overflow-y-auto p-1 bg-slate-50 border border-slate-200 rounded-xl">
+                      {horariosDisponibles.map((h) => {
                         const estaOcupado = horasOcupadas.includes(h)
                         const paso = esHoraPasada(h)
                         const deshabilitado = estaOcupado || paso
