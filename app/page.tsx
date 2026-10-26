@@ -40,7 +40,6 @@ export default function Home() {
   const [modalCompartir, setModalCompartir] = useState(false)
   const [copiado, setCopiado] = useState(false)
   
-  // Cálculo de fecha local precisa para evitar el desfasaje de UTC
   const obtenerFechaLocal = () => {
     const d = new Date()
     const year = d.getFullYear()
@@ -144,7 +143,6 @@ export default function Home() {
     setCargandoHorarios(false)
   }
 
-  // Comprueba si el horario ya pasó con respecto a la hora local
   const esHoraPasada = (horario: string) => {
     if (fecha !== fechaHoy) return false
     const ahora = new Date()
@@ -219,6 +217,12 @@ export default function Home() {
   const fondoImagenUrl = negocio?.fondo_imagen_url || ''
   const bordes = negocio?.bordes_redondeados || 'rounded-3xl'
 
+  const escalaTamano = negocio?.tamano_fuente === 'grande' 
+    ? 'text-base' 
+    : negocio?.tamano_fuente === 'chico' 
+      ? 'text-xs' 
+      : 'text-sm'
+
   const getRedSocialIcon = (tipo: string) => {
     switch (tipo.toLowerCase()) {
       case 'whatsapp': return <FaWhatsapp className="w-5 h-5 text-emerald-500" />
@@ -237,17 +241,20 @@ export default function Home() {
 
   return (
     <div 
-      className="min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center relative transition-all duration-500 text-sm"
+      className={`min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center relative transition-all duration-500 ${escalaTamano}`}
       style={{ 
         background: tipoFondo === 'degradado' 
           ? fondoDegradado 
           : tipoFondo === 'imagen' && fondoImagenUrl 
             ? `url(${fondoImagenUrl}) center/cover no-repeat fixed` 
             : colorFondo,
-        fontFamily: negocio?.tipo_fuente || "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+        fontFamily: `'${negocio?.tipo_fuente || 'Plus Jakarta Sans'}', sans-serif`
       }}
     >
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+      <link 
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Dancing+Script:wght@600;700&family=Inter:wght@400;600;800&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;600;800&family=Space+Grotesk:wght@500;700&display=swap" 
+        rel="stylesheet" 
+      />
 
       {tipoFondo === 'imagen' && (
         <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[3px] z-0"></div>
@@ -333,7 +340,7 @@ export default function Home() {
             </a>
           ))}
 
-          {/* Botón Colapsable para Turnos */}
+          {/* Botón Turnos */}
           <button
             onClick={() => setSeccionAbierta(seccionAbierta === 'turnos' ? null : 'turnos')}
             style={{ backgroundColor: colorPrincipal }}
@@ -424,7 +431,7 @@ export default function Home() {
                   />
                 </div>
 
-                {/* 3. FECHA Y HORARIOS CALCULADOS DINÁMICAMENTE */}
+                {/* 3. FECHA Y HORARIO */}
                 <div>
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
                     3. Fecha y Horario
