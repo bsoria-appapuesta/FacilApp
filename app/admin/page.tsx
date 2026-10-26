@@ -22,7 +22,12 @@ import {
   CalendarCheck2,
   Check,
   TrendingUp,
-  DollarSign
+  DollarSign,
+  ChevronLeft,
+  ChevronRight,
+  MessageCircle,
+  Eye,
+  AlertTriangle
 } from 'lucide-react'
 
 import { 
@@ -58,9 +63,7 @@ export default function AdminPage() {
   const [horaCierre, setHoraCierre] = useState('18:00')
   const [intervaloMinutos, setIntervaloMinutos] = useState(30)
 
-  // Turno Manual desde Admin
-  const [mostrarModalManual, setMostrarModalManual] = useState(false)
-  
+  // Función de fecha local exacta
   const obtenerFechaLocal = () => {
     const d = new Date()
     const year = d.getFullYear()
@@ -70,11 +73,19 @@ export default function AdminPage() {
   }
   const fechaHoy = obtenerFechaLocal()
 
+  // Modal Turno Manual
+  const [mostrarModalManual, setMostrarModalManual] = useState(false)
   const [manualNombre, setManualNombre] = useState('')
   const [manualWhatsapp, setManualWhatsapp] = useState('')
   const [manualServicioId, setManualServicioId] = useState('')
   const [manualFecha, setManualFecha] = useState(fechaHoy)
   const [manualHora, setManualHora] = useState('')
+
+  // Modal Edición / Reprogramación de Turno
+  const [turnoAEditar, setTurnoAEditar] = useState<any | null>(null)
+  const [editFecha, setEditFecha] = useState(fechaHoy)
+  const [editHora, setEditHora] = useState('')
+  const [editServicioId, setEditServicioId] = useState('')
 
   // Formulario Servicio
   const [servicioEditandoId, setServicioEditandoId] = useState<string | null>(null)
@@ -88,7 +99,6 @@ export default function AdminPage() {
   const [descripcion, setDescripcion] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
 
-  // Tipografía y Tamaños
   const [tipoFuente, setTipoFuente] = useState('Plus Jakarta Sans')
   const [tamanoFuente, setTamanoFuente] = useState('mediano')
 
@@ -111,7 +121,7 @@ export default function AdminPage() {
   const [itemPrecio, setItemPrecio] = useState('')
   const [itemImagenUrl, setItemImagenUrl] = useState('')
 
-  // Filtros Historial
+  // Balances
   const [filtroHistorial, setFiltroHistorial] = useState<'todo' | 'dia' | 'semana'>('todo')
   const [fechaFiltroHistorial, setFechaFiltroHistorial] = useState(fechaHoy)
 
@@ -198,7 +208,7 @@ export default function AdminPage() {
       .upload(fileName, file)
 
     if (uploadError) {
-      alert('Error al subir imagen: ' + uploadError.message)
+      alert('Error al subir: ' + uploadError.message)
       setCargando(false)
       return
     }
@@ -211,7 +221,7 @@ export default function AdminPage() {
     if (campo === 'logo') setLogoUrl(publicUrlData.publicUrl)
     if (campo === 'fondo') setFondoImagenUrl(publicUrlData.publicUrl)
     if (campo === 'catalogo') setItemImagenUrl(publicUrlData.publicUrl)
-    alert('Imagen subida correctamente')
+    alert('Imagen cargada correctamente')
   }
 
   async function handleCambiarEstadoTurno(turnoId: string, nuevoEstado: 'confirmado' | 'finalizado') {
@@ -229,10 +239,87 @@ export default function AdminPage() {
     }
   }
 
+  // Notificar por WhatsApp
+  function avisarWhatsApp(turno: any, accion: 'confirmar' | 'reprogramar' | 'cancelar', nuevaFecha = '', nuevaHora = '') {
+    const celular = turno.cliente_whatsapp?.replace(/\D/g, '') || ''
+    if (!celular) {
+      alert('Este turno no tiene número de WhatsApp registrado.')
+      return
+    }
+
+    const fechaTurno = new Date(turno.fecha_hora)
+    const fechaTxt = fechaTurno.toLocaleDateString()
+    const horaTxt = fechaTurno.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    const nombreServicio = turno.servicios?.nombre || 'tu servicio'
+
+    let mensaje = ''
+    if (accion === 'confirmar') {
+      mensaje = `¡Hola ${turno.cliente_nombre}! Te confirmamos tu turno para *${nombreServicio}* el día *${fechaTxt}* a las *${horaTxt} hs* en *${negocio?.nombre || 'nuestro local'}*. ¡Te esperamos!`
+    } else if (accion === 'reprogramar') {
+      mensaje = `¡Hola ${turno.cliente_nombre}! Tu turno para *${nombreServicio}* ha sido reprogramado con éxito para el día *${nuevaFecha}* a las *${nuevaHora} hs*. Cualquier duda nos escribes.`
+    } else if (accion === 'cancelar') {
+      mensaje = `Hola ${turno.cliente_nombre}. Te informamos que tu reserva para *${nombreServicio}* del día *${fechaTxt}* a las *${horaTxt} hs* ha sido cancelada. Si deseas reprogramar, contáctanos.`
+    }
+
+    window.open(`https://wa.me/${celular}?text=${encodeURIComponent(mensaje)}`, '_blank')
+  }
+
+  // Eliminar / Cancelar Turno con aviso opcional
+  async function handleEliminarTurno(turno: any) {
+    if (!confirm(`¿Estás seguro de cancelar el turno de ${turno.cliente_nombre}?`)) return
+
+    const enviarAviso = confirm('¿Deseas enviar un mensaje de cancelación por WhatsApp al cliente?')
+    if (enviarAviso) {
+      avisarWhatsApp(turno, 'cancelar')
+    }
+
+    setCargando(true)
+    const { error } = await supabase.from('turnos').delete().eq('id', turno.id)
+    setCargando(false)
+
+    if (error) {
+      alert('Error al cancelar turno: ' + error.message)
+    } else {
+      cargarDatos()
+    }
+  }
+
+  // Guardar Reprogramación de Turno
+  async function handleGuardarReprogramacion(e: React.FormEvent) {
+    e.preventDefault()
+    if (!turnoAEditar || !editFecha || !editHora) return
+
+    setCargando(true)
+    const nuevaFechaHora = new Date(`${editFecha}T${editHora}:00`).toISOString()
+    const servElegido = servicios.find(s => s.id === editServicioId)
+
+    const { error } = await supabase
+      .from('turnos')
+      .update({
+        fecha_hora: nuevaFechaHora,
+        servicio_id: editServicioId,
+        monto_cobrado: servElegido?.precio || turnoAEditar.monto_cobrado
+      })
+      .eq('id', turnoAEditar.id)
+
+    setCargando(false)
+
+    if (error) {
+      alert('Error al reprogramar: ' + error.message)
+    } else {
+      const enviarAviso = confirm('¿Deseas notificar la reprogramación por WhatsApp al cliente?')
+      if (enviarAviso) {
+        avisarWhatsApp(turnoAEditar, 'reprogramar', editFecha, editHora)
+      }
+      setTurnoAEditar(null)
+      cargarDatos()
+    }
+  }
+
   async function handleGuardarTurnoManual(e: React.FormEvent) {
     e.preventDefault()
     if (!manualNombre || !manualFecha || !manualHora || !manualServicioId) {
-      alert('Por favor completá los campos del turno')
+      alert('Completá todos los campos')
       return
     }
 
@@ -254,7 +341,7 @@ export default function AdminPage() {
 
     setCargando(false)
     if (error) {
-      alert('Error al crear turno: ' + error.message)
+      alert('Error: ' + error.message)
     } else {
       setManualNombre('')
       setManualWhatsapp('')
@@ -266,13 +353,9 @@ export default function AdminPage() {
 
   async function handleGuardarServicio(e: React.FormEvent) {
     e.preventDefault()
-    if (!nomServicio || !precioServicio || !negocio) {
-      alert('Completá nombre y precio del servicio')
-      return
-    }
+    if (!nomServicio || !precioServicio || !negocio) return
 
     setCargando(true)
-
     if (servicioEditandoId) {
       const { error } = await supabase.from('servicios')
         .update({
@@ -283,9 +366,7 @@ export default function AdminPage() {
         .eq('id', servicioEditandoId)
 
       setCargando(false)
-      if (error) {
-        alert('Error: ' + error.message)
-      } else {
+      if (!error) {
         cancelarEdicionServicio()
         cargarDatos()
       }
@@ -301,9 +382,7 @@ export default function AdminPage() {
       ])
 
       setCargando(false)
-      if (error) {
-        alert('Error: ' + error.message)
-      } else {
+      if (!error) {
         setNomServicio('')
         setPrecioServicio('')
         setDuracionServicio('30')
@@ -327,19 +406,11 @@ export default function AdminPage() {
   }
 
   async function handleEliminarServicio(servicioId: string) {
-    if (!confirm('¿Estás seguro de eliminar este servicio?')) return
-
+    if (!confirm('¿Eliminar servicio?')) return
     setCargando(true)
-    const { error } = await supabase.from('servicios')
-      .update({ activo: false })
-      .eq('id', servicioId)
-
+    await supabase.from('servicios').update({ activo: false }).eq('id', servicioId)
     setCargando(false)
-    if (error) {
-      alert('Error: ' + error.message)
-    } else {
-      cargarDatos()
-    }
+    cargarDatos()
   }
 
   function cambiarPlataformaRed(plat: RedItem['plataforma']) {
@@ -357,34 +428,19 @@ export default function AdminPage() {
   }
 
   function handleAgregarRed() {
-    if (!redUsuario.trim() && !redUrl.trim()) {
-      alert('Completá el usuario/número y el link de la red')
-      return
-    }
+    if (!redUsuario.trim() && !redUrl.trim()) return
 
     let urlFinal = redUrl.trim()
     if (!urlFinal) {
-      if (redPlataforma === 'whatsapp') {
-        urlFinal = `https://wa.me/${redUsuario.replace(/\D/g, '')}`
-      } else if (redPlataforma === 'instagram') {
-        urlFinal = `https://instagram.com/${redUsuario.replace('@', '')}`
-      } else if (redPlataforma === 'tiktok') {
-        urlFinal = `https://tiktok.com/@${redUsuario.replace('@', '')}`
-      } else if (redPlataforma === 'facebook') {
-        urlFinal = `https://facebook.com/${redUsuario}`
-      } else if (redPlataforma === 'linkedin') {
-        urlFinal = `https://linkedin.com/in/${redUsuario}`
-      } else if (redPlataforma === 'youtube') {
-        urlFinal = `https://youtube.com/@${redUsuario.replace('@', '')}`
-      } else {
-        urlFinal = `https://${redUsuario}`
-      }
+      if (redPlataforma === 'whatsapp') urlFinal = `https://wa.me/${redUsuario.replace(/\D/g, '')}`
+      else if (redPlataforma === 'instagram') urlFinal = `https://instagram.com/${redUsuario.replace('@', '')}`
+      else if (redPlataforma === 'tiktok') urlFinal = `https://tiktok.com/@${redUsuario.replace('@', '')}`
+      else if (redPlataforma === 'facebook') urlFinal = `https://facebook.com/${redUsuario}`
+      else if (redPlataforma === 'linkedin') urlFinal = `https://linkedin.com/in/${redUsuario}`
+      else if (redPlataforma === 'youtube') urlFinal = `https://youtube.com/@${redUsuario.replace('@', '')}`
+      else urlFinal = `https://${redUsuario}`
     } else if (!urlFinal.startsWith('http://') && !urlFinal.startsWith('https://')) {
-      if (redPlataforma === 'whatsapp') {
-        urlFinal = `https://wa.me/${urlFinal.replace(/\D/g, '')}`
-      } else {
-        urlFinal = `https://${urlFinal}`
-      }
+      urlFinal = `https://${urlFinal}`
     }
 
     const nuevoItem: RedItem = {
@@ -417,15 +473,8 @@ export default function AdminPage() {
   }
 
   function handleAgregarItemGaleria() {
-    if (!itemTitulo || !itemImagenUrl) {
-      alert('Subí una imagen y escribí un título para el producto')
-      return
-    }
-    const nuevo = {
-      titulo: itemTitulo,
-      precio: itemPrecio,
-      imagen_url: itemImagenUrl
-    }
+    if (!itemTitulo || !itemImagenUrl) return
+    const nuevo = { titulo: itemTitulo, precio: itemPrecio, imagen_url: itemImagenUrl }
     setGaleria([...galeria, nuevo])
     setItemTitulo('')
     setItemPrecio('')
@@ -466,21 +515,20 @@ export default function AdminPage() {
 
     setCargando(false)
     if (error) {
-      alert('Error al guardar cambios: ' + error.message)
+      alert('Error: ' + error.message)
     } else {
       alert('¡Guardado exitosamente!')
       cargarDatos()
     }
   }
 
-  const horariosDisponiblesManual = generarHorarios(horaApertura, horaCierre, intervaloMinutos)
+  const horariosDisponibles = generarHorarios(horaApertura, horaCierre, intervaloMinutos)
 
-  // Separación de turnos por estado
   const turnosPendientes = turnos.filter(t => t.estado === 'pendiente')
   const turnosConfirmados = turnos.filter(t => t.estado === 'confirmado')
   const turnosHistorial = turnos.filter(t => t.estado === 'finalizado')
 
-  // Filtro de historial para balances
+  // Filtros Historial
   const turnosFiltradosHistorial = turnosHistorial.filter(t => {
     if (filtroHistorial === 'todo') return true
     const fechaTurno = t.fecha_hora.split('T')[0]
@@ -499,15 +547,31 @@ export default function AdminPage() {
     ? Math.round(totalRecaudado / turnosFiltradosHistorial.length) 
     : 0
 
+  // Datos para Gráficos
+  const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+  const facturacionPorDiaSemana = [0, 0, 0, 0, 0, 0, 0]
+  const ventasPorServicio: Record<string, { cantidad: number, total: number }> = {}
+
+  turnosFiltradosHistorial.forEach(t => {
+    const d = new Date(t.fecha_hora)
+    facturacionPorDiaSemana[d.getDay()] += Number(t.monto_cobrado) || 0
+
+    const nom = t.servicios?.nombre || 'General'
+    if (!ventasPorServicio[nom]) ventasPorServicio[nom] = { cantidad: 0, total: 0 }
+    ventasPorServicio[nom].cantidad += 1
+    ventasPorServicio[nom].total += Number(t.monto_cobrado) || 0
+  })
+
+  const maxVentaDia = Math.max(...facturacionPorDiaSemana, 1)
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
       
-      {/* MENÚ DE COSTADO */}
+      {/* MENÚ LATERAL */}
       <aside className="w-full md:w-64 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 p-5 flex flex-col justify-between shrink-0">
         <div className="space-y-6">
-          
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center font-black text-white text-lg shadow-lg shadow-indigo-600/30">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center font-black text-white text-lg shadow-lg">
               {negocio?.nombre?.charAt(0) || 'A'}
             </div>
             <div>
@@ -522,9 +586,7 @@ export default function AdminPage() {
             <button
               onClick={() => setTab('turnos')}
               className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
-                tab === 'turnos'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-                  : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+                tab === 'turnos' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800'
               }`}
             >
               <Calendar className="w-4 h-4 shrink-0" />
@@ -539,9 +601,7 @@ export default function AdminPage() {
             <button
               onClick={() => setTab('servicios')}
               className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
-                tab === 'servicios'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-                  : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+                tab === 'servicios' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800'
               }`}
             >
               <Scissors className="w-4 h-4 shrink-0" />
@@ -551,9 +611,7 @@ export default function AdminPage() {
             <button
               onClick={() => setTab('horarios_catalogo')}
               className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
-                tab === 'horarios_catalogo'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-                  : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+                tab === 'horarios_catalogo' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800'
               }`}
             >
               <Clock className="w-4 h-4 shrink-0" />
@@ -563,9 +621,7 @@ export default function AdminPage() {
             <button
               onClick={() => setTab('marca')}
               className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
-                tab === 'marca'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-                  : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+                tab === 'marca' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800'
               }`}
             >
               <Palette className="w-4 h-4 shrink-0" />
@@ -575,22 +631,19 @@ export default function AdminPage() {
             <button
               onClick={() => setTab('historial')}
               className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
-                tab === 'historial'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-                  : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+                tab === 'historial' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800'
               }`}
             >
               <BarChart3 className="w-4 h-4 shrink-0" />
               <span>Historial & Balances</span>
             </button>
           </nav>
-
         </div>
 
-        <div className="pt-4 border-t border-slate-800/80 mt-6 md:mt-0">
+        <div className="pt-4 border-t border-slate-800 mt-6 md:mt-0">
           <a
             href="/"
-            className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border border-slate-700/60 transition shadow-sm"
+            className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border border-slate-700 transition"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             <span>Ver Mi Página Web</span>
@@ -598,64 +651,42 @@ export default function AdminPage() {
         </div>
       </aside>
 
-      {/* ÁREA DE CONTENIDO */}
-      <main className="flex-1 p-4 sm:p-8 overflow-y-auto max-w-5xl">
+      {/* CONTENIDO CENTRAL */}
+      <main className="flex-1 p-4 sm:p-8 overflow-y-auto max-w-6xl">
         
-        {/* PESTAÑA 1: TURNOS RESERVADOS */}
+        {/* PESTAÑA 1: TURNOS */}
         {tab === 'turnos' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center flex-wrap gap-3 bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">
               <div>
                 <h2 className="text-lg font-black text-white">Turnos Reservados</h2>
-                <p className="text-xs text-slate-400">Confirmá las solicitudes entrantes y gestioná turnos confirmados</p>
+                <p className="text-xs text-slate-400">Confirmá, reprogramá o avisá a tus clientes por WhatsApp</p>
               </div>
               <button
                 onClick={() => setMostrarModalManual(true)}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 transition shadow-lg shadow-emerald-600/20"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 transition"
               >
                 <UserPlus className="w-4 h-4" /> Nuevo Turno Manual
               </button>
             </div>
 
-            {/* Modal Turno Manual */}
-            {mostrarModalManual && (
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4 shadow-2xl">
+            {/* Modal Reprogramación */}
+            {turnoAEditar && (
+              <div className="bg-slate-900 border border-slate-700 p-5 rounded-2xl space-y-4 shadow-2xl">
                 <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <h3 className="font-bold text-sm text-white">Agendar Turno Manualmente</h3>
-                  <button onClick={() => setMostrarModalManual(false)} className="text-slate-400 hover:text-white">
+                  <h3 className="font-bold text-sm text-white">Reprogramar Turno de {turnoAEditar.cliente_nombre}</h3>
+                  <button onClick={() => setTurnoAEditar(null)} className="text-slate-400 hover:text-white">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                <form onSubmit={handleGuardarTurnoManual} className="space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Nombre</label>
-                      <input
-                        type="text"
-                        value={manualNombre}
-                        onChange={(e) => setManualNombre(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">WhatsApp</label>
-                      <input
-                        type="text"
-                        value={manualWhatsapp}
-                        onChange={(e) => setManualWhatsapp(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-                      />
-                    </div>
-                  </div>
-
+                <form onSubmit={handleGuardarReprogramacion} className="space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="block text-[11px] text-slate-400 mb-1">Servicio</label>
                       <select
-                        value={manualServicioId}
-                        onChange={(e) => setManualServicioId(e.target.value)}
+                        value={editServicioId}
+                        onChange={(e) => setEditServicioId(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
                         required
                       >
@@ -666,31 +697,114 @@ export default function AdminPage() {
                     </div>
 
                     <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Fecha</label>
+                      <label className="block text-[11px] text-slate-400 mb-1">Nueva Fecha</label>
                       <input
                         type="date"
                         min={fechaHoy}
-                        value={manualFecha}
-                        onChange={(e) => setManualFecha(e.target.value)}
+                        value={editFecha}
+                        onChange={(e) => setEditFecha(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Horario</label>
+                      <label className="block text-[11px] text-slate-400 mb-1">Nuevo Horario</label>
                       <select
-                        value={manualHora}
-                        onChange={(e) => setManualHora(e.target.value)}
+                        value={editHora}
+                        onChange={(e) => setEditHora(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
                         required
                       >
-                        <option value="">Seleccionar hora</option>
-                        {horariosDisponiblesManual.map((h) => (
+                        <option value="">Elegir horario</option>
+                        {horariosDisponibles.map((h) => (
                           <option key={h} value={h}>{h} hs</option>
                         ))}
                       </select>
                     </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={cargando}
+                      className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs transition"
+                    >
+                      Guardar Reprogramación
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTurnoAEditar(null)}
+                      className="px-4 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Modal Turno Manual */}
+            {mostrarModalManual && (
+              <div className="bg-slate-900 border border-slate-700 p-5 rounded-2xl space-y-4 shadow-2xl">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                  <h3 className="font-bold text-sm text-white">Agendar Turno Manualmente</h3>
+                  <button onClick={() => setMostrarModalManual(false)} className="text-slate-400 hover:text-white">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleGuardarTurnoManual} className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      placeholder="Nombre del cliente"
+                      value={manualNombre}
+                      onChange={(e) => setManualNombre(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="WhatsApp (ej. 1122334455)"
+                      value={manualWhatsapp}
+                      onChange={(e) => setManualWhatsapp(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <select
+                      value={manualServicioId}
+                      onChange={(e) => setManualServicioId(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                      required
+                    >
+                      {servicios.map((s) => (
+                        <option key={s.id} value={s.id}>{s.nombre} (${s.precio})</option>
+                      ))}
+                    </select>
+
+                    <input
+                      type="date"
+                      min={fechaHoy}
+                      value={manualFecha}
+                      onChange={(e) => setManualFecha(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                      required
+                    />
+
+                    <select
+                      value={manualHora}
+                      onChange={(e) => setManualHora(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                      required
+                    >
+                      <option value="">Seleccionar hora</option>
+                      {horariosDisponibles.map((h) => (
+                        <option key={h} value={h}>{h} hs</option>
+                      ))}
+                    </select>
                   </div>
 
                   <button
@@ -704,12 +818,9 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* SECCIÓN 1: Solicitudes Pendientes */}
+            {/* Solicitudes Pendientes */}
             <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
-              <h3 className="text-sm font-bold text-amber-400 flex items-center gap-2">
-                ⏳ Solicitudes Pendientes ({turnosPendientes.length})
-              </h3>
-
+              <h3 className="text-sm font-bold text-amber-400">⏳ Solicitudes Pendientes ({turnosPendientes.length})</h3>
               <div className="space-y-3">
                 {turnosPendientes.length === 0 ? (
                   <p className="text-xs text-slate-500 py-3 text-center">No tenés solicitudes pendientes.</p>
@@ -720,23 +831,34 @@ export default function AdminPage() {
                       <div key={t.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center flex-wrap gap-3">
                         <div>
                           <p className="font-bold text-sm text-white">{t.cliente_nombre}</p>
-                          <p className="text-xs text-indigo-400">WA: {t.cliente_whatsapp}</p>
-                          <p className="text-xs text-slate-400">Servicio: {t.servicios?.nombre || 'General'}</p>
+                          <p className="text-xs text-slate-400">WA: {t.cliente_whatsapp} • {t.servicios?.nombre || 'General'}</p>
+                          <p className="text-xs font-semibold text-amber-400 mt-1">
+                            📅 {f.toLocaleDateString()} a las {f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} hs
+                          </p>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <span className="bg-slate-900 text-slate-200 text-xs px-3 py-1 rounded-xl font-bold block border border-slate-800">
-                              {f.toLocaleDateString()} {f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} hs
-                            </span>
-                            <span className="text-xs font-black text-emerald-400 block mt-1">${t.monto_cobrado}</span>
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => avisarWhatsApp(t, 'confirmar')}
+                            className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 p-2.5 rounded-xl border border-emerald-500/30 transition flex items-center gap-1.5 text-xs font-bold"
+                            title="Avisar por WhatsApp"
+                          >
+                            <FaWhatsapp className="w-4 h-4" /> Enviar WA
+                          </button>
 
                           <button
                             onClick={() => handleCambiarEstadoTurno(t.id, 'confirmado')}
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-2 rounded-xl transition shadow flex items-center gap-1.5"
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center gap-1"
                           >
                             <Check className="w-3.5 h-3.5" /> Confirmar
+                          </button>
+
+                          <button
+                            onClick={() => handleEliminarTurno(t)}
+                            className="p-2.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 rounded-xl border border-rose-500/30 transition"
+                            title="Cancelar Turno"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
@@ -746,12 +868,9 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* SECCIÓN 2: Turnos Confirmados / Próximos */}
+            {/* Turnos Confirmados */}
             <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
-              <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                ✓ Turnos Confirmados & Próximos ({turnosConfirmados.length})
-              </h3>
-
+              <h3 className="text-sm font-bold text-emerald-400">✓ Turnos Confirmados & Próximos ({turnosConfirmados.length})</h3>
               <div className="space-y-3">
                 {turnosConfirmados.length === 0 ? (
                   <p className="text-xs text-slate-500 py-3 text-center">No hay turnos confirmados activos.</p>
@@ -762,24 +881,40 @@ export default function AdminPage() {
                       <div key={t.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center flex-wrap gap-3">
                         <div>
                           <p className="font-bold text-sm text-white">{t.cliente_nombre}</p>
-                          <p className="text-xs text-indigo-400">WA: {t.cliente_whatsapp}</p>
-                          <p className="text-xs text-slate-400">Servicio: {t.servicios?.nombre || 'General'}</p>
+                          <p className="text-xs text-slate-400">WA: {t.cliente_whatsapp} • {t.servicios?.nombre || 'General'}</p>
+                          <p className="text-xs font-semibold text-emerald-400 mt-1">
+                            📅 {f.toLocaleDateString()} a las {f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} hs
+                          </p>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <span className="bg-slate-900 text-slate-200 text-xs px-3 py-1 rounded-xl font-bold block border border-slate-800">
-                              {f.toLocaleDateString()} {f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} hs
-                            </span>
-                            <span className="text-xs font-black text-emerald-400 block mt-1">${t.monto_cobrado}</span>
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setTurnoAEditar(t)
+                              setEditFecha(t.fecha_hora.split('T')[0])
+                              const horaMin = new Date(t.fecha_hora)
+                              setEditHora(`${String(horaMin.getHours()).padStart(2, '0')}:${String(horaMin.getMinutes()).padStart(2, '0')}`)
+                              setEditServicioId(t.servicio_id)
+                            }}
+                            className="p-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 rounded-xl border border-indigo-500/30 transition text-xs font-bold flex items-center gap-1"
+                            title="Reprogramar Turno"
+                          >
+                            <Pencil className="w-3.5 h-3.5" /> Reprogramar
+                          </button>
 
                           <button
                             onClick={() => handleCambiarEstadoTurno(t.id, 'finalizado')}
-                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-3 py-2 rounded-xl transition shadow flex items-center gap-1.5"
-                            title="Mover turno al historial finalizado"
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-3 py-2 rounded-xl transition flex items-center gap-1"
                           >
-                            <CalendarCheck2 className="w-3.5 h-3.5" /> Finalizar Turno
+                            <CalendarCheck2 className="w-3.5 h-3.5" /> Finalizar
+                          </button>
+
+                          <button
+                            onClick={() => handleEliminarTurno(t)}
+                            className="p-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 rounded-xl border border-rose-500/30 transition"
+                            title="Cancelar Turno"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
@@ -791,7 +926,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* PESTAÑA 2: GESTOR DE SERVICIOS */}
+        {/* PESTAÑA 2: SERVICIOS */}
         {tab === 'servicios' && (
           <div className="space-y-6">
             <form onSubmit={handleGuardarServicio} className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
@@ -860,19 +995,17 @@ export default function AdminPage() {
 
                     <div className="flex items-center gap-3">
                       <span className="font-black text-emerald-400 text-sm">${s.precio}</span>
-                      
                       <button
                         type="button"
                         onClick={() => iniciarEdicionServicio(s)}
-                        className="p-2 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 rounded-xl border border-indigo-500/30 transition"
+                        className="p-2 bg-indigo-600/20 text-indigo-400 rounded-xl"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
-
                       <button
                         type="button"
                         onClick={() => handleEliminarServicio(s.id)}
-                        className="p-2 bg-rose-600/20 hover:bg-rose-600/40 text-rose-400 rounded-xl border border-rose-500/30 transition"
+                        className="p-2 bg-rose-600/20 text-rose-400 rounded-xl"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -884,10 +1017,9 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* PESTAÑA 3: HORARIOS & CATÁLOGO VISUAL */}
+        {/* PESTAÑA 3: HORARIOS & CATÁLOGO */}
         {tab === 'horarios_catalogo' && (
           <form onSubmit={handleGuardarConfiguracion} className="space-y-6">
-            {/* Configuración de Horarios */}
             <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
               <div>
                 <h2 className="text-lg font-black text-white flex items-center gap-2">
@@ -899,7 +1031,7 @@ export default function AdminPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Desde (Apertura)</label>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Desde</label>
                   <input
                     type="time"
                     value={horaApertura}
@@ -907,9 +1039,8 @@ export default function AdminPage() {
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Hasta (Cierre)</label>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Hasta</label>
                   <input
                     type="time"
                     value={horaCierre}
@@ -917,7 +1048,6 @@ export default function AdminPage() {
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
                   />
                 </div>
-
                 <div>
                   <label className="block text-[11px] font-bold text-slate-400 mb-1">Turnos cada</label>
                   <select
@@ -929,49 +1059,44 @@ export default function AdminPage() {
                     <option value={20}>Cada 20 min</option>
                     <option value={30}>Cada 30 min</option>
                     <option value={45}>Cada 45 min</option>
-                    <option value={60}>Cada 60 min (1 h)</option>
+                    <option value={60}>Cada 60 min</option>
                   </select>
                 </div>
               </div>
             </div>
 
-            {/* Catálogo Visual / Galería */}
             <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
               <div>
                 <h2 className="text-lg font-black text-white flex items-center gap-2">
                   <ImageIcon className="w-5 h-5 text-indigo-400" />
-                  Catálogo Visual / Galería de Trabajos
+                  Catálogo Visual / Fotos con Precio
                 </h2>
-                <p className="text-xs text-slate-400">Subí fotos con título y precio opcional</p>
               </div>
 
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input
                     type="text"
-                    placeholder="Título del trabajo o producto"
+                    placeholder="Título del producto"
                     value={itemTitulo}
                     onChange={(e) => setItemTitulo(e.target.value)}
                     className="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
                   />
                   <input
                     type="text"
-                    placeholder="Precio ($) Opcional"
+                    placeholder="Precio ($)"
                     value={itemPrecio}
                     onChange={(e) => setItemPrecio(e.target.value)}
                     className="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">Seleccionar foto desde tu computadora o celular:</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileUpload(e, 'catalogo')}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-slate-400"
-                  />
-                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleFileUpload(e, 'catalogo')}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-slate-400"
+                />
 
                 {itemImagenUrl && (
                   <div className="flex items-center gap-3 bg-slate-900 p-2 rounded-xl">
@@ -1000,7 +1125,7 @@ export default function AdminPage() {
                     <button
                       type="button"
                       onClick={() => handleEliminarItemGaleria(index)}
-                      className="absolute top-2 right-2 bg-rose-600/90 text-white p-1.5 rounded-lg text-xs"
+                      className="absolute top-2 right-2 bg-rose-600 text-white p-1.5 rounded-lg text-xs"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -1019,197 +1144,98 @@ export default function AdminPage() {
           </form>
         )}
 
-        {/* PESTAÑA 4: DATOS & REDES */}
+        {/* PESTAÑA 4: DATOS & REDES + LIVE PREVIEW */}
         {tab === 'marca' && (
-          <form onSubmit={handleGuardarConfiguracion} className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
-            <div>
-              <h2 className="text-lg font-black text-white">Datos del Negocio, Redes & Diseño</h2>
-              <p className="text-xs text-slate-400">Personalizá tu información de contacto, tipografías y enlaces</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* Formulario a la izquierda */}
+            <form onSubmit={handleGuardarConfiguracion} className="lg:col-span-7 bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">Nombre del Negocio</label>
-                <input
-                  type="text"
-                  value={nombreNegocio}
-                  onChange={(e) => setNombreNegocio(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white"
-                />
+                <h2 className="text-lg font-black text-white">Datos del Negocio, Redes & Diseño</h2>
+                <p className="text-xs text-slate-400">Editá tus datos y mirá la vista previa al lado</p>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">Ubicación</label>
-                <input
-                  type="text"
-                  value={ubicacion}
-                  onChange={(e) => setUbicacion(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">WhatsApp para Notificaciones</label>
-                <input
-                  type="text"
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  placeholder="5491122334455"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">Descripción corta</label>
-                <input
-                  type="text"
-                  value={descripcion}
-                  onChange={(e) => setDescripcion(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white"
-                />
-              </div>
-            </div>
-
-            {/* Selector de Fuentes y Tamaño de Letra */}
-            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
-              <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">
-                Tipografía y Tamaño de Letra
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Estilo de Letra</label>
-                  <select
-                    value={tipoFuente}
-                    onChange={(e) => setTipoFuente(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-                  >
-                    <option value="Plus Jakarta Sans">Moderna (Plus Jakarta Sans)</option>
-                    <option value="Playfair Display">Elegante (Playfair Display)</option>
-                    <option value="Inter">Minimalista (Inter)</option>
-                    <option value="Space Grotesk">Digital / Urbana (Space Grotesk)</option>
-                    <option value="Dancing Script">Manuscrita (Dancing Script)</option>
-                    <option value="Cinzel">Clásica / Premium (Cinzel)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Tamaño de Texto</label>
-                  <select
-                    value={tamanoFuente}
-                    onChange={(e) => setTamanoFuente(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-                  >
-                    <option value="chico">Chico (Compacto)</option>
-                    <option value="mediano">Mediano (Recomendado)</option>
-                    <option value="grande">Grande (Destacado)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* SECCIÓN REDES SOCIALES */}
-            <div className="border-t border-slate-800 pt-5 space-y-4">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Share2 className="w-4 h-4 text-indigo-400" />
-                Enlaces de Redes Sociales
-              </h3>
-
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Plataforma</label>
-                    <select
-                      value={redPlataforma}
-                      onChange={(e) => cambiarPlataformaRed(e.target.value as RedItem['plataforma'])}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-                    >
-                      <option value="whatsapp">WhatsApp</option>
-                      <option value="instagram">Instagram</option>
-                      <option value="facebook">Facebook</option>
-                      <option value="tiktok">TikTok</option>
-                      <option value="linkedin">LinkedIn</option>
-                      <option value="youtube">YouTube</option>
-                      <option value="web">Sitio Web</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Nombre</label>
-                    <input
-                      type="text"
-                      placeholder="Ej. Instagram"
-                      value={redNombre}
-                      onChange={(e) => setRedNombre(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Usuario / Número</label>
-                    <input
-                      type="text"
-                      placeholder="@tu_usuario"
-                      value={redUsuario}
-                      onChange={(e) => setRedUsuario(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Enlace / URL directa</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Nombre</label>
                   <input
                     type="text"
-                    placeholder="https://... (opcional)"
-                    value={redUrl}
-                    onChange={(e) => setRedUrl(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                    value={nombreNegocio}
+                    onChange={(e) => setNombreNegocio(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white"
                   />
                 </div>
-
-                <button
-                  type="button"
-                  onClick={handleAgregarRed}
-                  className="w-full bg-slate-900 hover:bg-slate-800 text-indigo-300 font-bold py-2.5 rounded-xl text-xs border border-indigo-500/30"
-                >
-                  + Agregar Red Social
-                </button>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Ubicación</label>
+                  <input
+                    type="text"
+                    value={ubicacion}
+                    onChange={(e) => setUbicacion(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                {redes.map((r) => (
-                  <div key={r.id} className="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 overflow-hidden">
-                      <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center shrink-0 border border-slate-800">
-                        {renderIconoRed(r.plataforma)}
-                      </div>
-                      <div className="truncate">
-                        <p className="text-xs font-bold text-white truncate">{r.nombreRed}</p>
-                        <p className="text-[10px] text-slate-400 truncate">{r.usuarioODetalle}</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleEliminarRed(r.id)}
-                      className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-xl"
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">WhatsApp de Contacto</label>
+                  <input
+                    type="text"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    placeholder="5491122334455"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Descripción</label>
+                  <input
+                    type="text"
+                    value={descripcion}
+                    onChange={(e) => setDescripcion(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Fuentes y Tamaños */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+                <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Tipografía & Estilo</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Fuente</label>
+                    <select
+                      value={tipoFuente}
+                      onChange={(e) => setTipoFuente(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                      <option value="Plus Jakarta Sans">Moderna (Plus Jakarta Sans)</option>
+                      <option value="Playfair Display">Elegante (Playfair Display)</option>
+                      <option value="Inter">Minimalista (Inter)</option>
+                      <option value="Space Grotesk">Digital / Urbana (Space Grotesk)</option>
+                      <option value="Dancing Script">Manuscrita (Dancing Script)</option>
+                      <option value="Cinzel">Clásica / Premium (Cinzel)</option>
+                    </select>
                   </div>
-                ))}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Tamaño de Letra</label>
+                    <select
+                      value={tamanoFuente}
+                      onChange={(e) => setTamanoFuente(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                    >
+                      <option value="chico">Chico</option>
+                      <option value="mediano">Mediano</option>
+                      <option value="grande">Grande</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* SECCIÓN DE COLORES & LOGO */}
-            <div className="border-t border-slate-800 pt-5 space-y-4">
-              <h3 className="text-sm font-bold text-white">Diseño Visual</h3>
-
+              {/* Colores */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Fondo Principal</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Fondo</label>
                   <input
                     type="color"
                     value={colorFondo}
@@ -1217,9 +1243,8 @@ export default function AdminPage() {
                     className="w-full h-10 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Tarjeta Central</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Tarjeta</label>
                   <input
                     type="color"
                     value={colorCarta}
@@ -1227,15 +1252,69 @@ export default function AdminPage() {
                     className="w-full h-10 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Botón Principal</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Botón</label>
                   <input
                     type="color"
                     value={colorPrincipal}
                     onChange={(e) => setColorPrincipal(e.target.value)}
                     className="w-full h-10 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer"
                   />
+                </div>
+              </div>
+
+              {/* Redes */}
+              <div className="border-t border-slate-800 pt-4 space-y-3">
+                <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Redes Sociales</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <select
+                    value={redPlataforma}
+                    onChange={(e) => cambiarPlataformaRed(e.target.value as RedItem['plataforma'])}
+                    className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"
+                  >
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="facebook">Facebook</option>
+                    <option value="tiktok">TikTok</option>
+                    <option value="linkedin">LinkedIn</option>
+                    <option value="youtube">YouTube</option>
+                    <option value="web">Web</option>
+                  </select>
+
+                  <input
+                    type="text"
+                    placeholder="Nombre"
+                    value={redNombre}
+                    onChange={(e) => setRedNombre(e.target.value)}
+                    className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="@usuario"
+                    value={redUsuario}
+                    onChange={(e) => setRedUsuario(e.target.value)}
+                    className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAgregarRed}
+                  className="w-full bg-slate-950 hover:bg-slate-800 text-indigo-300 font-bold py-2 rounded-xl text-xs border border-indigo-500/30"
+                >
+                  + Agregar Red
+                </button>
+
+                <div className="space-y-1.5">
+                  {redes.map((r) => (
+                    <div key={r.id} className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                      <span className="text-xs font-bold text-white">{r.nombreRed} ({r.usuarioODetalle})</span>
+                      <button type="button" onClick={() => handleEliminarRed(r.id)} className="text-rose-400">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -1248,19 +1327,68 @@ export default function AdminPage() {
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-400"
                 />
               </div>
+
+              <button
+                type="submit"
+                disabled={cargando}
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-2xl text-xs transition shadow-lg"
+              >
+                Guardar Todos los Cambios
+              </button>
+            </form>
+
+            {/* LIVE PREVIEW (Celular en miniatura a la derecha) */}
+            <div className="lg:col-span-5 flex flex-col items-center">
+              <div className="sticky top-6 w-full max-w-[320px] bg-slate-900 border-4 border-slate-700 rounded-[40px] p-3 shadow-2xl overflow-hidden">
+                <div className="w-20 h-4 bg-slate-800 rounded-full mx-auto mb-3"></div>
+
+                <div 
+                  className="rounded-[30px] p-4 text-center transition-all duration-300 overflow-y-auto max-h-[550px] shadow-inner"
+                  style={{ 
+                    backgroundColor: colorFondo,
+                    fontFamily: `'${tipoFuente}', sans-serif`
+                  }}
+                >
+                  <div 
+                    className="p-5 rounded-2xl shadow-lg border border-white/20 transition-all duration-300"
+                    style={{ backgroundColor: colorCarta }}
+                  >
+                    <div className="w-16 h-16 rounded-full mx-auto mb-2 bg-slate-900 border-2 border-white overflow-hidden flex items-center justify-center text-white font-black text-xl shadow">
+                      {logoUrl ? <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" /> : nombreNegocio?.charAt(0) || 'L'}
+                    </div>
+
+                    <h3 className="font-extrabold text-sm text-slate-900">{nombreNegocio || 'Tu Negocio'}</h3>
+                    <p className="text-[10px] text-slate-500">{ubicacion || 'Tu Ubicación'}</p>
+                    <p className="text-[10px] text-slate-600 mt-1">{descripcion || 'Descripción del negocio'}</p>
+
+                    <div className="mt-4 space-y-2">
+                      {redes.map(r => (
+                        <div key={r.id} className="bg-slate-50 border border-slate-200 p-2 rounded-xl flex items-center justify-between text-[11px] font-bold text-slate-800">
+                          <span>{r.nombreRed}</span>
+                          <span className="text-slate-400">›</span>
+                        </div>
+                      ))}
+
+                      <div 
+                        style={{ backgroundColor: colorPrincipal }}
+                        className="text-white p-2.5 rounded-xl text-[11px] font-bold shadow"
+                      >
+                        📅 Solicitar Turno / Pedido
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-center text-[10px] text-slate-500 mt-3 font-semibold flex items-center justify-center gap-1">
+                  <Eye className="w-3 h-3" /> Vista previa en tiempo real
+                </p>
+              </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={cargando}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-2xl text-xs transition shadow-lg"
-            >
-              Guardar Datos, Redes y Diseño
-            </button>
-          </form>
+          </div>
         )}
 
-        {/* PESTAÑA 5: HISTORIAL & BALANCES */}
+        {/* PESTAÑA 5: HISTORIAL & BALANCES CON GRÁFICOS */}
         {tab === 'historial' && (
           <div className="space-y-6">
             <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
@@ -1268,41 +1396,33 @@ export default function AdminPage() {
                 <div>
                   <h2 className="text-lg font-black text-white flex items-center gap-2">
                     <BarChart3 className="w-5 h-5 text-indigo-400" />
-                    Historial & Balances Financieros
+                    Estadísticas & Balances Financieros
                   </h2>
-                  <p className="text-xs text-slate-400">Estadísticas y facturación total de los turnos completados</p>
+                  <p className="text-xs text-slate-400">Control de ingresos y rendimiento por turnos completados</p>
                 </div>
 
-                {/* Filtros de período */}
                 <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-xs">
                   <button
                     onClick={() => setFiltroHistorial('todo')}
-                    className={`px-3 py-1.5 rounded-xl font-bold transition ${
-                      filtroHistorial === 'todo' ? 'bg-indigo-600 text-white' : 'text-slate-400'
-                    }`}
+                    className={`px-3 py-1.5 rounded-xl font-bold transition ${filtroHistorial === 'todo' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
                   >
                     Todo
                   </button>
                   <button
                     onClick={() => setFiltroHistorial('semana')}
-                    className={`px-3 py-1.5 rounded-xl font-bold transition ${
-                      filtroHistorial === 'semana' ? 'bg-indigo-600 text-white' : 'text-slate-400'
-                    }`}
+                    className={`px-3 py-1.5 rounded-xl font-bold transition ${filtroHistorial === 'semana' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
                   >
                     Por Semana
                   </button>
                   <button
                     onClick={() => setFiltroHistorial('dia')}
-                    className={`px-3 py-1.5 rounded-xl font-bold transition ${
-                      filtroHistorial === 'dia' ? 'bg-indigo-600 text-white' : 'text-slate-400'
-                    }`}
+                    className={`px-3 py-1.5 rounded-xl font-bold transition ${filtroHistorial === 'dia' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
                   >
                     Por Día
                   </button>
                 </div>
               </div>
 
-              {/* Selector de fecha si filtra por día o semana */}
               {filtroHistorial !== 'todo' && (
                 <div className="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800 max-w-sm">
                   <span className="text-xs text-slate-400">Fecha de referencia:</span>
@@ -1315,7 +1435,7 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {/* Tarjetas con Estadísticas de Plata */}
+              {/* Tarjetas Principales */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                 <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-1">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -1324,7 +1444,7 @@ export default function AdminPage() {
                   <p className="text-2xl font-black text-emerald-400 tracking-tight">
                     ${totalRecaudado.toLocaleString()}
                   </p>
-                  <p className="text-[10px] text-slate-500">Según el período seleccionado</p>
+                  <p className="text-[10px] text-slate-500">Período seleccionado</p>
                 </div>
 
                 <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-1">
@@ -1339,20 +1459,82 @@ export default function AdminPage() {
 
                 <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-1">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <TrendingUp className="w-3.5 h-3.5 text-indigo-400" /> Promedio / Ticket
+                    <TrendingUp className="w-3.5 h-3.5 text-indigo-400" /> Promedio / Turno
                   </span>
                   <p className="text-2xl font-black text-indigo-400 tracking-tight">
                     ${promedioPorTurno.toLocaleString()}
                   </p>
-                  <p className="text-[10px] text-slate-500">Por cada servicio cobrado</p>
+                  <p className="text-[10px] text-slate-500">Ticket promedio</p>
                 </div>
               </div>
             </div>
 
-            {/* Listado de turnos finalizados */}
-            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-3 shadow-xl">
-              <h3 className="text-sm font-bold text-slate-300">Detalle de Turnos en este Balance</h3>
+            {/* GRÁFICOS DE BARRAS */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* Gráfico 1: Facturación por Día de la Semana */}
+              <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
+                <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">
+                  Facturación por Día de la Semana ($)
+                </h3>
 
+                <div className="flex items-end justify-between h-44 pt-6 pb-2 px-2 bg-slate-950 rounded-2xl border border-slate-800">
+                  {facturacionPorDiaSemana.map((monto, idx) => {
+                    const porcentaje = Math.max((monto / maxVentaDia) * 100, 4)
+                    return (
+                      <div key={idx} className="flex-1 flex flex-col items-center gap-2 group">
+                        <span className="text-[9px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                          ${monto}
+                        </span>
+                        <div className="w-full max-w-[24px] bg-slate-800 rounded-lg overflow-hidden flex items-end h-28">
+                          <div 
+                            style={{ height: `${porcentaje}%` }} 
+                            className="w-full bg-indigo-500 group-hover:bg-indigo-400 transition-all rounded-t-md"
+                          ></div>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400">{diasSemana[idx]}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Gráfico 2: Servicios más Pedidos */}
+              <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
+                <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">
+                  Servicios Más Vendidos
+                </h3>
+
+                <div className="space-y-3 bg-slate-950 p-4 rounded-2xl border border-slate-800 max-h-48 overflow-y-auto">
+                  {Object.keys(ventasPorServicio).length === 0 ? (
+                    <p className="text-xs text-slate-500 text-center py-6">Sin registros suficientes para graficar.</p>
+                  ) : (
+                    Object.entries(ventasPorServicio).map(([nombre, datos]) => {
+                      const porcentaje = Math.min((datos.total / (totalRecaudado || 1)) * 100, 100)
+                      return (
+                        <div key={nombre} className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="font-bold text-white">{nombre} ({datos.cantidad})</span>
+                            <span className="font-black text-emerald-400">${datos.total}</span>
+                          </div>
+                          <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                            <div 
+                              style={{ width: `${porcentaje}%` }} 
+                              className="h-full bg-emerald-500 rounded-full"
+                            ></div>
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Lista Detallada */}
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-3 shadow-xl">
+              <h3 className="text-sm font-bold text-slate-300">Detalle de Turnos Facturados</h3>
               <div className="space-y-2">
                 {turnosFiltradosHistorial.length === 0 ? (
                   <p className="text-xs text-slate-500 py-6 text-center">No hay turnos finalizados en este período.</p>

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { 
   Share2, 
-  Calendar, 
+  Calendar as CalendarIcon, 
   Plus,
   MapPin, 
   ExternalLink, 
@@ -13,7 +13,9 @@ import {
   X, 
   Copy, 
   Check, 
-  Globe
+  Globe,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 
 import { 
@@ -40,6 +42,7 @@ export default function Home() {
   const [modalCompartir, setModalCompartir] = useState(false)
   const [copiado, setCopiado] = useState(false)
   
+  // Función de fecha local exacta sin UTC
   const obtenerFechaLocal = () => {
     const d = new Date()
     const year = d.getFullYear()
@@ -60,6 +63,10 @@ export default function Home() {
   const [linkWa, setLinkWa] = useState('')
 
   const [horariosDisponibles, setHorariosDisponibles] = useState<string[]>([])
+
+  // Estado para el Calendario Visual
+  const [mesActual, setMesActual] = useState(new Date().getMonth())
+  const [anioActual, setAnioActual] = useState(new Date().getFullYear())
 
   useEffect(() => {
     cargarPerfil()
@@ -201,13 +208,28 @@ export default function Home() {
       alert('Error al guardar la reserva: ' + error.message)
     } else {
       setExito(true)
-      const textoSena = servicioSel.requiere_seña 
-        ? `%0A⚠️ *Reserva / Seña requerida:* $${servicioSel.monto_seña}` 
-        : ''
-
-      const msg = `¡Hola ${negocio.nombre}! 👋%0AMi nombre es *${nombre}*.%0A%0AQuiero reservar:%0A📌 *Servicio:* ${servicioSel.nombre}%0A📅 *Fecha:* ${fecha}%0A⏰ *Hora:* ${hora} hs%0A💰 *Precio:* $${servicioSel.precio}${textoSena}%0A%0A¿Me confirmás el turno?`
+      const msg = `¡Hola ${negocio.nombre}! 👋%0AMi nombre es *${nombre}*.%0A%0AQuiero reservar:%0A📌 *Servicio:* ${servicioSel.nombre}%0A📅 *Fecha:* ${fecha}%0A⏰ *Hora:* ${hora} hs%0A💰 *Precio:* $${servicioSel.precio}%0A%0A¿Me confirmás el turno?`
       setLinkWa(`https://wa.me/${negocio.whatsapp}?text=${msg}`)
     }
+  }
+
+  // Generador de días para Calendario Visual
+  const nombresMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+  const primerDiaMes = new Date(anioActual, mesActual, 1).getDay()
+  const totalDiasMes = new Date(anioActual, mesActual + 1, 0).getDate()
+
+  const cambiarMes = (direccion: number) => {
+    let nuevoMes = mesActual + direccion
+    let nuevoAnio = anioActual
+    if (nuevoMes > 11) {
+      nuevoMes = 0
+      nuevoAnio++
+    } else if (nuevoMes < 0) {
+      nuevoMes = 11
+      nuevoAnio--
+    }
+    setMesActual(nuevoMes)
+    setAnioActual(nuevoAnio)
   }
 
   const colorPrincipal = negocio?.color_principal || '#6366f1'
@@ -285,7 +307,7 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Perfil del Negocio */}
+        {/* Perfil */}
         <div className="text-center mb-6 space-y-3">
           <div className="w-24 h-24 bg-slate-900 rounded-full mx-auto flex items-center justify-center text-white font-black text-3xl border-4 border-white shadow-xl overflow-hidden ring-4 ring-slate-100/50">
             {negocio?.logo_url ? (
@@ -313,7 +335,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Redes Sociales */}
+        {/* Redes */}
         <div className="space-y-3 mb-6">
           {redesList.map((red) => (
             <a
@@ -348,7 +370,7 @@ export default function Home() {
           >
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
-                <Calendar className="w-5 h-5" />
+                <CalendarIcon className="w-5 h-5" />
               </div>
               <div className="text-left">
                 <span className="font-extrabold block">Solicitar Turno / Pedido</span>
@@ -370,7 +392,7 @@ export default function Home() {
                   </div>
                   <p className="font-bold text-base">¡Reserva Enviada!</p>
                   <p className="text-xs text-slate-600 mt-1">
-                    El turno se guardó en el sistema. Confirmalo por WhatsApp:
+                    El turno se guardó en el sistema. Tocá abajo para confirmar directamente por WhatsApp:
                   </p>
                 </div>
                 
@@ -378,9 +400,9 @@ export default function Home() {
                   href={linkWa}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 transition text-center shadow-lg shadow-emerald-500/25 ${bordes}`}
+                  className={`block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 transition text-center shadow-lg shadow-emerald-500/25 ${bordes} flex items-center justify-center gap-2`}
                 >
-                  📲 Confirmar por WhatsApp
+                  <FaWhatsapp className="w-5 h-5" /> Confirmar por WhatsApp
                 </a>
               </div>
             ) : (
@@ -431,25 +453,84 @@ export default function Home() {
                   />
                 </div>
 
-                {/* 3. FECHA Y HORARIO */}
+                {/* 3. CALENDARIO VISUAL INTERACTIVO */}
                 <div>
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                    3. Fecha y Horario
+                    3. Elegí Fecha en el Calendario
                   </label>
-                  <input
-                    type="date"
-                    min={fechaHoy}
-                    value={fecha}
-                    onChange={(e) => {
-                      setFecha(e.target.value)
-                      setHora('')
-                    }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 mb-2 focus:outline-none text-xs"
-                    required
-                  />
+
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 mb-2 shadow-sm">
+                    {/* Header Calendario */}
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="font-extrabold text-xs text-slate-800">
+                        {nombresMeses[mesActual]} {anioActual}
+                      </span>
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => cambiarMes(-1)}
+                          className="p-1 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => cambiarMes(1)}
+                          className="p-1 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Días semana */}
+                    <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-1">
+                      <span>D</span><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span>
+                    </div>
+
+                    {/* Días del mes */}
+                    <div className="grid grid-cols-7 gap-1 text-center">
+                      {Array.from({ length: primerDiaMes }).map((_, i) => (
+                        <div key={`empty-${i}`} className="p-1.5"></div>
+                      ))}
+
+                      {Array.from({ length: totalDiasMes }).map((_, i) => {
+                        const dia = i + 1
+                        const fechaStr = `${anioActual}-${String(mesActual + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
+                        const esPasado = fechaStr < fechaHoy
+                        const esSeleccionado = fecha === fechaStr
+
+                        return (
+                          <button
+                            key={dia}
+                            type="button"
+                            disabled={esPasado}
+                            onClick={() => {
+                              setFecha(fechaStr)
+                              setHora('')
+                            }}
+                            className={`p-1.5 text-xs font-bold rounded-xl transition ${
+                              esPasado 
+                                ? 'text-slate-300 line-through cursor-not-allowed'
+                                : esSeleccionado 
+                                  ? 'bg-rose-500 text-white shadow' 
+                                  : 'hover:bg-white text-slate-700'
+                            }`}
+                          >
+                            {dia}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 4. SELECTOR DE HORARIOS */}
+                  <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
+                    Horarios Disponibles para {fecha}
+                  </label>
 
                   {cargandoHorarios ? (
-                    <p className="text-xs text-slate-400 text-center py-3">Consultando disponibilidad...</p>
+                    <p className="text-xs text-slate-400 text-center py-3">Consultando horarios...</p>
                   ) : (
                     <div className="grid grid-cols-4 gap-1.5 max-h-36 overflow-y-auto p-1 bg-slate-50 border border-slate-200 rounded-xl">
                       {horariosDisponibles.map((h) => {
@@ -493,7 +574,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Catálogo Visual de Galería */}
+        {/* Catálogo Visual */}
         {galeriaLista.length > 0 && (
           <div className="border-t border-slate-100 pt-5 space-y-3">
             <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -527,25 +608,19 @@ export default function Home() {
       {modalCompartir && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white max-w-sm w-full rounded-3xl p-6 shadow-2xl border border-slate-100 relative space-y-4">
-            
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h3 className="font-black text-slate-900 text-base">Compartir Perfil</h3>
-              <button
-                onClick={() => setModalCompartir(false)}
-                className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"
-              >
+              <button onClick={() => setModalCompartir(false)} className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-500">Seleccioná la plataforma para compartir tu enlace:</p>
-
             <div className="grid grid-cols-2 gap-2.5">
               <a
-                href={`https://api.whatsapp.com/send?text=Mirá%20mi%20perfil%20oficial:%20${encodeURIComponent(urlActual)}`}
+                href={`https://api.whatsapp.com/send?text=Mirá%20mi%20perfil:%20${encodeURIComponent(urlActual)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-emerald-100 transition"
+                className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-2xl flex items-center gap-2 font-bold text-xs"
               >
                 <FaWhatsapp className="w-4 h-4 text-emerald-600" />
                 <span>WhatsApp</span>
@@ -555,53 +630,20 @@ export default function Home() {
                 href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(urlActual)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 bg-blue-50 text-blue-800 border border-blue-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-blue-100 transition"
+                className="p-3 bg-blue-50 text-blue-800 border border-blue-200 rounded-2xl flex items-center gap-2 font-bold text-xs"
               >
                 <FaFacebook className="w-4 h-4 text-blue-600" />
                 <span>Facebook</span>
               </a>
-
-              <a
-                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(urlActual)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-3 bg-slate-100 text-slate-800 border border-slate-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-slate-200 transition"
-              >
-                <FaTwitter className="w-4 h-4 text-sky-500" />
-                <span>X / Twitter</span>
-              </a>
-
-              <a
-                href={`https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=&su=Perfil%20Oficial&body=Te%20comparto%20mi%20perfil%20oficial:%20${encodeURIComponent(urlActual)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-3 bg-rose-50 text-rose-800 border border-rose-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-rose-100 transition"
-              >
-                <FaEnvelope className="w-4 h-4 text-rose-600" />
-                <span>Gmail</span>
-              </a>
-
-              <a
-                href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(urlActual)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-3 bg-sky-50 text-sky-800 border border-sky-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-sky-100 transition col-span-2"
-              >
-                <FaLinkedin className="w-4 h-4 text-sky-700" />
-                <span>LinkedIn</span>
-              </a>
             </div>
 
-            <div className="pt-2 border-t border-slate-100">
-              <button
-                onClick={handleCopiarLink}
-                className="w-full bg-slate-900 text-white font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-2 active:scale-95 transition"
-              >
-                {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                <span>{copiado ? '¡Copiado al Portapapeles!' : 'Copiar Enlace Directo'}</span>
-              </button>
-            </div>
-
+            <button
+              onClick={handleCopiarLink}
+              className="w-full bg-slate-900 text-white font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-2"
+            >
+              {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+              <span>{copiado ? '¡Copiado!' : 'Copiar Enlace'}</span>
+            </button>
           </div>
         </div>
       )}
