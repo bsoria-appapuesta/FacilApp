@@ -13,8 +13,6 @@ import {
   X, 
   Copy, 
   Check, 
-  Clock, 
-  ShieldAlert, 
   Globe
 } from 'lucide-react'
 
@@ -43,19 +41,16 @@ export default function Home() {
   const [servicios, setServicios] = useState<any[]>([])
   const [servicioSel, setServicioSel] = useState<any>(null)
   
-  // Formulario colapsable para solicitar turnos
   const [seccionAbierta, setSeccionAbierta] = useState<'turnos' | null>(null)
   const [modalCompartir, setModalCompartir] = useState(false)
   const [copiado, setCopiado] = useState(false)
   
-  // Obtener fecha de hoy en formato YYYY-MM-DD
   const fechaHoy = new Date().toISOString().split('T')[0]
 
-  // Formulario de reserva con fecha de hoy por defecto
   const [nombre, setNombre] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [fecha, setFecha] = useState(fechaHoy)
-  const [hora, setHora] = useState('10:00')
+  const [hora, setHora] = useState('')
   const [horasOcupadas, setHorasOcupadas] = useState<string[]>([])
   const [cargandoHorarios, setCargandoHorarios] = useState(false)
   const [cargando, setCargando] = useState(false)
@@ -121,6 +116,16 @@ export default function Home() {
     setCargandoHorarios(false)
   }
 
+  // Validación de hora transcurrida si la fecha es hoy
+  const esHoraPasada = (horario: string) => {
+    if (fecha !== fechaHoy) return false
+    const ahora = new Date()
+    const [h, m] = horario.split(':').map(Number)
+    const horaTurno = new Date()
+    horaTurno.setHours(h, m, 0, 0)
+    return ahora.getTime() > horaTurno.getTime()
+  }
+
   const handleCopiarLink = () => {
     navigator.clipboard.writeText(window.location.href)
     setCopiado(true)
@@ -130,13 +135,17 @@ export default function Home() {
   const handleReservar = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!nombre || !whatsapp || !fecha || !hora || !servicioSel) {
-      alert('Por favor completá todos los campos')
+      alert('Por favor completá todos los campos, incluyendo el horario.')
       return
     }
 
-    // Validación de fecha no menor a hoy
     if (fecha < fechaHoy) {
       alert('No podés seleccionar una fecha anterior a la de hoy.')
+      return
+    }
+
+    if (esHoraPasada(hora)) {
+      alert('El horario seleccionado ya transcurrió. Por favor elegí otro.')
       return
     }
 
@@ -342,61 +351,29 @@ export default function Home() {
             ) : (
               <form onSubmit={handleReservar} className="space-y-4">
                 
-                {/* LISTADO DE SERVICIOS ADENTRO DE SOLICITAR TURNO */}
+                {/* 1. SELECTOR DESPLEGABLE DE SERVICIOS */}
                 <div>
-                  <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
+                  <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
                     1. Seleccioná el Servicio
                   </label>
-                  <div className="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-sm overflow-hidden max-h-60 overflow-y-auto">
-                    {servicios.length === 0 ? (
-                      <p className="text-xs text-slate-400 text-center py-4">
-                        No hay servicios cargados actualmente.
-                      </p>
-                    ) : (
-                      servicios.map((s) => {
-                        const esSel = servicioSel?.id === s.id
-                        return (
-                          <div
-                            key={s.id}
-                            onClick={() => setServicioSel(s)}
-                            className={`p-3.5 transition-colors flex justify-between items-center cursor-pointer ${
-                              esSel ? 'bg-indigo-50/80' : 'hover:bg-slate-50'
-                            }`}
-                          >
-                            <div className="space-y-0.5">
-                              <p className={`font-bold text-sm ${esSel ? 'text-indigo-600' : 'text-slate-800'}`}>
-                                {s.nombre}
-                              </p>
-                              <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                                <span className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3 text-slate-400" /> {s.duracion_minutos || 30} min
-                                </span>
-                                {s.requiere_seña && (
-                                  <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold text-[9px]">
-                                    Seña: ${s.monto_seña}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="text-right flex items-center gap-2">
-                              <span 
-                                style={{ color: colorPrincipal }}
-                                className="font-black text-sm tracking-tight"
-                              >
-                                ${s.precio}
-                              </span>
-                              <span className={`text-xs font-bold ${esSel ? 'text-indigo-600' : 'text-slate-300'}`}>
-                                {esSel ? '✓' : '›'}
-                              </span>
-                            </div>
-                          </div>
-                        )
-                      })
-                    )}
-                  </div>
+                  <select
+                    value={servicioSel?.id || ''}
+                    onChange={(e) => {
+                      const sel = servicios.find(s => s.id === e.target.value)
+                      if (sel) setServicioSel(sel)
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 font-bold text-xs focus:outline-none"
+                    required
+                  >
+                    {servicios.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.nombre} - ${s.precio} ({s.duracion_minutos || 30} min)
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
+                {/* 2. TUS DATOS */}
                 <div>
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
                     2. Tus Datos
@@ -406,7 +383,7 @@ export default function Home() {
                     placeholder="Nombre y Apellido"
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 mb-2 focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 mb-2 focus:outline-none text-xs"
                     required
                   />
                   <input
@@ -414,11 +391,12 @@ export default function Home() {
                     placeholder="Tu WhatsApp (ej. 1122334455)"
                     value={whatsapp}
                     onChange={(e) => setWhatsapp(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:outline-none text-xs"
                     required
                   />
                 </div>
 
+                {/* 3. FECHA Y HORARIO */}
                 <div>
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
                     3. Fecha y Horario
@@ -427,8 +405,11 @@ export default function Home() {
                     type="date"
                     min={fechaHoy}
                     value={fecha}
-                    onChange={(e) => setFecha(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 mb-2 focus:outline-none"
+                    onChange={(e) => {
+                      setFecha(e.target.value)
+                      setHora('')
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 mb-2 focus:outline-none text-xs"
                     required
                   />
 
@@ -438,16 +419,18 @@ export default function Home() {
                     <div className="grid grid-cols-4 gap-1.5 max-h-32 overflow-y-auto p-1 bg-slate-50 border border-slate-200 rounded-xl">
                       {HORARIOS.map((h) => {
                         const estaOcupado = horasOcupadas.includes(h)
+                        const paso = esHoraPasada(h)
+                        const deshabilitado = estaOcupado || paso
                         const esSeleccionado = hora === h
 
                         return (
                           <button
                             key={h}
                             type="button"
-                            disabled={estaOcupado}
+                            disabled={deshabilitado}
                             onClick={() => setHora(h)}
                             className={`py-2 text-[11px] font-bold rounded-lg transition ${
-                              estaOcupado
+                              deshabilitado
                                 ? 'bg-slate-200 text-slate-400 line-through cursor-not-allowed border border-slate-300'
                                 : esSeleccionado
                                 ? 'bg-rose-500 text-white shadow-md'
@@ -466,7 +449,7 @@ export default function Home() {
                   type="submit"
                   disabled={cargando}
                   style={{ backgroundColor: colorPrincipal }}
-                  className={`w-full text-white font-bold py-3.5 transition shadow-lg disabled:opacity-50 ${bordes}`}
+                  className={`w-full text-white font-bold py-3.5 transition shadow-lg disabled:opacity-50 text-xs ${bordes}`}
                 >
                   {cargando ? 'Procesando...' : 'Confirmar Reserva ✨'}
                 </button>
