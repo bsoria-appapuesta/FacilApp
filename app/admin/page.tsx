@@ -26,7 +26,8 @@ import {
   DollarSign, 
   Eye, 
   Camera,
-  LogOut
+  LogOut,
+  Link as LinkIcon
 } from 'lucide-react'
 
 import { 
@@ -110,8 +111,9 @@ export default function AdminPage() {
   const [precioServicio, setPrecioServicio] = useState('')
   const [duracionServicio, setDuracionServicio] = useState('30')
 
-  // Datos y Redes
+  // Datos, Slug y Redes
   const [nombreNegocio, setNombreNegocio] = useState('')
+  const [slug, setSlug] = useState('')
   const [ubicacion, setUbicacion] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
@@ -196,58 +198,100 @@ export default function AdminPage() {
     .sort((a, b) => new Date(a.fecha_hora).getTime() - new Date(b.fecha_hora).getTime())
 
   async function cargarDatos() {
-    // Verificación de sesión Supabase
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       router.push('/login')
       return
     }
 
-    const { data: negData } = await supabase.from('negocios').select('*').limit(1).single()
-    if (negData) {
-      setNegocio(negData)
-      setNombreNegocio(negData.nombre || '')
-      setUbicacion(negData.ubicacion || '')
-      setDescripcion(negData.descripcion || '')
-      setWhatsapp(negData.whatsapp || '')
-      setLogoUrl(negData.logo_url || '')
+    // Buscar negocio del usuario actual
+    let { data: negData } = await supabase
+      .from('negocios')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle()
 
-      setHoraApertura(negData.hora_apertura || '09:00')
-      setHoraCierre(negData.hora_cierre || '18:00')
-      setIntervaloMinutos(negData.intervalo_minutos || 30)
+    // Si es un usuario nuevo, le creamos su propio negocio
+    if (!negData) {
+      const slugSugerido = `local-${user.id.slice(0, 6)}`
+      const { data: nuevoNegocio, error: errCrear } = await supabase
+        .from('negocios')
+        .insert([
+          {
+            user_id: user.id,
+            nombre: 'Mi Negocio',
+            slug: slugSugerido,
+            ubicacion: 'Buenos Aires, Argentina',
+            descripcion: '¡Bienvenidos a nuestra página de reservas!',
+            whatsapp: '',
+            hora_apertura: '09:00',
+            hora_cierre: '18:00',
+            intervalo_minutos: 30,
+            tipo_fuente: 'Plus Jakarta Sans',
+            tamano_fuente: 'mediano',
+            redes_sociales: [],
+            color_principal: '#6366f1',
+            color_fondo: '#0f172a',
+            color_carta: '#ffffff',
+            tipo_fondo: 'color',
+            galeria_detallada: []
+          }
+        ])
+        .select()
+        .single()
 
-      setTipoFuente(negData.tipo_fuente || 'Plus Jakarta Sans')
-      setTamanoFuente(negData.tamano_fuente || 'mediano')
-
-      if (Array.isArray(negData.redes_sociales)) {
-        setRedes(negData.redes_sociales)
+      if (errCrear) {
+        alert('Error al inicializar el negocio: ' + errCrear.message)
+        return
       }
+      negData = nuevoNegocio
+    }
 
-      setColorPrincipal(negData.color_principal || '#6366f1')
-      setColorFondo(negData.color_fondo || '#0f172a')
-      setColorCarta(negData.color_carta || '#ffffff')
-      setTipoFondo(negData.tipo_fondo || 'color')
-      setFondoImagenUrl(negData.fondo_imagen_url || '')
-      setGaleria(negData.galeria_detallada || [])
+    setNegocio(negData)
+    setNombreNegocio(negData.nombre || '')
+    setSlug(negData.slug || '')
+    setUbicacion(negData.ubicacion || '')
+    setDescripcion(negData.descripcion || '')
+    setWhatsapp(negData.whatsapp || '')
+    setLogoUrl(negData.logo_url || '')
 
-      const { data: turnosData } = await supabase
-        .from('turnos')
-        .select('*, servicios(nombre)')
-        .eq('negocio_id', negData.id)
-        .order('fecha_hora', { ascending: false })
+    setHoraApertura(negData.hora_apertura || '09:00')
+    setHoraCierre(negData.hora_cierre || '18:00')
+    setIntervaloMinutos(negData.intervalo_minutos || 30)
 
-      if (turnosData) setTurnos(turnosData)
+    setTipoFuente(negData.tipo_fuente || 'Plus Jakarta Sans')
+    setTamanoFuente(negData.tamano_fuente || 'mediano')
 
-      const { data: servData } = await supabase
-        .from('servicios')
-        .select('*')
-        .eq('negocio_id', negData.id)
-        .eq('activo', true)
+    if (Array.isArray(negData.redes_sociales)) {
+      setRedes(negData.redes_sociales)
+    }
 
-      if (servData) {
-        setServicios(servData)
-        if (servData.length > 0) setManualServicioId(servData[0].id)
-      }
+    setColorPrincipal(negData.color_principal || '#6366f1')
+    setColorFondo(negData.color_fondo || '#0f172a')
+    setColorCarta(negData.color_carta || '#ffffff')
+    setTipoFondo(negData.tipo_fondo || 'color')
+    setFondoImagenUrl(negData.fondo_imagen_url || '')
+    setGaleria(negData.galeria_detallada || [])
+
+    // Turnos específicos del negocio
+    const { data: turnosData } = await supabase
+      .from('turnos')
+      .select('*, servicios(nombre)')
+      .eq('negocio_id', negData.id)
+      .order('fecha_hora', { ascending: false })
+
+    if (turnosData) setTurnos(turnosData)
+
+    // Servicios específicos del negocio
+    const { data: servData } = await supabase
+      .from('servicios')
+      .select('*')
+      .eq('negocio_id', negData.id)
+      .eq('activo', true)
+
+    if (servData) {
+      setServicios(servData)
+      if (servData.length > 0) setManualServicioId(servData[0].id)
     }
   }
 
@@ -553,10 +597,13 @@ export default function AdminPage() {
     if (!negocio) return
 
     setCargando(true)
+    const slugLimpio = slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-')
+
     const { error } = await supabase
       .from('negocios')
       .update({
         nombre: nombreNegocio,
+        slug: slugLimpio,
         ubicacion,
         descripcion,
         whatsapp,
@@ -581,7 +628,11 @@ export default function AdminPage() {
       alert('¡Configuración guardada exitosamente!')
       cargarDatos()
     } else {
-      alert('Error: ' + error.message)
+      if (error.code === '23505') {
+        alert('El enlace/slug ya está en uso por otro negocio. Elegí otro por favor.')
+      } else {
+        alert('Error: ' + error.message)
+      }
     }
   }
 
@@ -703,11 +754,13 @@ export default function AdminPage() {
 
         <div className="pt-4 border-t border-slate-800 mt-6 md:mt-0 space-y-2">
           <a
-            href="/"
+            href={`/${slug || ''}`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border border-slate-700 transition"
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            <span>Ver Mi Página Web</span>
+            <span>Ver Mi Página Pública</span>
           </a>
 
           <button
@@ -1371,14 +1424,14 @@ export default function AdminPage() {
           </form>
         )}
 
-        {/* PESTAÑA 4: DATOS & REDES + FOTO ARRIBA + LIVE PREVIEW */}
+        {/* PESTAÑA 4: DATOS & REDES + SLUG */}
         {tab === 'marca' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
             <form onSubmit={handleGuardarConfiguracion} className="lg:col-span-7 bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
               <div>
                 <h2 className="text-lg font-black text-white">Datos del Negocio, Redes & Diseño</h2>
-                <p className="text-xs text-slate-400">Configurá la foto de perfil, datos y enlaces</p>
+                <p className="text-xs text-slate-400">Configurá la foto de perfil, tu enlace personalizado y estilo</p>
               </div>
 
               {/* FOTO DE PERFIL / LOGO ARRIBA DE TODO */}
@@ -1407,6 +1460,26 @@ export default function AdminPage() {
                     <p className="text-[10px] text-slate-500 mt-1">Formato cuadrado recomendado (PNG o JPG)</p>
                   </div>
                 </div>
+              </div>
+
+              {/* ENLACE PERSONALIZADO (SLUG) */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                <label className="block text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                  <LinkIcon className="w-3.5 h-3.5 text-indigo-400" />
+                  Tu Enlace Público (Link-in-bio)
+                </label>
+                <div className="flex items-center bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs">
+                  <span className="text-slate-500 shrink-0">facilapp.com/</span>
+                  <input
+                    type="text"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    placeholder="mi-local"
+                    className="bg-transparent text-white font-bold w-full focus:outline-none pl-1"
+                    required
+                  />
+                </div>
+                <p className="text-[10px] text-slate-500">Este es el link que compartirás con tus clientes.</p>
               </div>
 
               {/* Datos Principales */}
