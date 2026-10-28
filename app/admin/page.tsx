@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import { useRouter } from 'next/navigation'
 import { 
   Calendar, 
   Settings, 
@@ -24,7 +25,8 @@ import {
   TrendingUp, 
   DollarSign, 
   Eye, 
-  Camera 
+  Camera,
+  LogOut
 } from 'lucide-react'
 
 import { 
@@ -49,6 +51,7 @@ interface RedItem {
 }
 
 export default function AdminPage() {
+  const router = useRouter()
   const [tab, setTab] = useState<'turnos' | 'servicios' | 'horarios_catalogo' | 'marca' | 'historial'>('turnos')
   const [negocio, setNegocio] = useState<any>(null)
   const [turnos, setTurnos] = useState<any[]>([])
@@ -72,6 +75,20 @@ export default function AdminPage() {
   // Calendario Semanal / Diario de Turnos
   const [fechaTurnosFiltro, setFechaTurnosFiltro] = useState(fechaHoy)
   const [offsetDiasSemana, setOffsetDiasSemana] = useState(0)
+
+  const seleccionarFechaEspecifica = (fechaStr: string) => {
+    if (!fechaStr) return
+    setFechaTurnosFiltro(fechaStr)
+    const [y, m, d] = fechaStr.split('-').map(Number)
+    const fechaElegida = new Date(y, m - 1, d)
+    const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0)
+    fechaElegida.setHours(0, 0, 0, 0)
+
+    const diffTiempo = fechaElegida.getTime() - hoy.getTime()
+    const diffDias = Math.round(diffTiempo / (1000 * 60 * 60 * 24))
+    setOffsetDiasSemana(diffDias)
+  }
 
   // Modal Turno Manual
   const [mostrarModalManual, setMostrarModalManual] = useState(false)
@@ -146,7 +163,6 @@ export default function AdminPage() {
     return lista
   }
 
-  // Generar días de la semana visible para el calendario
   const obtenerDiasSemanaAdmin = () => {
     const base = new Date()
     base.setDate(base.getDate() + offsetDiasSemana)
@@ -175,12 +191,18 @@ export default function AdminPage() {
 
   const diasSemanaVisible = obtenerDiasSemanaAdmin()
 
-  // Turnos filtrados para el día seleccionado en el calendario
   const turnosDelDia = turnos
     .filter(t => t.fecha_hora?.startsWith(fechaTurnosFiltro) && t.estado !== 'finalizado')
     .sort((a, b) => new Date(a.fecha_hora).getTime() - new Date(b.fecha_hora).getTime())
 
   async function cargarDatos() {
+    // Verificación de sesión Supabase
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
     const { data: negData } = await supabase.from('negocios').select('*').limit(1).single()
     if (negData) {
       setNegocio(negData)
@@ -229,6 +251,11 @@ export default function AdminPage() {
     }
   }
 
+  async function handleCerrarSesion() {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
+
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>, campo: 'logo' | 'fondo' | 'catalogo') {
     const file = e.target.files?.[0]
     if (!file) return
@@ -258,7 +285,6 @@ export default function AdminPage() {
     alert('Imagen cargada con éxito')
   }
 
-  // Confirmar y redirigir a WhatsApp de inmediato
   async function handleConfirmarTurno(turno: any) {
     setCargando(true)
     const { error } = await supabase
@@ -675,7 +701,7 @@ export default function AdminPage() {
           </nav>
         </div>
 
-        <div className="pt-4 border-t border-slate-800 mt-6 md:mt-0">
+        <div className="pt-4 border-t border-slate-800 mt-6 md:mt-0 space-y-2">
           <a
             href="/"
             className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border border-slate-700 transition"
@@ -683,6 +709,14 @@ export default function AdminPage() {
             <ExternalLink className="w-3.5 h-3.5" />
             <span>Ver Mi Página Web</span>
           </a>
+
+          <button
+            onClick={handleCerrarSesion}
+            className="w-full py-2.5 px-4 bg-slate-950 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border border-slate-800/80 transition"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Cerrar Sesión</span>
+          </button>
         </div>
       </aside>
 
@@ -721,7 +755,16 @@ export default function AdminPage() {
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setOffsetDiasSemana(prev => prev - 7)}
+                    onClick={() => {
+                      const nuevoOffset = offsetDiasSemana - 7
+                      setOffsetDiasSemana(nuevoOffset)
+                      const d = new Date()
+                      d.setDate(d.getDate() + nuevoOffset)
+                      const y = d.getFullYear()
+                      const m = String(d.getMonth() + 1).padStart(2, '0')
+                      const dia = String(d.getDate()).padStart(2, '0')
+                      setFechaTurnosFiltro(`${y}-${m}-${dia}`)
+                    }}
                     className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs text-slate-300 font-bold transition"
                   >
                     ‹ Ant
@@ -738,7 +781,16 @@ export default function AdminPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setOffsetDiasSemana(prev => prev + 7)}
+                    onClick={() => {
+                      const nuevoOffset = offsetDiasSemana + 7
+                      setOffsetDiasSemana(nuevoOffset)
+                      const d = new Date()
+                      d.setDate(d.getDate() + nuevoOffset)
+                      const y = d.getFullYear()
+                      const m = String(d.getMonth() + 1).padStart(2, '0')
+                      const dia = String(d.getDate()).padStart(2, '0')
+                      setFechaTurnosFiltro(`${y}-${m}-${dia}`)
+                    }}
                     className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs text-slate-300 font-bold transition"
                   >
                     Sig ›
@@ -746,7 +798,7 @@ export default function AdminPage() {
                   <input
                     type="date"
                     value={fechaTurnosFiltro}
-                    onChange={(e) => setFechaTurnosFiltro(e.target.value)}
+                    onChange={(e) => seleccionarFechaEspecifica(e.target.value)}
                     className="bg-slate-950 border border-slate-800 rounded-xl px-2 py-1 text-xs text-white"
                     title="Ir a una fecha específica"
                   />
