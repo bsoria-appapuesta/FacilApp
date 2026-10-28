@@ -7,24 +7,24 @@ import {
   Settings, 
   Clock, 
   Plus, 
-  Image as ImageIcon,
-  Trash2,
-  CheckCircle2,
-  Share2,
-  Pencil,
-  X,
-  ExternalLink,
-  Globe,
-  UserPlus,
-  Scissors,
-  Palette,
-  BarChart3,
-  CalendarCheck2,
-  Check,
-  TrendingUp,
-  DollarSign,
-  Eye,
-  Camera
+  Image as ImageIcon, 
+  Trash2, 
+  CheckCircle2, 
+  Share2, 
+  Pencil, 
+  X, 
+  ExternalLink, 
+  Globe, 
+  UserPlus, 
+  Scissors, 
+  Palette, 
+  BarChart3, 
+  CalendarCheck2, 
+  Check, 
+  TrendingUp, 
+  DollarSign, 
+  Eye, 
+  Camera 
 } from 'lucide-react'
 
 import { 
@@ -32,8 +32,8 @@ import {
   FaInstagram, 
   FaTiktok, 
   FaFacebook, 
-  FaLinkedin,
-  FaYoutube
+  FaLinkedin, 
+  FaYoutube 
 } from 'react-icons/fa'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -68,6 +68,10 @@ export default function AdminPage() {
     return `${year}-${month}-${day}`
   }
   const fechaHoy = obtenerFechaLocal()
+
+  // Calendario Semanal / Diario de Turnos
+  const [fechaTurnosFiltro, setFechaTurnosFiltro] = useState(fechaHoy)
+  const [offsetDiasSemana, setOffsetDiasSemana] = useState(0)
 
   // Modal Turno Manual
   const [mostrarModalManual, setMostrarModalManual] = useState(false)
@@ -141,6 +145,40 @@ export default function AdminPage() {
     }
     return lista
   }
+
+  // Generar días de la semana visible para el calendario
+  const obtenerDiasSemanaAdmin = () => {
+    const base = new Date()
+    base.setDate(base.getDate() + offsetDiasSemana)
+    const diaSem = base.getDay()
+    const diffALunes = diaSem === 0 ? -6 : 1 - diaSem
+    const lunes = new Date(base)
+    lunes.setDate(base.getDate() + diffALunes)
+
+    const dias = []
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(lunes)
+      d.setDate(lunes.getDate() + i)
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      const iso = `${year}-${month}-${day}`
+      dias.push({
+        iso,
+        numero: d.getDate(),
+        nombreDia: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][d.getDay()],
+        mesCorto: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][d.getMonth()]
+      })
+    }
+    return dias
+  }
+
+  const diasSemanaVisible = obtenerDiasSemanaAdmin()
+
+  // Turnos filtrados para el día seleccionado en el calendario
+  const turnosDelDia = turnos
+    .filter(t => t.fecha_hora?.startsWith(fechaTurnosFiltro) && t.estado !== 'finalizado')
+    .sort((a, b) => new Date(a.fecha_hora).getTime() - new Date(b.fecha_hora).getTime())
 
   async function cargarDatos() {
     const { data: negData } = await supabase.from('negocios').select('*').limit(1).single()
@@ -665,6 +703,148 @@ export default function AdminPage() {
               >
                 <UserPlus className="w-4 h-4" /> Nuevo Turno Manual
               </button>
+            </div>
+
+            {/* MINI CALENDARIO SEMANAL Y CRONOGRAMA DIARIO */}
+            <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <h3 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+                    Vista Semanal de Turnos
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Seleccioná un día para ver su cronograma detallado
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setOffsetDiasSemana(prev => prev - 7)}
+                    className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs text-slate-300 font-bold transition"
+                  >
+                    ‹ Ant
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOffsetDiasSemana(0)
+                      setFechaTurnosFiltro(fechaHoy)
+                    }}
+                    className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-[11px] text-indigo-300 font-bold transition"
+                  >
+                    Hoy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOffsetDiasSemana(prev => prev + 7)}
+                    className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs text-slate-300 font-bold transition"
+                  >
+                    Sig ›
+                  </button>
+                  <input
+                    type="date"
+                    value={fechaTurnosFiltro}
+                    onChange={(e) => setFechaTurnosFiltro(e.target.value)}
+                    className="bg-slate-950 border border-slate-800 rounded-xl px-2 py-1 text-xs text-white"
+                    title="Ir a una fecha específica"
+                  />
+                </div>
+              </div>
+
+              {/* Días de la semana */}
+              <div className="grid grid-cols-7 gap-1.5">
+                {diasSemanaVisible.map(d => {
+                  const esSeleccionado = fechaTurnosFiltro === d.iso
+                  const esHoy = d.iso === fechaHoy
+                  const cantTurnos = turnos.filter(t => t.fecha_hora?.startsWith(d.iso) && t.estado !== 'finalizado').length
+
+                  return (
+                    <button
+                      key={d.iso}
+                      type="button"
+                      onClick={() => setFechaTurnosFiltro(d.iso)}
+                      className={`p-2 rounded-2xl flex flex-col items-center justify-center transition border ${
+                        esSeleccionado
+                          ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg'
+                          : esHoy
+                          ? 'bg-slate-950 border-indigo-500/50 text-indigo-300'
+                          : 'bg-slate-950/70 hover:bg-slate-800 border-slate-800 text-slate-300'
+                      }`}
+                    >
+                      <span className="text-[10px] font-medium opacity-80">{d.nombreDia}</span>
+                      <span className="text-sm font-black leading-tight my-0.5">{d.numero}</span>
+                      <span className="text-[9px] opacity-70">{d.mesCorto}</span>
+
+                      {cantTurnos > 0 && (
+                        <span className={`mt-1 text-[9px] px-1.5 rounded-full font-black ${
+                          esSeleccionado ? 'bg-white text-indigo-700' : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                        }`}>
+                          {cantTurnos}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Detalle del día seleccionado */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800/80 space-y-2.5">
+                <div className="flex items-center justify-between border-b border-slate-800/60 pb-2">
+                  <span className="text-xs font-bold text-slate-300">
+                    Cronograma del {fechaTurnosFiltro.split('-').reverse().join('/')}
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    {turnosDelDia.length} turno{turnosDelDia.length === 1 ? '' : 's'}
+                  </span>
+                </div>
+
+                {turnosDelDia.length === 0 ? (
+                  <p className="text-xs text-slate-500 text-center py-3">
+                    No hay turnos registrados para este día.
+                  </p>
+                ) : (
+                  <div className="divide-y divide-slate-800/50">
+                    {turnosDelDia.map(t => {
+                      const d = new Date(t.fecha_hora)
+                      const horaMin = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      const esPendiente = t.estado === 'pendiente'
+
+                      return (
+                        <div key={t.id} className="py-2.5 flex items-center justify-between gap-3 first:pt-1 last:pb-1">
+                          <div className="flex items-center gap-3">
+                            <span className="px-2 py-1 rounded-xl bg-slate-900 border border-slate-800 text-indigo-300 font-black text-xs">
+                              {horaMin} hs
+                            </span>
+                            <div>
+                              <p className="font-bold text-xs text-white leading-tight">
+                                {t.cliente_nombre}
+                              </p>
+                              <p className="text-[10px] text-slate-400">
+                                {t.servicios?.nombre || 'General'} • WA: {t.cliente_whatsapp}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                              esPendiente 
+                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
+                                : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            }`}>
+                              {t.estado}
+                            </span>
+                            <span className="font-bold text-xs text-emerald-400">
+                              ${t.monto_cobrado}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Modal Reprogramación */}
