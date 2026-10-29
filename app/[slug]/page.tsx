@@ -43,6 +43,7 @@ export default function PaginaNegocioDinamica() {
   const [servicios, setServicios] = useState<any[]>([])
   const [servicioSel, setServicioSel] = useState<any>(null)
   const [noEncontrado, setNoEncontrado] = useState(false)
+  const [suspendido, setSuspendido] = useState(false)
   
   const [seccionAbierta, setSeccionAbierta] = useState<'turnos' | null>(null)
   const [modalCompartir, setModalCompartir] = useState(false)
@@ -110,6 +111,14 @@ export default function PaginaNegocioDinamica() {
 
     if (!negData || error) {
       setNoEncontrado(true)
+      return
+    }
+
+    // Chequeo de vencimiento (10 días)
+    const hoy = new Date()
+    const fechaVenc = negData.fecha_vencimiento ? new Date(negData.fecha_vencimiento) : null
+    if (negData.estado !== 'activo' && fechaVenc && hoy > fechaVenc) {
+      setSuspendido(true)
       return
     }
 
@@ -217,8 +226,9 @@ export default function PaginaNegocioDinamica() {
       alert('Error al guardar la reserva: ' + error.message)
     } else {
       setExito(true)
+      const celDestino = (negocio.whatsapp || '').replace(/\D/g, '')
       const msg = `¡Hola ${negocio.nombre}! 👋%0AMi nombre es *${nombre}*.%0A%0AQuiero reservar:%0A📌 *Servicio:* ${servicioSel.nombre}%0A📅 *Fecha:* ${fecha}%0A⏰ *Hora:* ${hora} hs%0A💰 *Precio:* $${servicioSel.precio}%0A%0A¿Me confirmás el turno?`
-      setLinkWa(`https://wa.me/${negocio.whatsapp}?text=${msg}`)
+      setLinkWa(`https://wa.me/${celDestino}?text=${msg}`)
     }
   }
 
@@ -238,6 +248,20 @@ export default function PaginaNegocioDinamica() {
     }
     setMesActual(nuevoMes)
     setAnioActual(nuevoAnio)
+  }
+
+  if (suspendido) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 text-center space-y-4">
+        <h1 className="text-2xl font-black text-white">Página temporalmente suspendida</h1>
+        <p className="text-slate-400 text-xs max-w-sm">
+          Este perfil no se encuentra disponible momentáneamente. Si sos el dueño, ingresá al panel de administración.
+        </p>
+        <a href="/login" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs">
+          Acceso Administrador
+        </a>
+      </div>
+    )
   }
 
   if (noEncontrado) {

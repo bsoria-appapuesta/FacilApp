@@ -27,7 +27,9 @@ import {
   Eye, 
   Camera,
   LogOut,
-  Link as LinkIcon
+  Link as LinkIcon,
+  AlertTriangle,
+  Lock
 } from 'lucide-react'
 
 import { 
@@ -42,6 +44,9 @@ import {
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Poné acá tu número de WhatsApp para recibir los pagos
+const NUMERO_WHATSAPP_SOPORTE = '5491150189781'
 
 interface RedItem {
   id: string
@@ -58,6 +63,8 @@ export default function AdminPage() {
   const [turnos, setTurnos] = useState<any[]>([])
   const [servicios, setServicios] = useState<any[]>([])
   const [cargando, setCargando] = useState(false)
+  const [bloqueadoPorVencimiento, setBloqueadoPorVencimiento] = useState(false)
+  const [diasRestantes, setDiasRestantes] = useState<number | null>(null)
 
   // Configuración de Horarios
   const [horaApertura, setHoraApertura] = useState('09:00')
@@ -91,7 +98,7 @@ export default function AdminPage() {
     setOffsetDiasSemana(diffDias)
   }
 
-  // Modal Turno Manual
+  // Modales
   const [mostrarModalManual, setMostrarModalManual] = useState(false)
   const [manualNombre, setManualNombre] = useState('')
   const [manualWhatsapp, setManualWhatsapp] = useState('')
@@ -99,7 +106,6 @@ export default function AdminPage() {
   const [manualFecha, setManualFecha] = useState(fechaHoy)
   const [manualHora, setManualHora] = useState('')
 
-  // Modal Edición de Turno
   const [turnoAEditar, setTurnoAEditar] = useState<any | null>(null)
   const [editFecha, setEditFecha] = useState(fechaHoy)
   const [editHora, setEditHora] = useState('')
@@ -204,16 +210,18 @@ export default function AdminPage() {
       return
     }
 
-    // Buscar negocio del usuario actual
+    // Buscar negocio del usuario
     let { data: negData } = await supabase
       .from('negocios')
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle()
 
-    // Si es un usuario nuevo, le creamos su propio negocio
+    // Si es un usuario nuevo, inicializar su negocio con 10 días de prueba
     if (!negData) {
       const slugSugerido = `local-${user.id.slice(0, 6)}`
+      const fechaExpiracion = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString()
+
       const { data: nuevoNegocio, error: errCrear } = await supabase
         .from('negocios')
         .insert([
@@ -234,7 +242,9 @@ export default function AdminPage() {
             color_fondo: '#0f172a',
             color_carta: '#ffffff',
             tipo_fondo: 'color',
-            galeria_detallada: []
+            galeria_detallada: [],
+            estado: 'prueba',
+            fecha_vencimiento: fechaExpiracion
           }
         ])
         .select()
@@ -245,6 +255,18 @@ export default function AdminPage() {
         return
       }
       negData = nuevoNegocio
+    }
+
+    // Control de vencimiento (Punto 6)
+    const hoy = new Date()
+    const fechaVenc = negData.fecha_vencimiento ? new Date(negData.fecha_vencimiento) : null
+    const diasDiff = fechaVenc ? Math.ceil((fechaVenc.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)) : 0
+    setDiasRestantes(diasDiff)
+
+    if (negData.estado !== 'activo' && fechaVenc && hoy > fechaVenc) {
+      setBloqueadoPorVencimiento(true)
+    } else {
+      setBloqueadoPorVencimiento(false)
     }
 
     setNegocio(negData)
@@ -273,7 +295,7 @@ export default function AdminPage() {
     setFondoImagenUrl(negData.fondo_imagen_url || '')
     setGaleria(negData.galeria_detallada || [])
 
-    // Turnos específicos del negocio
+    // Carga de turnos
     const { data: turnosData } = await supabase
       .from('turnos')
       .select('*, servicios(nombre)')
@@ -282,7 +304,7 @@ export default function AdminPage() {
 
     if (turnosData) setTurnos(turnosData)
 
-    // Servicios específicos del negocio
+    // Carga de servicios
     const { data: servData } = await supabase
       .from('servicios')
       .select('*')
@@ -636,6 +658,55 @@ export default function AdminPage() {
     }
   }
 
+  // PANTALLA DE BLOQUEO POR PERIODO DE PRUEBA EXPIRADO (Punto 6)
+  if (bloqueadoPorVencimiento) {
+    const mensajeWp = `Hola! Quiero renovar mi suscripción en FacilApp para mi local "${negocio?.nombre || 'Mi Negocio'}" (ID: ${negocio?.id}). ¿Me pasas los datos para transferir?`
+
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-slate-900 border border-rose-500/30 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
+          <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center mx-auto">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-xl font-black text-white">Período de prueba finalizado</h2>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Tu prueba gratuita de 10 días para <strong className="text-white">{negocio?.nombre}</strong> ha concluido. Para continuar gestionando tus turnos y mantener tu página online, renová tu plan.
+            </p>
+          </div>
+
+          <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 text-left space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="text-slate-400">Estado:</span>
+              <span className="font-bold text-rose-400 uppercase">Suspendido</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-slate-400">Plan mensual:</span>
+              <span className="font-bold text-white">Acceso Completo</span>
+            </div>
+          </div>
+
+          <a
+            href={`https://wa.me/${NUMERO_WHATSAPP_SOPORTE}?text=${encodeURIComponent(mensajeWp)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-950"
+          >
+            <FaWhatsapp className="w-4 h-4" /> Activar por WhatsApp (Transferencia / MP)
+          </a>
+
+          <button
+            onClick={handleCerrarSesion}
+            className="text-xs text-slate-500 hover:text-slate-300 font-bold transition block mx-auto"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const horariosDisponibles = generarHorarios(horaApertura, horaCierre, intervaloMinutos)
 
   const turnosPendientes = turnos.filter(t => t.estado === 'pendiente')
@@ -693,6 +764,19 @@ export default function AdminPage() {
               <p className="text-[11px] text-slate-400">Panel de Control</p>
             </div>
           </div>
+
+          {/* Banner de Estado / Periodo de prueba */}
+          {negocio?.estado === 'prueba' && diasRestantes !== null && (
+            <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-2xl space-y-1">
+              <div className="flex items-center gap-1.5 text-amber-400 font-bold text-[11px]">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>Prueba gratuita activa</span>
+              </div>
+              <p className="text-[10px] text-slate-400">
+                Te quedan <strong className="text-amber-300">{diasRestantes > 0 ? diasRestantes : 0} días</strong> de prueba.
+              </p>
+            </div>
+          )}
 
           <nav className="space-y-1.5">
             <button
@@ -792,7 +876,7 @@ export default function AdminPage() {
               </button>
             </div>
 
-            {/* MINI CALENDARIO SEMANAL Y CRONOGRAMA DIARIO */}
+            {/* MINI CALENDARIO SEMANAL */}
             <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 shadow-xl space-y-4">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div>
@@ -894,7 +978,7 @@ export default function AdminPage() {
                 })}
               </div>
 
-              {/* Detalle del día seleccionado */}
+              {/* Detalle del día */}
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800/80 space-y-2.5">
                 <div className="flex items-center justify-between border-b border-slate-800/60 pb-2">
                   <span className="text-xs font-bold text-slate-300">
@@ -1434,9 +1518,9 @@ export default function AdminPage() {
                 <p className="text-xs text-slate-400">Configurá la foto de perfil, tu enlace personalizado y estilo</p>
               </div>
 
-              {/* FOTO DE PERFIL / LOGO ARRIBA DE TODO */}
+              {/* FOTO DE PERFIL / LOGO */}
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
-                <label className="block text-xs font-extrabold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                <label className="text-xs font-extrabold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                   <Camera className="w-4 h-4 text-indigo-400" />
                   Foto de Perfil / Logo Oficial
                 </label>
@@ -1462,9 +1546,9 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* ENLACE PERSONALIZADO (SLUG) */}
+              {/* SLUG */}
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
-                <label className="block text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                   <LinkIcon className="w-3.5 h-3.5 text-indigo-400" />
                   Tu Enlace Público (Link-in-bio)
                 </label>
@@ -1591,7 +1675,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Redes Sociales con URL e Íconos */}
+              {/* Redes Sociales */}
               <div className="border-t border-slate-800 pt-4 space-y-3">
                 <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Enlaces de Redes Sociales</h3>
                 
@@ -1697,7 +1781,7 @@ export default function AdminPage() {
               </button>
             </form>
 
-            {/* LIVE PREVIEW A LA DERECHA */}
+            {/* PREVIEW EN TIEMPO REAL */}
             <div className="lg:col-span-5 flex flex-col items-center">
               <div className="sticky top-6 w-full max-w-[320px] bg-slate-900 border-4 border-slate-700 rounded-[40px] p-3 shadow-2xl overflow-hidden">
                 <div className="w-20 h-4 bg-slate-800 rounded-full mx-auto mb-3"></div>
