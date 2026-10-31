@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useParams } from 'next/navigation'
+import Link from 'next/link'
 import { 
   Share2, 
   Calendar as CalendarIcon, 
@@ -17,7 +18,7 @@ import {
   Globe,
   ChevronLeft,
   ChevronRight,
-  Sparkles
+  Pencil
 } from 'lucide-react'
 
 import { 
@@ -44,6 +45,7 @@ export default function PaginaNegocioDinamica() {
   const [servicioSel, setServicioSel] = useState<any>(null)
   const [noEncontrado, setNoEncontrado] = useState(false)
   const [suspendido, setSuspendido] = useState(false)
+  const [esDuenio, setEsDuenio] = useState(false)
   
   const [seccionAbierta, setSeccionAbierta] = useState<'turnos' | null>(null)
   const [modalCompartir, setModalCompartir] = useState(false)
@@ -114,7 +116,11 @@ export default function PaginaNegocioDinamica() {
       return
     }
 
-    // Chequeo de vencimiento (10 días)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user && user.id === negData.user_id) {
+      setEsDuenio(true)
+    }
+
     const hoy = new Date()
     const fechaVenc = negData.fecha_vencimiento ? new Date(negData.fecha_vencimiento) : null
     if (negData.estado !== 'activo' && fechaVenc && hoy > fechaVenc) {
@@ -283,6 +289,12 @@ export default function PaginaNegocioDinamica() {
   const fondoImagenUrl = negocio?.fondo_imagen_url || ''
   const bordes = negocio?.bordes_redondeados || 'rounded-3xl'
 
+  const clasesTamanoFuente = {
+    chico: 'text-xs',
+    mediano: 'text-sm',
+    grande: 'text-base'
+  }[negocio?.tamano_fuente as 'chico' | 'mediano' | 'grande'] || 'text-sm'
+
   const getRedSocialIcon = (tipo: string) => {
     switch (tipo.toLowerCase()) {
       case 'whatsapp': return <FaWhatsapp className="w-5 h-5 text-emerald-500" />
@@ -301,20 +313,33 @@ export default function PaginaNegocioDinamica() {
 
   return (
     <div 
-      className="min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center relative transition-all duration-500 text-sm"
+      className={`min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center relative transition-all duration-500 ${clasesTamanoFuente}`}
       style={{ 
         background: tipoFondo === 'degradado' 
           ? fondoDegradado 
           : tipoFondo === 'imagen' && fondoImagenUrl 
             ? `url(${fondoImagenUrl}) center/cover no-repeat fixed` 
             : colorFondo,
-        fontFamily: negocio?.tipo_fuente || "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+        fontFamily: `'${negocio?.tipo_fuente || 'Plus Jakarta Sans'}', sans-serif`
       }}
     >
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+      <link 
+        href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Cinzel:wght@500;700;800&family=Dancing+Script:wght@600;700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,400&family=Montserrat:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" 
+        rel="stylesheet" 
+      />
 
       {tipoFondo === 'imagen' && (
         <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[3px] z-0"></div>
+      )}
+
+      {esDuenio && (
+        <Link
+          href="/admin"
+          className="fixed top-4 left-4 z-50 bg-slate-900/90 hover:bg-slate-900 text-white px-4 py-2 rounded-2xl text-xs font-bold shadow-xl border border-white/20 backdrop-blur-md flex items-center gap-2 transition hover:scale-105 active:scale-95"
+        >
+          <Pencil className="w-3.5 h-3.5 text-indigo-400" />
+          <span>Volver a Editar</span>
+        </Link>
       )}
 
       <div 
@@ -322,7 +347,6 @@ export default function PaginaNegocioDinamica() {
         style={{ backgroundColor: negocio?.color_carta || 'rgba(255, 255, 255, 0.95)' }}
       >
         
-        {/* Barra Superior */}
         <div className="flex justify-end items-center mb-6">
           <button
             onClick={() => setModalCompartir(true)}
@@ -333,7 +357,6 @@ export default function PaginaNegocioDinamica() {
           </button>
         </div>
 
-        {/* Perfil del Negocio */}
         <div className="text-center mb-6 space-y-3">
           <div className="w-24 h-24 bg-slate-900 rounded-full mx-auto flex items-center justify-center text-white font-black text-3xl border-4 border-white shadow-xl overflow-hidden ring-4 ring-slate-100/50">
             {negocio?.logo_url ? (
@@ -361,7 +384,6 @@ export default function PaginaNegocioDinamica() {
           </div>
         </div>
 
-        {/* Redes Sociales */}
         <div className="space-y-3 mb-6">
           {redesList.map((red) => (
             <a
@@ -388,7 +410,6 @@ export default function PaginaNegocioDinamica() {
             </a>
           ))}
 
-          {/* Botón Colapsable para Turnos */}
           <button
             onClick={() => setSeccionAbierta(seccionAbierta === 'turnos' ? null : 'turnos')}
             style={{ backgroundColor: colorPrincipal }}
@@ -407,7 +428,6 @@ export default function PaginaNegocioDinamica() {
           </button>
         </div>
 
-        {/* Formulario de Reserva con Calendario Mensual */}
         {seccionAbierta === 'turnos' && (
           <div className="border-t border-slate-100 pt-5 space-y-4 mb-6">
             {exito ? (
@@ -434,7 +454,6 @@ export default function PaginaNegocioDinamica() {
             ) : (
               <form onSubmit={handleReservar} className="space-y-4">
                 
-                {/* 1. SELECTOR DE SERVICIOS */}
                 <div>
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
                     1. Seleccioná el Servicio
@@ -456,7 +475,6 @@ export default function PaginaNegocioDinamica() {
                   </select>
                 </div>
 
-                {/* 2. DATOS */}
                 <div>
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
                     2. Tus Datos
@@ -479,7 +497,6 @@ export default function PaginaNegocioDinamica() {
                   />
                 </div>
 
-                {/* 3. CALENDARIO VISUAL INTERACTIVO */}
                 <div>
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
                     3. Elegí Fecha en el Calendario
@@ -547,7 +564,6 @@ export default function PaginaNegocioDinamica() {
                     </div>
                   </div>
 
-                  {/* 4. SELECTOR DE HORARIOS */}
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
                     Horarios Disponibles para {fecha}
                   </label>
@@ -597,7 +613,6 @@ export default function PaginaNegocioDinamica() {
           </div>
         )}
 
-        {/* Catálogo Visual de Galería */}
         {galeriaLista.length > 0 && (
           <div className="border-t border-slate-100 pt-5 space-y-3">
             <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -625,24 +640,18 @@ export default function PaginaNegocioDinamica() {
           </div>
         )}
 
-        {/* Banner Comercial / Footer */}
-        <div className="mt-8 pt-5 border-t border-slate-200/70 text-center space-y-2">
-          <p className="text-xs text-slate-500 font-medium flex items-center justify-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-            ¿Querés tu propio sistema de turnos?
-          </p>
-          <a
+        <div className="mt-8 pt-5 border-t border-slate-200/70 text-center">
+          <Link
             href="/"
             className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-2xl shadow transition"
           >
             <span>Creá tu página con FacilApp</span>
             <ExternalLink className="w-3 h-3 text-slate-400" />
-          </a>
+          </Link>
         </div>
 
       </div>
 
-      {/* Modal Compartir */}
       {modalCompartir && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white max-w-sm w-full rounded-3xl p-6 shadow-2xl border border-slate-100 relative space-y-4">

@@ -45,7 +45,6 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Poné acá tu número de WhatsApp para recibir los pagos
 const NUMERO_WHATSAPP_SOPORTE = '5491150189781'
 
 interface RedItem {
@@ -210,14 +209,12 @@ export default function AdminPage() {
       return
     }
 
-    // Buscar negocio del usuario
     let { data: negData } = await supabase
       .from('negocios')
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle()
 
-    // Si es un usuario nuevo, inicializar su negocio con 10 días de prueba
     if (!negData) {
       const slugSugerido = `local-${user.id.slice(0, 6)}`
       const fechaExpiracion = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString()
@@ -257,7 +254,6 @@ export default function AdminPage() {
       negData = nuevoNegocio
     }
 
-    // Control de vencimiento (Punto 6)
     const hoy = new Date()
     const fechaVenc = negData.fecha_vencimiento ? new Date(negData.fecha_vencimiento) : null
     const diasDiff = fechaVenc ? Math.ceil((fechaVenc.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)) : 0
@@ -295,7 +291,6 @@ export default function AdminPage() {
     setFondoImagenUrl(negData.fondo_imagen_url || '')
     setGaleria(negData.galeria_detallada || [])
 
-    // Carga de turnos
     const { data: turnosData } = await supabase
       .from('turnos')
       .select('*, servicios(nombre)')
@@ -304,7 +299,6 @@ export default function AdminPage() {
 
     if (turnosData) setTurnos(turnosData)
 
-    // Carga de servicios
     const { data: servData } = await supabase
       .from('servicios')
       .select('*')
@@ -658,7 +652,6 @@ export default function AdminPage() {
     }
   }
 
-  // PANTALLA DE BLOQUEO POR PERIODO DE PRUEBA EXPIRADO (Punto 6)
   if (bloqueadoPorVencimiento) {
     const mensajeWp = `Hola! Quiero renovar mi suscripción en FacilApp para mi local "${negocio?.nombre || 'Mi Negocio'}" (ID: ${negocio?.id}). ¿Me pasas los datos para transferir?`
 
@@ -749,6 +742,10 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
+      <link 
+        href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Cinzel:wght@500;700;800&family=Dancing+Script:wght@600;700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,400&family=Montserrat:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" 
+        rel="stylesheet" 
+      />
       
       {/* MENÚ LATERAL */}
       <aside className="w-full md:w-64 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 p-5 flex flex-col justify-between shrink-0">
@@ -765,7 +762,6 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Banner de Estado / Periodo de prueba */}
           {negocio?.estado === 'prueba' && diasRestantes !== null && (
             <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-2xl space-y-1">
               <div className="flex items-center gap-1.5 text-amber-400 font-bold text-[11px]">
@@ -942,7 +938,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Días de la semana */}
               <div className="grid grid-cols-7 gap-1.5">
                 {diasSemanaVisible.map(d => {
                   const esSeleccionado = fechaTurnosFiltro === d.iso
@@ -978,7 +973,6 @@ export default function AdminPage() {
                 })}
               </div>
 
-              {/* Detalle del día */}
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800/80 space-y-2.5">
                 <div className="flex items-center justify-between border-b border-slate-800/60 pb-2">
                   <span className="text-xs font-bold text-slate-300">
@@ -1518,7 +1512,6 @@ export default function AdminPage() {
                 <p className="text-xs text-slate-400">Configurá la foto de perfil, tu enlace personalizado y estilo</p>
               </div>
 
-              {/* FOTO DE PERFIL / LOGO */}
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
                 <label className="text-xs font-extrabold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                   <Camera className="w-4 h-4 text-indigo-400" />
@@ -1546,7 +1539,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* SLUG */}
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
                 <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                   <LinkIcon className="w-3.5 h-3.5 text-indigo-400" />
@@ -1566,7 +1558,6 @@ export default function AdminPage() {
                 <p className="text-[10px] text-slate-500">Este es el link que compartirás con tus clientes.</p>
               </div>
 
-              {/* Datos Principales */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1">Nombre</label>
@@ -1610,7 +1601,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Tipografía y Tamaños */}
+              {/* Tipografía y Tamaños Ampliados */}
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
                 <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Tipografía & Estilo</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1622,11 +1613,17 @@ export default function AdminPage() {
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
                     >
                       <option value="Plus Jakarta Sans">Moderna (Plus Jakarta Sans)</option>
-                      <option value="Playfair Display">Elegante (Playfair Display)</option>
+                      <option value="Montserrat">Geométrica / Corporativa (Montserrat)</option>
+                      <option value="Poppins">Redondeada / Amigable (Poppins)</option>
+                      <option value="Outfit">Limpia / Tech (Outfit)</option>
                       <option value="Inter">Minimalista (Inter)</option>
-                      <option value="Space Grotesk">Digital / Urbana (Space Grotesk)</option>
-                      <option value="Dancing Script">Manuscrita (Dancing Script)</option>
-                      <option value="Cinzel">Clásica / Premium (Cinzel)</option>
+                      <option value="Playfair Display">Elegante con serif (Playfair Display)</option>
+                      <option value="Lora">Editorial Clásica (Lora)</option>
+                      <option value="Cinzel">Premium / Lujo (Cinzel)</option>
+                      <option value="Space Grotesk">Urbana / Estilo Poster (Space Grotesk)</option>
+                      <option value="Oswald">Condensada / Fuerte (Oswald)</option>
+                      <option value="Dancing Script">Manuscrita Cursiva (Dancing Script)</option>
+                      <option value="Caveat">Manuscrita Casual (Caveat)</option>
                     </select>
                   </div>
                   <div>
@@ -1787,7 +1784,9 @@ export default function AdminPage() {
                 <div className="w-20 h-4 bg-slate-800 rounded-full mx-auto mb-3"></div>
 
                 <div 
-                  className="rounded-[30px] p-4 text-center transition-all duration-300 overflow-y-auto max-h-[550px] shadow-inner"
+                  className={`rounded-[30px] p-4 text-center transition-all duration-300 overflow-y-auto max-h-[550px] shadow-inner ${
+                    tamanoFuente === 'chico' ? 'text-xs' : tamanoFuente === 'grande' ? 'text-base' : 'text-sm'
+                  }`}
                   style={{ 
                     backgroundColor: colorFondo,
                     fontFamily: `'${tipoFuente}', sans-serif`
@@ -1882,7 +1881,6 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {/* Tarjetas de Balance */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                 <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-1">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -1916,7 +1914,6 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* GRÁFICOS */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
                 <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">
