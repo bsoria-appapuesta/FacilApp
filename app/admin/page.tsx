@@ -32,7 +32,9 @@ import {
   Lock,
   CreditCard,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  Copy,
+  ShieldAlert
 } from 'lucide-react'
 
 import { 
@@ -48,8 +50,8 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// CONFIGURACIÓN DE COBRO Y CONTACTO (REEMPLAZÁ ACÁ TU LINK DE MERCADO PAGO CUANDO LO TENGAS)
-const LINK_MERCADO_PAGO = 'https://mpago.la/tu-link-aqui'
+// CONFIGURACIÓN DE COBRO Y CONTACTO
+const ALIAS_TRANSFERENCIA = 'facil.app.27'
 const NUMERO_WHATSAPP_SOPORTE = '5491150189781'
 const PRECIO_SUSCRIPCION = 13800
 
@@ -70,6 +72,7 @@ export default function AdminPage() {
   const [cargando, setCargando] = useState(false)
   const [bloqueadoPorVencimiento, setBloqueadoPorVencimiento] = useState(false)
   const [diasRestantes, setDiasRestantes] = useState<number | null>(null)
+  const [copiadoAlias, setCopiadoAlias] = useState(false)
 
   // Configuración de Horarios
   const [horaApertura, setHoraApertura] = useState('09:00')
@@ -160,6 +163,12 @@ export default function AdminPage() {
   useEffect(() => {
     cargarDatos()
   }, [])
+
+  function copiarAlias() {
+    navigator.clipboard.writeText(ALIAS_TRANSFERENCIA)
+    setCopiadoAlias(true)
+    setTimeout(() => setCopiadoAlias(false), 2500)
+  }
 
   function generarHorarios(desde: string, hasta: string, paso: number): string[] {
     const lista: string[] = []
@@ -667,58 +676,91 @@ export default function AdminPage() {
     }
   }
 
-  // MENSAJE DE VENCIMIENTO SI ESTÁ SUSPENDIDO
-  if (bloqueadoPorVencimiento) {
-    const mensajeWp = `Hola! Quiero renovar mi suscripción en FacilApp para mi local "${negocio?.nombre || 'Mi Negocio'}" (ID: ${negocio?.id}). Adjunto comprobante de pago.`
+  const mensajeWhatsAppSuscripcion = `¡Hola! Envío comprobante de pago de suscripción mensual ($${PRECIO_SUSCRIPCION.toLocaleString()}) para el local "${negocio?.nombre || 'Mi Negocio'}" (ID: ${negocio?.id}).`
 
+  // MENSAJE DE VENCIMIENTO SI ESTÁ SUSPENDIDO O EXPIRADO
+  if (bloqueadoPorVencimiento) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-slate-900 border border-rose-500/30 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
-          <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center mx-auto">
-            <Lock className="w-8 h-8" />
+        <div className="max-w-md w-full bg-slate-900 border border-rose-500/30 rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl">
+          <div className="w-14 h-14 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center mx-auto">
+            <Lock className="w-7 h-7" />
           </div>
 
-          <div className="space-y-2">
+          <div className="text-center space-y-1.5">
             <h2 className="text-xl font-black text-white">Período de prueba finalizado</h2>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Tu prueba gratuita de 10 días para <strong className="text-white">{negocio?.nombre}</strong> ha concluido. Para continuar gestionando tus turnos y mantener tu página online, renová tu plan mensual.
+              Tu período de prueba para <strong className="text-white">{negocio?.nombre}</strong> concluyó. Aboná la suscripción mensual para reactivar tu panel y tu página online.
             </p>
           </div>
 
-          <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 text-left space-y-2">
-            <div className="flex justify-between text-xs">
+          <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 text-xs">
+            <div className="flex justify-between">
               <span className="text-slate-400">Estado:</span>
               <span className="font-bold text-rose-400 uppercase">Suspendido</span>
             </div>
-            <div className="flex justify-between text-xs">
+            <div className="flex justify-between">
               <span className="text-slate-400">Plan mensual:</span>
               <span className="font-black text-emerald-400">${PRECIO_SUSCRIPCION.toLocaleString()} / mes</span>
             </div>
           </div>
 
-          <div className="space-y-2.5">
-            <a
-              href={LINK_MERCADO_PAGO}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-3.5 px-4 bg-sky-500 hover:bg-sky-400 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition shadow-lg"
-            >
-              <CreditCard className="w-4 h-4" /> Abonar con Mercado Pago (${PRECIO_SUSCRIPCION.toLocaleString()})
-            </a>
+          {/* RECUADRO COPIAR ALIAS */}
+          <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-2.5">
+            <div>
+              <p className="text-[11px] font-semibold text-slate-400">Alias para transferir:</p>
+              <p className="text-base font-mono font-black text-indigo-300 tracking-wide mt-0.5">
+                {ALIAS_TRANSFERENCIA}
+              </p>
+            </div>
 
-            <a
-              href={`https://wa.me/${NUMERO_WHATSAPP_SOPORTE}?text=${encodeURIComponent(mensajeWp)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-950"
+            <button
+              onClick={copiarAlias}
+              type="button"
+              className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition ${
+                copiadoAlias
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow'
+              }`}
             >
-              <FaWhatsapp className="w-4 h-4" /> Enviar Comprobante por WhatsApp
-            </a>
+              {copiadoAlias ? (
+                <>
+                  <Check className="w-4 h-4" /> ¡Alias Copiado!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" /> Copiar Alias
+                </>
+              )}
+            </button>
           </div>
+
+          {/* ADVERTENCIA DE SEGURIDAD Y REEMBOLSO */}
+          <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3.5 flex items-start gap-3 text-left">
+            <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="text-[11px] text-amber-200/90 leading-relaxed space-y-1">
+              <p className="font-bold text-amber-300">
+                Atención: Verificá atentamente el Alias antes de confirmar.
+              </p>
+              <p>
+                Utilizá el botón para copiar el alias exacto (<strong>{ALIAS_TRANSFERENCIA}</strong>). No nos responsabilizamos ni se realizan devoluciones ni reembolsos por transferencias enviadas a alias, números o cuentas erróneas ajenas a FacilApp.
+              </p>
+            </div>
+          </div>
+
+          {/* BOTÓN WHATSAPP */}
+          <a
+            href={`https://wa.me/${NUMERO_WHATSAPP_SOPORTE}?text=${encodeURIComponent(mensajeWhatsAppSuscripcion)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-950"
+          >
+            <FaWhatsapp className="w-4 h-4" /> Enviar Comprobante por WhatsApp
+          </a>
 
           <button
             onClick={handleCerrarSesion}
-            className="text-xs text-slate-500 hover:text-slate-300 font-bold transition block mx-auto"
+            className="text-xs text-slate-500 hover:text-slate-300 font-bold transition block mx-auto pt-1"
           >
             Cerrar sesión
           </button>
@@ -766,8 +808,6 @@ export default function AdminPage() {
   })
 
   const maxVentaDia = Math.max(...facturacionPorDiaSemana, 1)
-
-  const mensajeWhatsAppSuscripcion = `¡Hola! Acabo de transferir los $${PRECIO_SUSCRIPCION.toLocaleString()} para la suscripción de mi local "${negocio?.nombre || 'Mi Negocio'}" (ID: ${negocio?.id}). Adjunto el comprobante.`
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
@@ -898,6 +938,54 @@ export default function AdminPage() {
         {/* PESTAÑA 1: TURNOS */}
         {tab === 'turnos' && (
           <div className="space-y-6">
+
+            {/* AVISO PREVENTIVO DE VENCIMIENTO CUANDO QUEDAN 5 DÍAS O MENOS */}
+            {diasRestantes !== null && diasRestantes <= 5 && (
+              <div className="bg-slate-900 border border-amber-500/30 p-5 rounded-3xl space-y-3 shadow-xl">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
+                    <AlertTriangle className="w-4 h-4 text-amber-400" />
+                    <span>Tu período finaliza pronto ({diasRestantes > 0 ? `${diasRestantes} días restantes` : 'vencido hoy'}). Renovalo por transferencia directa:</span>
+                  </div>
+                  <button
+                    onClick={() => setTab('suscripcion')}
+                    className="text-xs text-indigo-400 hover:underline font-bold"
+                  >
+                    Ver detalles del plan →
+                  </button>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400">Alias:</span>
+                    <span className="text-sm font-mono font-black text-indigo-300">{ALIAS_TRANSFERENCIA}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={copiarAlias}
+                      className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${
+                        copiadoAlias ? 'bg-emerald-600 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                      }`}
+                    >
+                      {copiadoAlias ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiadoAlias ? '¡Copiado!' : 'Copiar Alias'}
+                    </button>
+
+                    <a
+                      href={`https://wa.me/${NUMERO_WHATSAPP_SOPORTE}?text=${encodeURIComponent(mensajeWhatsAppSuscripcion)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 sm:flex-initial px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition"
+                    >
+                      <FaWhatsapp className="w-3.5 h-3.5" /> Enviar Comprobante
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-between items-center flex-wrap gap-3 bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">
               <div>
                 <h2 className="text-lg font-black text-white">Turnos Reservados</h2>
@@ -2102,7 +2190,7 @@ export default function AdminPage() {
                 Tu Suscripción & Acceso
               </h2>
               <p className="text-xs text-slate-400">
-                Información de tu plan y método seguro para renovar mes a mes
+                Información de tu plan y método directo para renovar mes a mes
               </p>
             </div>
 
@@ -2140,7 +2228,7 @@ export default function AdminPage() {
               </div>
 
               {/* CARD PRECIO */}
-              <div className="bg-indigo-950/40 border border-indigo-500/30 p-6 rounded-2xl flex items-center justify-between flex-wrap gap-4">
+              <div className="bg-indigo-950/40 border border-indigo-500/30 p-6 rounded-2xl space-y-4">
                 <div className="space-y-1">
                   <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-indigo-400" /> Plan Completo FacilApp
@@ -2153,23 +2241,62 @@ export default function AdminPage() {
                   </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-2.5 w-full sm:w-auto">
-                  <a
-                    href={LINK_MERCADO_PAGO}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-5 py-3 bg-sky-500 hover:bg-sky-400 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition shadow-lg"
+                {/* BLOQUE COPIAR ALIAS */}
+                <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-semibold text-slate-400">Alias de cobro (Mercado Pago / Banco):</p>
+                    <p className="text-base sm:text-lg font-mono font-black text-indigo-300 tracking-wide mt-0.5">
+                      {ALIAS_TRANSFERENCIA}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={copiarAlias}
+                    type="button"
+                    className={`w-full sm:w-auto px-4 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition ${
+                      copiadoAlias
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md'
+                    }`}
                   >
-                    <CreditCard className="w-4 h-4" /> Pagar con Mercado Pago
-                  </a>
+                    {copiadoAlias ? (
+                      <>
+                        <Check className="w-4 h-4" /> ¡Alias Copiado!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" /> Copiar Alias
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* ADVERTENCIA DE SEGURIDAD Y REEMBOLSO */}
+                <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3.5 flex items-start gap-3">
+                  <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="text-xs space-y-1 text-amber-200/90 leading-relaxed">
+                    <p className="font-bold text-amber-300">
+                      Atención: Verificá atentamente el Alias antes de transferir.
+                    </p>
+                    <p>
+                      Utilizá siempre el botón para copiar el Alias exacto (<strong>{ALIAS_TRANSFERENCIA}</strong>). No nos responsabilizamos ni se emitirán devoluciones ni reembolsos por transferencias realizadas a alias, números o cuentas erróneas ajenas al sistema.
+                    </p>
+                  </div>
+                </div>
+
+                {/* BOTÓN WHATSAPP */}
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-indigo-500/20">
+                  <p className="text-xs text-slate-400">
+                    Una vez transferido, enviá la captura del comprobante:
+                  </p>
 
                   <a
                     href={`https://wa.me/${NUMERO_WHATSAPP_SOPORTE}?text=${encodeURIComponent(mensajeWhatsAppSuscripcion)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition shadow-lg"
+                    className="w-full sm:w-auto px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-950"
                   >
-                    <FaWhatsapp className="w-4 h-4" /> Enviar Comprobante
+                    <FaWhatsapp className="w-4 h-4" /> Enviar Comprobante por WhatsApp
                   </a>
                 </div>
               </div>
@@ -2181,7 +2308,7 @@ export default function AdminPage() {
                   <span>¿Cómo funciona la renovación?</span>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Realizás el pago a través del link oficial de Mercado Pago o transferencia bancaria y nos enviás el comprobante con el botón de WhatsApp. Tu acceso se extenderá automáticamente por 30 días más a partir de tu fecha de vencimiento actual.
+                  Realizás la transferencia directa al alias oficial y nos mandás el comprobante tocando el botón de WhatsApp. Tu acceso se extenderá por 30 días más inmediatamente a partir de tu fecha de vencimiento actual.
                 </p>
                 <div className="pt-2 text-[11px] text-slate-500">
                   ID de tu local para el comprobante: <code className="text-indigo-400 font-bold bg-slate-900 px-2 py-0.5 rounded">{negocio?.id}</code>
