@@ -115,12 +115,12 @@ function AuthContent() {
         </div>
         <h1 className="text-xl font-black text-white">
           {modo === 'login' && 'Iniciar Sesión'}
-          {modo === 'registro' && 'Crear Cuenta Admin'}
+          {modo === 'registro' && 'Crear Cuenta'}
           {modo === 'recuperar' && 'Recuperar Clave'}
         </h1>
         <p className="text-xs text-slate-400">
           {modo === 'login' && 'Ingresá a tu panel de control de FacilApp'}
-          {modo === 'registro' && 'Comenzá a gestionar tus turnos hoy mismo'}
+          {modo === 'registro' && '10 días gratis, luego $13.800/mes'}
           {modo === 'recuperar' && 'Ingresá tu correo para recibir el enlace'}
         </p>
       </div>
