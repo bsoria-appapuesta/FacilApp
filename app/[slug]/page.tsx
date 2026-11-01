@@ -28,15 +28,13 @@ import {
   FaFacebook, 
   FaTwitter, 
   FaLinkedin, 
-  FaYoutube, 
-  FaEnvelope 
+  FaYoutube 
 } from 'react-icons/fa'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Función para calcular contraste de texto automático según color de fondo
 function obtenerColorTexto(hexColor: string, esSuave = false) {
   if (!hexColor || hexColor.length < 6) return esSuave ? '#64748b' : '#0f172a'
   const hex = hexColor.replace('#', '')
@@ -205,6 +203,13 @@ export default function PaginaNegocioDinamica() {
     setTimeout(() => setCopiado(false), 2000)
   }
 
+  const handleCompartirInstagram = () => {
+    navigator.clipboard.writeText(window.location.href)
+    setCopiado(true)
+    setTimeout(() => setCopiado(false), 2000)
+    window.open('https://www.instagram.com/', '_blank')
+  }
+
   const handleReservar = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!nombre || !whatsapp || !fecha || !hora || !servicioSel) {
@@ -307,7 +312,6 @@ export default function PaginaNegocioDinamica() {
   const fondoCartaUrl = negocio?.fondo_carta_url || ''
   const bordes = negocio?.bordes_redondeados || 'rounded-3xl'
 
-  // Dinámica de colores calculados para asegurar contraste
   const colorTextoCarta = obtenerColorTexto(colorCarta)
   const colorTextoCartaSuave = obtenerColorTexto(colorCarta, true)
   const colorTextoBotonPrincipal = obtenerColorTexto(colorPrincipal)
@@ -366,14 +370,13 @@ export default function PaginaNegocioDinamica() {
           color: colorTextoCarta
         }}
       >
-        {/* Capa de legibilidad si la tarjeta tiene imagen de fondo */}
         {fondoCartaUrl && (
           <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] z-0 pointer-events-none"></div>
         )}
 
         <div className="relative z-10">
           
-          {/* BARRA SUPERIOR DENTRO DE LA TARJETA */}
+          {/* BARRA SUPERIOR CON BOTÓN EDITAR ADENTRO */}
           <div className="flex justify-between items-center mb-6">
             <div>
               {esDuenio && (
@@ -452,7 +455,6 @@ export default function PaginaNegocioDinamica() {
               </a>
             ))}
 
-            {/* BOTÓN COLAPSABLE PARA TURNOS */}
             <button
               onClick={() => setSeccionAbierta(seccionAbierta === 'turnos' ? null : 'turnos')}
               style={{ backgroundColor: colorPrincipal, color: colorTextoBotonPrincipal }}
@@ -471,7 +473,7 @@ export default function PaginaNegocioDinamica() {
             </button>
           </div>
 
-          {/* FORMULARIO DE RESERVAS */}
+          {/* FORMULARIO DE TURNOS */}
           {seccionAbierta === 'turnos' && (
             <div className="border-t border-black/10 pt-5 space-y-4 mb-6">
               {exito ? (
@@ -699,7 +701,7 @@ export default function PaginaNegocioDinamica() {
         </div>
       </div>
 
-      {/* MODAL COMPARTIR */}
+      {/* MODAL COMPARTIR (CON INSTAGRAM EN LUGAR DE GMAIL) */}
       {modalCompartir && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white max-w-sm w-full rounded-3xl p-6 shadow-2xl border border-slate-100 relative space-y-4">
@@ -727,6 +729,15 @@ export default function PaginaNegocioDinamica() {
                 <span>WhatsApp</span>
               </a>
 
+              <button
+                type="button"
+                onClick={handleCompartirInstagram}
+                className="p-3 bg-pink-50 text-pink-800 border border-pink-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-pink-100 transition text-left"
+              >
+                <FaInstagram className="w-4 h-4 text-pink-600" />
+                <span>Instagram</span>
+              </button>
+
               <a
                 href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(urlActual)}`}
                 target="_blank"
@@ -745,16 +756,6 @@ export default function PaginaNegocioDinamica() {
               >
                 <FaTwitter className="w-4 h-4 text-sky-500" />
                 <span>X / Twitter</span>
-              </a>
-
-              <a
-                href={`https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=&su=Perfil%20Oficial&body=Te%20comparto%20mi%20perfil%20oficial:%20${encodeURIComponent(urlActual)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-3 bg-rose-50 text-rose-800 border border-rose-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-rose-100 transition"
-              >
-                <FaEnvelope className="w-4 h-4 text-rose-600" />
-                <span>Gmail</span>
               </a>
 
               <a
