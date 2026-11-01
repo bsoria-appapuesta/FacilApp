@@ -29,7 +29,10 @@ import {
   LogOut,
   Link as LinkIcon,
   AlertTriangle,
-  Lock
+  Lock,
+  CreditCard,
+  ShieldCheck,
+  Sparkles
 } from 'lucide-react'
 
 import { 
@@ -45,7 +48,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// CONFIGURACIÓN DE COBRO Y CONTACTO (REEMPLAZÁ ACÁ TU LINK DE MERCADO PAGO CUANDO LO TENGAS)
+const LINK_MERCADO_PAGO = 'https://mpago.la/tu-link-aqui'
 const NUMERO_WHATSAPP_SOPORTE = '5491150189781'
+const PRECIO_SUSCRIPCION = 13800
 
 interface RedItem {
   id: string
@@ -57,7 +63,7 @@ interface RedItem {
 
 export default function AdminPage() {
   const router = useRouter()
-  const [tab, setTab] = useState<'turnos' | 'servicios' | 'horarios_catalogo' | 'marca' | 'historial'>('turnos')
+  const [tab, setTab] = useState<'turnos' | 'servicios' | 'horarios_catalogo' | 'marca' | 'historial' | 'suscripcion'>('turnos')
   const [negocio, setNegocio] = useState<any>(null)
   const [turnos, setTurnos] = useState<any[]>([])
   const [servicios, setServicios] = useState<any[]>([])
@@ -661,8 +667,9 @@ export default function AdminPage() {
     }
   }
 
+  // MENSAJE DE VENCIMIENTO SI ESTÁ SUSPENDIDO
   if (bloqueadoPorVencimiento) {
-    const mensajeWp = `Hola! Quiero renovar mi suscripción en FacilApp para mi local "${negocio?.nombre || 'Mi Negocio'}" (ID: ${negocio?.id}). ¿Me pasas los datos para transferir?`
+    const mensajeWp = `Hola! Quiero renovar mi suscripción en FacilApp para mi local "${negocio?.nombre || 'Mi Negocio'}" (ID: ${negocio?.id}). Adjunto comprobante de pago.`
 
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
@@ -674,7 +681,7 @@ export default function AdminPage() {
           <div className="space-y-2">
             <h2 className="text-xl font-black text-white">Período de prueba finalizado</h2>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Tu prueba gratuita de 10 días para <strong className="text-white">{negocio?.nombre}</strong> ha concluido. Para continuar gestionando tus turnos y mantener tu página online, renová tu plan.
+              Tu prueba gratuita de 10 días para <strong className="text-white">{negocio?.nombre}</strong> ha concluido. Para continuar gestionando tus turnos y mantener tu página online, renová tu plan mensual.
             </p>
           </div>
 
@@ -685,18 +692,29 @@ export default function AdminPage() {
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-slate-400">Plan mensual:</span>
-              <span className="font-bold text-white">Acceso Completo</span>
+              <span className="font-black text-emerald-400">${PRECIO_SUSCRIPCION.toLocaleString()} / mes</span>
             </div>
           </div>
 
-          <a
-            href={`https://wa.me/${NUMERO_WHATSAPP_SOPORTE}?text=${encodeURIComponent(mensajeWp)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-950"
-          >
-            <FaWhatsapp className="w-4 h-4" /> Activar por WhatsApp (Transferencia / MP)
-          </a>
+          <div className="space-y-2.5">
+            <a
+              href={LINK_MERCADO_PAGO}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3.5 px-4 bg-sky-500 hover:bg-sky-400 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition shadow-lg"
+            >
+              <CreditCard className="w-4 h-4" /> Abonar con Mercado Pago (${PRECIO_SUSCRIPCION.toLocaleString()})
+            </a>
+
+            <a
+              href={`https://wa.me/${NUMERO_WHATSAPP_SOPORTE}?text=${encodeURIComponent(mensajeWp)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-950"
+            >
+              <FaWhatsapp className="w-4 h-4" /> Enviar Comprobante por WhatsApp
+            </a>
+          </div>
 
           <button
             onClick={handleCerrarSesion}
@@ -748,6 +766,8 @@ export default function AdminPage() {
   })
 
   const maxVentaDia = Math.max(...facturacionPorDiaSemana, 1)
+
+  const mensajeWhatsAppSuscripcion = `¡Hola! Acabo de transferir los $${PRECIO_SUSCRIPCION.toLocaleString()} para la suscripción de mi local "${negocio?.nombre || 'Mi Negocio'}" (ID: ${negocio?.id}). Adjunto el comprobante.`
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
@@ -837,6 +857,16 @@ export default function AdminPage() {
             >
               <BarChart3 className="w-4 h-4 shrink-0" />
               <span>Historial & Balances</span>
+            </button>
+
+            <button
+              onClick={() => setTab('suscripcion')}
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
+                tab === 'suscripcion' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <CreditCard className="w-4 h-4 shrink-0" />
+              <span>Suscripción & Plan</span>
             </button>
           </nav>
         </div>
@@ -2058,6 +2088,104 @@ export default function AdminPage() {
                     )
                   })
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PESTAÑA 6: SUSCRIPCIÓN & PLAN */}
+        {tab === 'suscripcion' && (
+          <div className="space-y-6 max-w-3xl">
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl space-y-2">
+              <h2 className="text-lg font-black text-white flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-indigo-400" />
+                Tu Suscripción & Acceso
+              </h2>
+              <p className="text-xs text-slate-400">
+                Información de tu plan y método seguro para renovar mes a mes
+              </p>
+            </div>
+
+            {/* ESTADO ACTUAL */}
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-3 pb-4 border-b border-slate-800">
+                <div>
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Estado de la Cuenta
+                  </span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`text-xs font-black uppercase px-2.5 py-1 rounded-full ${
+                      negocio?.estado === 'activo'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    }`}>
+                      {negocio?.estado === 'activo' ? 'Suscripción Activa' : 'Prueba Gratuita'}
+                    </span>
+                    <span className="text-xs text-slate-400 font-medium">
+                      ({diasRestantes !== null && diasRestantes > 0 ? `${diasRestantes} días restantes` : 'Vencido'})
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Próximo Vencimiento
+                  </span>
+                  <span className="text-sm font-black text-white mt-1 block">
+                    {negocio?.fecha_vencimiento 
+                      ? new Date(negocio.fecha_vencimiento).toLocaleDateString() 
+                      : 'Sin fecha'}
+                  </span>
+                </div>
+              </div>
+
+              {/* CARD PRECIO */}
+              <div className="bg-indigo-950/40 border border-indigo-500/30 p-6 rounded-2xl flex items-center justify-between flex-wrap gap-4">
+                <div className="space-y-1">
+                  <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-indigo-400" /> Plan Completo FacilApp
+                  </span>
+                  <p className="text-2xl font-black text-emerald-400">
+                    ${PRECIO_SUSCRIPCION.toLocaleString()} <span className="text-xs text-slate-400 font-semibold">/ mes</span>
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    Turnos ilimitados • 0% de comisiones • Soporte directo por WhatsApp
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2.5 w-full sm:w-auto">
+                  <a
+                    href={LINK_MERCADO_PAGO}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-5 py-3 bg-sky-500 hover:bg-sky-400 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition shadow-lg"
+                  >
+                    <CreditCard className="w-4 h-4" /> Pagar con Mercado Pago
+                  </a>
+
+                  <a
+                    href={`https://wa.me/${NUMERO_WHATSAPP_SOPORTE}?text=${encodeURIComponent(mensajeWhatsAppSuscripcion)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition shadow-lg"
+                  >
+                    <FaWhatsapp className="w-4 h-4" /> Enviar Comprobante
+                  </a>
+                </div>
+              </div>
+
+              {/* DATOS DE FACTURACIÓN Y PRIVACIDAD */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>¿Cómo funciona la renovación?</span>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Realizás el pago a través del link oficial de Mercado Pago o transferencia bancaria y nos enviás el comprobante con el botón de WhatsApp. Tu acceso se extenderá automáticamente por 30 días más a partir de tu fecha de vencimiento actual.
+                </p>
+                <div className="pt-2 text-[11px] text-slate-500">
+                  ID de tu local para el comprobante: <code className="text-indigo-400 font-bold bg-slate-900 px-2 py-0.5 rounded">{negocio?.id}</code>
+                </div>
               </div>
             </div>
           </div>

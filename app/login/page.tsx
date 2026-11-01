@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Lock, Mail, ArrowRight, ShieldCheck, UserPlus, KeyRound, CheckCircle2 } from 'lucide-react'
+import { Lock, Mail, ArrowRight, ShieldCheck, UserPlus, KeyRound, CheckCircle2, Tag } from 'lucide-react'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
@@ -120,10 +120,26 @@ function AuthContent() {
         </h1>
         <p className="text-xs text-slate-400">
           {modo === 'login' && 'Ingresá a tu panel de control de FacilApp'}
-          {modo === 'registro' && '10 días gratis, luego $13.800/mes'}
+          {modo === 'registro' && 'Comenzá tu prueba gratuita de 10 días'}
           {modo === 'recuperar' && 'Ingresá tu correo para recibir el enlace'}
         </p>
       </div>
+
+      {/* Tarjeta destacada con el precio (visible solo en registro) */}
+      {modo === 'registro' && (
+        <div className="bg-indigo-950/50 border border-indigo-500/40 rounded-2xl p-4 text-center space-y-1 shadow-inner">
+          <div className="flex items-center justify-center gap-1.5 text-indigo-300 text-[11px] font-bold uppercase tracking-wider">
+            <Tag className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Plan Todo Incluido</span>
+          </div>
+          <div className="text-2xl font-black text-emerald-400 tracking-tight">
+            $13.800 <span className="text-xs font-semibold text-slate-400">/ mes</span>
+          </div>
+          <p className="text-[10px] text-slate-400 font-medium pt-0.5">
+            10 días gratis • Sin tarjetas de crédito para registrarte
+          </p>
+        </div>
+      )}
 
       {/* Mensajes de feedback */}
       {mensajeError && (
