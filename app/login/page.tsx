@@ -1,14 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-// Cliente con persistencia de sesión habilitada
 const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
@@ -17,7 +15,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 })
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const tabInicial = searchParams.get('tab') === 'registro' ? 'registro' : 'login'
@@ -28,7 +26,6 @@ export default function LoginPage() {
   const [cargando, setCargando] = useState(false)
   const [mensaje, setMensaje] = useState<{ tipo: 'error' | 'exito'; texto: string } | null>(null)
 
-  // Estado para el modal de recuperación
   const [mostrarRecuperar, setMostrarRecuperar] = useState(false)
   const [emailRecuperar, setEmailRecuperar] = useState('')
   const [cargandoRecuperar, setCargandoRecuperar] = useState(false)
@@ -78,7 +75,7 @@ export default function LoginPage() {
       } else {
         setMensaje({
           tipo: 'exito',
-          texto: 'Cuenta creada. Revisá tu bandeja de correo para confirmar el registro si tenés la confirmación activada.'
+          texto: 'Cuenta creada. Revisá tu bandeja de correo para confirmar el registro.'
         })
       }
     }
@@ -99,7 +96,7 @@ export default function LoginPage() {
     if (error) {
       alert('Error al enviar correo: ' + error.message)
     } else {
-      alert(`Te enviamos un enlace de recuperación a ${emailRecuperar}. Revisá tu casilla de entrada y spam.`)
+      alert(`Te enviamos un enlace de recuperación a ${emailRecuperar}.`)
       setMostrarRecuperar(false)
       setEmailRecuperar('')
     }
@@ -113,7 +110,6 @@ export default function LoginPage() {
           <p className="text-xs text-slate-400 mt-1">Gestión de turnos y suscripciones</p>
         </div>
 
-        {/* Selector de pestañas */}
         <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 mb-6">
           <button
             type="button"
@@ -196,7 +192,6 @@ export default function LoginPage() {
         </form>
       </div>
 
-      {/* Modal para solicitar recuperación */}
       {mostrarRecuperar && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm space-y-4">
@@ -239,5 +234,17 @@ export default function LoginPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <p className="text-xs text-slate-500">Cargando...</p>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   )
 }
