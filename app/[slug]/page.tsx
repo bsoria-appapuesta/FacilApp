@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { 
   Share2, 
   Calendar as CalendarIcon, 
-  Plus,
+  Plus, 
   MapPin, 
   ExternalLink, 
   ImageIcon, 
@@ -15,10 +15,10 @@ import {
   X, 
   Copy, 
   Check, 
-  Globe,
-  ChevronLeft,
-  ChevronRight,
-  Pencil
+  Globe, 
+  ChevronLeft, 
+  ChevronRight, 
+  Pencil 
 } from 'lucide-react'
 
 import { 
@@ -35,6 +35,22 @@ import {
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Función para calcular contraste de texto automático según color de fondo
+function obtenerColorTexto(hexColor: string, esSuave = false) {
+  if (!hexColor || hexColor.length < 6) return esSuave ? '#64748b' : '#0f172a'
+  const hex = hexColor.replace('#', '')
+  const r = parseInt(hex.substring(0, 2), 16) || 0
+  const g = parseInt(hex.substring(2, 4), 16) || 0
+  const b = parseInt(hex.substring(4, 6), 16) || 0
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000
+  const esOscuro = yiq < 128
+
+  if (esSuave) {
+    return esOscuro ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.65)'
+  }
+  return esOscuro ? '#ffffff' : '#0f172a'
+}
 
 export default function PaginaNegocioDinamica() {
   const params = useParams()
@@ -284,10 +300,17 @@ export default function PaginaNegocioDinamica() {
 
   const colorPrincipal = negocio?.color_principal || '#6366f1'
   const colorFondo = negocio?.color_fondo || '#0f172a'
+  const colorCarta = negocio?.color_carta || '#ffffff'
   const tipoFondo = negocio?.tipo_fondo || 'color'
   const fondoDegradado = negocio?.fondo_degradado || 'linear-gradient(to bottom, #1e293b, #0f172a)'
   const fondoImagenUrl = negocio?.fondo_imagen_url || ''
+  const fondoCartaUrl = negocio?.fondo_carta_url || ''
   const bordes = negocio?.bordes_redondeados || 'rounded-3xl'
+
+  // Dinámica de colores calculados para asegurar contraste
+  const colorTextoCarta = obtenerColorTexto(colorCarta)
+  const colorTextoCartaSuave = obtenerColorTexto(colorCarta, true)
+  const colorTextoBotonPrincipal = obtenerColorTexto(colorPrincipal)
 
   const clasesTamanoFuente = {
     chico: 'text-xs',
@@ -332,326 +355,351 @@ export default function PaginaNegocioDinamica() {
         <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[3px] z-0"></div>
       )}
 
-      {esDuenio && (
-        <Link
-          href="/admin"
-          className="fixed top-4 left-4 z-50 bg-slate-900/90 hover:bg-slate-900 text-white px-4 py-2 rounded-2xl text-xs font-bold shadow-xl border border-white/20 backdrop-blur-md flex items-center gap-2 transition hover:scale-105 active:scale-95"
-        >
-          <Pencil className="w-3.5 h-3.5 text-indigo-400" />
-          <span>Volver a Editar</span>
-        </Link>
-      )}
-
+      {/* TARJETA PRINCIPAL */}
       <div 
-        className={`max-w-md w-full backdrop-blur-xl p-6 sm:p-8 shadow-2xl border border-white/40 relative z-10 transition-all ${bordes}`}
-        style={{ backgroundColor: negocio?.color_carta || 'rgba(255, 255, 255, 0.95)' }}
+        className={`max-w-md w-full backdrop-blur-xl p-6 sm:p-8 shadow-2xl border border-white/20 relative z-10 transition-all overflow-hidden ${bordes}`}
+        style={{ 
+          backgroundColor: colorCarta,
+          backgroundImage: fondoCartaUrl ? `url(${fondoCartaUrl})` : undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          color: colorTextoCarta
+        }}
       >
-        
-        <div className="flex justify-end items-center mb-6">
-          <button
-            onClick={() => setModalCompartir(true)}
-            className="w-9 h-9 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl flex items-center justify-center transition shadow-sm border border-slate-200/50 active:scale-95 shrink-0"
-            title="Compartir"
-          >
-            <Share2 className="w-4 h-4" />
-          </button>
-        </div>
+        {/* Capa de legibilidad si la tarjeta tiene imagen de fondo */}
+        {fondoCartaUrl && (
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] z-0 pointer-events-none"></div>
+        )}
 
-        <div className="text-center mb-6 space-y-3">
-          <div className="w-24 h-24 bg-slate-900 rounded-full mx-auto flex items-center justify-center text-white font-black text-3xl border-4 border-white shadow-xl overflow-hidden ring-4 ring-slate-100/50">
-            {negocio?.logo_url ? (
-              <img src={negocio.logo_url} alt={negocio.nombre} className="w-full h-full object-cover" />
-            ) : (
-              negocio?.nombre?.charAt(0) || 'F'
-            )}
-          </div>
-
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              {negocio ? negocio.nombre : 'Cargando...'}
-            </h1>
-            
-            <p className="text-xs font-semibold text-slate-500 mt-1 flex items-center justify-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-rose-500 inline" />
-              {negocio?.ubicacion || 'Buenos Aires, Argentina'}
-            </p>
-
-            {negocio?.descripcion && (
-              <p className="text-xs text-slate-600 mt-2 px-4 leading-relaxed font-medium">
-                {negocio.descripcion}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-3 mb-6">
-          {redesList.map((red) => (
-            <a
-              key={red.id}
-              href={red.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`w-full bg-white hover:bg-slate-50/80 border border-slate-200/80 p-3.5 flex items-center justify-between shadow-sm transition-all active:scale-[0.99] ${bordes}`}
-            >
-              <div className="flex items-center gap-3 overflow-hidden">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-                  {getRedSocialIcon(red.plataforma || 'web')}
-                </div>
-                <div className="text-left overflow-hidden">
-                  <span className="font-extrabold text-slate-900 block leading-tight truncate">
-                    {red.nombreRed || 'Red Social'}
-                  </span>
-                  <span className="text-xs text-slate-500 block truncate font-medium">
-                    {red.usuarioODetalle}
-                  </span>
-                </div>
-              </div>
-              <ExternalLink className="w-4 h-4 text-slate-300 shrink-0" />
-            </a>
-          ))}
-
-          <button
-            onClick={() => setSeccionAbierta(seccionAbierta === 'turnos' ? null : 'turnos')}
-            style={{ backgroundColor: colorPrincipal }}
-            className={`w-full text-white p-4 flex items-center justify-between shadow-lg transition-all active:scale-[0.99] mt-4 ${bordes}`}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
-                <CalendarIcon className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="font-extrabold block">Solicitar Turno / Pedido</span>
-                <span className="text-[10px] text-white/80 block">Consultá servicios y horarios disponibles</span>
-              </div>
-            </div>
-            <Plus className={`w-5 h-5 transition-transform duration-300 ${seccionAbierta === 'turnos' ? 'rotate-45' : ''}`} />
-          </button>
-        </div>
-
-        {seccionAbierta === 'turnos' && (
-          <div className="border-t border-slate-100 pt-5 space-y-4 mb-6">
-            {exito ? (
-              <div className="text-center space-y-4 py-2">
-                <div className="bg-emerald-50 text-emerald-900 p-5 rounded-2xl border border-emerald-200 shadow-sm">
-                  <div className="w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto mb-2 text-xl font-bold shadow-md">
-                    ✓
-                  </div>
-                  <p className="font-bold text-base">¡Reserva Enviada!</p>
-                  <p className="text-xs text-slate-600 mt-1">
-                    El turno se guardó en el sistema. Tocá abajo para confirmar directamente por WhatsApp:
-                  </p>
-                </div>
-                
-                <a
-                  href={linkWa}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 transition text-center shadow-lg shadow-emerald-500/25 ${bordes} flex items-center justify-center gap-2`}
+        <div className="relative z-10">
+          
+          {/* BARRA SUPERIOR DENTRO DE LA TARJETA */}
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              {esDuenio && (
+                <Link
+                  href="/admin"
+                  className="px-3.5 py-1.5 bg-slate-900/80 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow border border-white/20 flex items-center gap-1.5 transition active:scale-95"
                 >
-                  <FaWhatsapp className="w-5 h-5" /> Confirmar por WhatsApp
-                </a>
+                  <Pencil className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Editar</span>
+                </Link>
+              )}
+            </div>
+
+            <button
+              onClick={() => setModalCompartir(true)}
+              className="w-9 h-9 bg-black/10 hover:bg-black/20 rounded-2xl flex items-center justify-center transition shadow-sm border border-white/20 active:scale-95 shrink-0"
+              style={{ color: colorTextoCarta }}
+              title="Compartir"
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* PERFIL */}
+          <div className="text-center mb-6 space-y-3">
+            <div className="w-24 h-24 bg-slate-900 rounded-full mx-auto flex items-center justify-center text-white font-black text-3xl border-4 border-white shadow-xl overflow-hidden ring-4 ring-black/10">
+              {negocio?.logo_url ? (
+                <img src={negocio.logo_url} alt={negocio.nombre} className="w-full h-full object-cover" />
+              ) : (
+                negocio?.nombre?.charAt(0) || 'F'
+              )}
+            </div>
+
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight" style={{ color: colorTextoCarta }}>
+                {negocio ? negocio.nombre : 'Cargando...'}
+              </h1>
+              
+              <p className="text-xs font-semibold mt-1 flex items-center justify-center gap-1" style={{ color: colorTextoCartaSuave }}>
+                <MapPin className="w-3.5 h-3.5 text-rose-500 inline" />
+                {negocio?.ubicacion || 'Buenos Aires, Argentina'}
+              </p>
+
+              {negocio?.descripcion && (
+                <p className="text-xs mt-2 px-4 leading-relaxed font-medium" style={{ color: colorTextoCartaSuave }}>
+                  {negocio.descripcion}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* REDES SOCIALES */}
+          <div className="space-y-3 mb-6">
+            {redesList.map((red) => (
+              <a
+                key={red.id}
+                href={red.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`w-full bg-white/90 hover:bg-white text-slate-900 border border-black/10 p-3.5 flex items-center justify-between shadow-sm transition-all active:scale-[0.99] ${bordes}`}
+              >
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                    {getRedSocialIcon(red.plataforma || 'web')}
+                  </div>
+                  <div className="text-left overflow-hidden">
+                    <span className="font-extrabold block leading-tight truncate">
+                      {red.nombreRed || 'Red Social'}
+                    </span>
+                    <span className="text-xs text-slate-500 block truncate font-medium">
+                      {red.usuarioODetalle}
+                    </span>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-slate-400 shrink-0" />
+              </a>
+            ))}
+
+            {/* BOTÓN COLAPSABLE PARA TURNOS */}
+            <button
+              onClick={() => setSeccionAbierta(seccionAbierta === 'turnos' ? null : 'turnos')}
+              style={{ backgroundColor: colorPrincipal, color: colorTextoBotonPrincipal }}
+              className={`w-full p-4 flex items-center justify-between shadow-lg transition-all active:scale-[0.99] mt-4 ${bordes}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                  <CalendarIcon className="w-5 h-5" />
+                </div>
+                <div className="text-left">
+                  <span className="font-extrabold block">Solicitar Turno / Pedido</span>
+                  <span className="text-[10px] opacity-80 block">Consultá servicios y horarios disponibles</span>
+                </div>
               </div>
-            ) : (
-              <form onSubmit={handleReservar} className="space-y-4">
-                
-                <div>
-                  <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                    1. Seleccioná el Servicio
-                  </label>
-                  <select
-                    value={servicioSel?.id || ''}
-                    onChange={(e) => {
-                      const sel = servicios.find(s => s.id === e.target.value)
-                      if (sel) setServicioSel(sel)
-                    }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 font-bold text-xs focus:outline-none"
-                    required
+              <Plus className={`w-5 h-5 transition-transform duration-300 ${seccionAbierta === 'turnos' ? 'rotate-45' : ''}`} />
+            </button>
+          </div>
+
+          {/* FORMULARIO DE RESERVAS */}
+          {seccionAbierta === 'turnos' && (
+            <div className="border-t border-black/10 pt-5 space-y-4 mb-6">
+              {exito ? (
+                <div className="text-center space-y-4 py-2">
+                  <div className="bg-emerald-50 text-emerald-900 p-5 rounded-2xl border border-emerald-200 shadow-sm">
+                    <div className="w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto mb-2 text-xl font-bold shadow-md">
+                      ✓
+                    </div>
+                    <p className="font-bold text-base">¡Reserva Enviada!</p>
+                    <p className="text-xs text-slate-600 mt-1">
+                      El turno se guardó en el sistema. Tocá abajo para confirmar directamente por WhatsApp:
+                    </p>
+                  </div>
+                  
+                  <a
+                    href={linkWa}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 transition text-center shadow-lg shadow-emerald-500/25 ${bordes} flex items-center justify-center gap-2`}
                   >
-                    {servicios.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.nombre} - ${s.precio} ({s.duracion_minutos || 30} min)
-                      </option>
-                    ))}
-                  </select>
+                    <FaWhatsapp className="w-5 h-5" /> Confirmar por WhatsApp
+                  </a>
                 </div>
+              ) : (
+                <form onSubmit={handleReservar} className="space-y-4 text-slate-900">
+                  
+                  <div>
+                    <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1" style={{ color: colorTextoCartaSuave }}>
+                      1. Seleccioná el Servicio
+                    </label>
+                    <select
+                      value={servicioSel?.id || ''}
+                      onChange={(e) => {
+                        const sel = servicios.find(s => s.id === e.target.value)
+                        if (sel) setServicioSel(sel)
+                      }}
+                      className="w-full bg-white border border-slate-200 rounded-xl p-3 text-slate-800 font-bold text-xs focus:outline-none"
+                      required
+                    >
+                      {servicios.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.nombre} - ${s.precio} ({s.duracion_minutos || 30} min)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                    2. Tus Datos
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Nombre y Apellido"
-                    value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 mb-2 focus:outline-none text-xs"
-                    required
-                  />
-                  <input
-                    type="tel"
-                    placeholder="Tu WhatsApp (ej. 1122334455)"
-                    value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:outline-none text-xs"
-                    required
-                  />
-                </div>
+                  <div>
+                    <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1" style={{ color: colorTextoCartaSuave }}>
+                      2. Tus Datos
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Nombre y Apellido"
+                      value={nombre}
+                      onChange={(e) => setNombre(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl p-3 text-slate-800 mb-2 focus:outline-none text-xs"
+                      required
+                    />
+                    <input
+                      type="tel"
+                      placeholder="Tu WhatsApp (ej. 1122334455)"
+                      value={whatsapp}
+                      onChange={(e) => setWhatsapp(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl p-3 text-slate-800 focus:outline-none text-xs"
+                      required
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                    3. Elegí Fecha en el Calendario
-                  </label>
+                  <div>
+                    <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1" style={{ color: colorTextoCartaSuave }}>
+                      3. Elegí Fecha en el Calendario
+                    </label>
 
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 mb-2 shadow-sm">
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="font-extrabold text-xs text-slate-800">
-                        {nombresMeses[mesActual]} {anioActual}
-                      </span>
-                      <div className="flex gap-1">
-                        <button
-                          type="button"
-                          onClick={() => cambiarMes(-1)}
-                          className="p-1 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => cambiarMes(1)}
-                          className="p-1 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
+                    <div className="bg-white border border-slate-200 rounded-2xl p-3 mb-2 shadow-sm">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="font-extrabold text-xs text-slate-800">
+                          {nombresMeses[mesActual]} {anioActual}
+                        </span>
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => cambiarMes(-1)}
+                            className="p-1 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => cambiarMes(1)}
+                            className="p-1 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-1">
+                        <span>D</span><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span>
+                      </div>
+
+                      <div className="grid grid-cols-7 gap-1 text-center">
+                        {Array.from({ length: primerDiaMes }).map((_, i) => (
+                          <div key={`empty-${i}`} className="p-1.5"></div>
+                        ))}
+
+                        {Array.from({ length: totalDiasMes }).map((_, i) => {
+                          const dia = i + 1
+                          const fechaStr = `${anioActual}-${String(mesActual + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
+                          const esPasado = fechaStr < fechaHoy
+                          const esSeleccionado = fecha === fechaStr
+
+                          return (
+                            <button
+                              key={dia}
+                              type="button"
+                              disabled={esPasado}
+                              onClick={() => {
+                                setFecha(fechaStr)
+                                setHora('')
+                              }}
+                              className={`p-1.5 text-xs font-bold rounded-xl transition ${
+                                esPasado 
+                                  ? 'text-slate-300 line-through cursor-not-allowed'
+                                  : esSeleccionado 
+                                    ? 'bg-rose-500 text-white shadow' 
+                                    : 'hover:bg-slate-100 text-slate-700'
+                              }`}
+                            >
+                              {dia}
+                            </button>
+                          )
+                        })}
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-1">
-                      <span>D</span><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span>
-                    </div>
+                    <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1" style={{ color: colorTextoCartaSuave }}>
+                      Horarios Disponibles para {fecha}
+                    </label>
 
-                    <div className="grid grid-cols-7 gap-1 text-center">
-                      {Array.from({ length: primerDiaMes }).map((_, i) => (
-                        <div key={`empty-${i}`} className="p-1.5"></div>
-                      ))}
+                    {cargandoHorarios ? (
+                      <p className="text-xs text-center py-3" style={{ color: colorTextoCartaSuave }}>Consultando horarios...</p>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-1.5 max-h-36 overflow-y-auto p-1 bg-white border border-slate-200 rounded-xl">
+                        {horariosDisponibles.map((h) => {
+                          const estaOcupado = horasOcupadas.includes(h)
+                          const paso = esHoraPasada(h)
+                          const deshabilitado = estaOcupado || paso
+                          const esSeleccionado = hora === h
 
-                      {Array.from({ length: totalDiasMes }).map((_, i) => {
-                        const dia = i + 1
-                        const fechaStr = `${anioActual}-${String(mesActual + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
-                        const esPasado = fechaStr < fechaHoy
-                        const esSeleccionado = fecha === fechaStr
-
-                        return (
-                          <button
-                            key={dia}
-                            type="button"
-                            disabled={esPasado}
-                            onClick={() => {
-                              setFecha(fechaStr)
-                              setHora('')
-                            }}
-                            className={`p-1.5 text-xs font-bold rounded-xl transition ${
-                              esPasado 
-                                ? 'text-slate-300 line-through cursor-not-allowed'
-                                : esSeleccionado 
-                                  ? 'bg-rose-500 text-white shadow' 
-                                  : 'hover:bg-white text-slate-700'
-                            }`}
-                          >
-                            {dia}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                    Horarios Disponibles para {fecha}
-                  </label>
-
-                  {cargandoHorarios ? (
-                    <p className="text-xs text-slate-400 text-center py-3">Consultando horarios...</p>
-                  ) : (
-                    <div className="grid grid-cols-4 gap-1.5 max-h-36 overflow-y-auto p-1 bg-slate-50 border border-slate-200 rounded-xl">
-                      {horariosDisponibles.map((h) => {
-                        const estaOcupado = horasOcupadas.includes(h)
-                        const paso = esHoraPasada(h)
-                        const deshabilitado = estaOcupado || paso
-                        const esSeleccionado = hora === h
-
-                        return (
-                          <button
-                            key={h}
-                            type="button"
-                            disabled={deshabilitado}
-                            onClick={() => setHora(h)}
-                            className={`py-2 text-[11px] font-bold rounded-lg transition ${
-                              deshabilitado
-                                ? 'bg-slate-200 text-slate-400 line-through cursor-not-allowed border border-slate-300'
-                                : esSeleccionado
-                                ? 'bg-rose-500 text-white shadow-md'
-                                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-                            }`}
-                          >
-                            {h}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={cargando}
-                  style={{ backgroundColor: colorPrincipal }}
-                  className={`w-full text-white font-bold py-3.5 transition shadow-lg disabled:opacity-50 text-xs ${bordes}`}
-                >
-                  {cargando ? 'Procesando...' : 'Confirmar Reserva ✨'}
-                </button>
-              </form>
-            )}
-          </div>
-        )}
-
-        {galeriaLista.length > 0 && (
-          <div className="border-t border-slate-100 pt-5 space-y-3">
-            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <ImageIcon className="w-3.5 h-3.5 text-slate-400" />
-              Catálogo de Servicios & Productos
-            </p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {galeriaLista.map((item: any, i: number) => (
-                <div key={i} className="bg-slate-50/80 rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm flex flex-col justify-between">
-                  <div className="aspect-square bg-slate-200 overflow-hidden relative">
-                    <img src={item.imagen_url} alt={item.titulo} className="w-full h-full object-cover" />
-                    {item.precio && (
-                      <span className="absolute bottom-2 right-2 bg-slate-900/90 text-white font-black text-[10px] px-2 py-0.5 rounded-lg border border-white/20">
-                        ${item.precio}
-                      </span>
+                          return (
+                            <button
+                              key={h}
+                              type="button"
+                              disabled={deshabilitado}
+                              onClick={() => setHora(h)}
+                              className={`py-2 text-[11px] font-bold rounded-lg transition ${
+                                deshabilitado
+                                  ? 'bg-slate-200 text-slate-400 line-through cursor-not-allowed border border-slate-300'
+                                  : esSeleccionado
+                                  ? 'bg-rose-500 text-white shadow-md'
+                                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                              }`}
+                            >
+                              {h}
+                            </button>
+                          )
+                        })}
+                      </div>
                     )}
                   </div>
-                  <div className="p-2">
-                    <p className="font-bold text-slate-800 text-[11px] line-clamp-1">{item.titulo}</p>
-                  </div>
-                </div>
-              ))}
+
+                  <button
+                    type="submit"
+                    disabled={cargando}
+                    style={{ backgroundColor: colorPrincipal, color: colorTextoBotonPrincipal }}
+                    className={`w-full font-bold py-3.5 transition shadow-lg disabled:opacity-50 text-xs ${bordes}`}
+                  >
+                    {cargando ? 'Procesando...' : 'Confirmar Reserva ✨'}
+                  </button>
+                </form>
+              )}
             </div>
+          )}
+
+          {/* CATÁLOGO VISUAL */}
+          {galeriaLista.length > 0 && (
+            <div className="border-t border-black/10 pt-5 space-y-3">
+              <p className="text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1.5" style={{ color: colorTextoCartaSuave }}>
+                <ImageIcon className="w-3.5 h-3.5 opacity-70" />
+                Catálogo de Servicios & Productos
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {galeriaLista.map((item: any, i: number) => (
+                  <div key={i} className="bg-white/90 rounded-2xl overflow-hidden border border-black/10 shadow-sm flex flex-col justify-between">
+                    <div className="aspect-square bg-slate-200 overflow-hidden relative">
+                      <img src={item.imagen_url} alt={item.titulo} className="w-full h-full object-cover" />
+                      {item.precio && (
+                        <span className="absolute bottom-2 right-2 bg-slate-900/90 text-white font-black text-[10px] px-2 py-0.5 rounded-lg border border-white/20">
+                          ${item.precio}
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-2">
+                      <p className="font-bold text-slate-800 text-[11px] line-clamp-1">{item.titulo}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* BANNER COMERCIAL / FOOTER */}
+          <div className="mt-8 pt-5 border-t border-black/10 text-center">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-2xl shadow transition"
+            >
+              <span>Creá tu página con FacilApp</span>
+              <ExternalLink className="w-3 h-3 text-slate-400" />
+            </Link>
           </div>
-        )}
 
-        <div className="mt-8 pt-5 border-t border-slate-200/70 text-center">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-2xl shadow transition"
-          >
-            <span>Creá tu página con FacilApp</span>
-            <ExternalLink className="w-3 h-3 text-slate-400" />
-          </Link>
         </div>
-
       </div>
 
+      {/* MODAL COMPARTIR */}
       {modalCompartir && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white max-w-sm w-full rounded-3xl p-6 shadow-2xl border border-slate-100 relative space-y-4">

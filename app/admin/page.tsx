@@ -55,6 +55,21 @@ interface RedItem {
   url: string
 }
 
+function obtenerColorTexto(hexColor: string, esSuave = false) {
+  if (!hexColor || hexColor.length < 6) return esSuave ? '#64748b' : '#0f172a'
+  const hex = hexColor.replace('#', '')
+  const r = parseInt(hex.substring(0, 2), 16) || 0
+  const g = parseInt(hex.substring(2, 4), 16) || 0
+  const b = parseInt(hex.substring(4, 6), 16) || 0
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000
+  const esOscuro = yiq < 128
+
+  if (esSuave) {
+    return esOscuro ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.65)'
+  }
+  return esOscuro ? '#ffffff' : '#0f172a'
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const [tab, setTab] = useState<'turnos' | 'servicios' | 'horarios_catalogo' | 'marca' | 'historial'>('turnos')
@@ -138,6 +153,7 @@ export default function AdminPage() {
   const [colorCarta, setColorCarta] = useState('#ffffff')
   const [tipoFondo, setTipoFondo] = useState('color')
   const [fondoImagenUrl, setFondoImagenUrl] = useState('')
+  const [fondoCartaUrl, setFondoCartaUrl] = useState('')
 
   // Catálogo Visual
   const [galeria, setGaleria] = useState<any[]>([])
@@ -239,6 +255,7 @@ export default function AdminPage() {
             color_fondo: '#0f172a',
             color_carta: '#ffffff',
             tipo_fondo: 'color',
+            fondo_carta_url: '',
             galeria_detallada: [],
             estado: 'prueba',
             fecha_vencimiento: fechaExpiracion
@@ -289,6 +306,7 @@ export default function AdminPage() {
     setColorCarta(negData.color_carta || '#ffffff')
     setTipoFondo(negData.tipo_fondo || 'color')
     setFondoImagenUrl(negData.fondo_imagen_url || '')
+    setFondoCartaUrl(negData.fondo_carta_url || '')
     setGaleria(negData.galeria_detallada || [])
 
     const { data: turnosData } = await supabase
@@ -316,7 +334,7 @@ export default function AdminPage() {
     router.push('/login')
   }
 
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>, campo: 'logo' | 'fondo' | 'catalogo') {
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>, campo: 'logo' | 'fondo' | 'fondo_carta' | 'catalogo') {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -341,6 +359,7 @@ export default function AdminPage() {
     setCargando(false)
     if (campo === 'logo') setLogoUrl(publicUrlData.publicUrl)
     if (campo === 'fondo') setFondoImagenUrl(publicUrlData.publicUrl)
+    if (campo === 'fondo_carta') setFondoCartaUrl(publicUrlData.publicUrl)
     if (campo === 'catalogo') setItemImagenUrl(publicUrlData.publicUrl)
     alert('Imagen cargada con éxito')
   }
@@ -635,6 +654,7 @@ export default function AdminPage() {
         color_carta: colorCarta,
         tipo_fondo: tipoFondo,
         fondo_imagen_url: fondoImagenUrl,
+        fondo_carta_url: fondoCartaUrl,
         galeria_detallada: galeria
       })
       .eq('id', negocio.id)
@@ -739,6 +759,11 @@ export default function AdminPage() {
   })
 
   const maxVentaDia = Math.max(...facturacionPorDiaSemana, 1)
+
+  // Colores calculados de texto para preview
+  const colorTextoPreviewCarta = obtenerColorTexto(colorCarta)
+  const colorTextoPreviewSuave = obtenerColorTexto(colorCarta, true)
+  const colorTextoPreviewBoton = obtenerColorTexto(colorPrincipal)
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
@@ -1208,7 +1233,6 @@ export default function AdminPage() {
                           <button
                             onClick={() => handleEliminarTurno(t)}
                             className="p-2.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 rounded-xl border border-rose-500/30 transition"
-                            title="Cancelar Turno"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -1512,6 +1536,7 @@ export default function AdminPage() {
                 <p className="text-xs text-slate-400">Configurá la foto de perfil, tu enlace personalizado y estilo</p>
               </div>
 
+              {/* FOTO DE PERFIL */}
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
                 <label className="text-xs font-extrabold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                   <Camera className="w-4 h-4 text-indigo-400" />
@@ -1539,6 +1564,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              {/* SLUG */}
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
                 <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                   <LinkIcon className="w-3.5 h-3.5 text-indigo-400" />
@@ -1558,6 +1584,7 @@ export default function AdminPage() {
                 <p className="text-[10px] text-slate-500">Este es el link que compartirás con tus clientes.</p>
               </div>
 
+              {/* DATOS PRINCIPALES */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1">Nombre</label>
@@ -1601,7 +1628,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Tipografía y Tamaños Ampliados */}
+              {/* TIPOGRAFÍA & TAMAÑO */}
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
                 <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Tipografía & Estilo</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1641,38 +1668,70 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Colores */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Fondo</label>
-                  <input
-                    type="color"
-                    value={colorFondo}
-                    onChange={(e) => setColorFondo(e.target.value)}
-                    className="w-full h-10 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer"
-                  />
+              {/* COLORES Y FONDO DE LA TARJETA */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-4">
+                <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Colores y Personalización</h3>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Fondo General</label>
+                    <input
+                      type="color"
+                      value={colorFondo}
+                      onChange={(e) => setColorFondo(e.target.value)}
+                      className="w-full h-10 bg-slate-900 border border-slate-800 rounded-xl cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Fondo Tarjeta</label>
+                    <input
+                      type="color"
+                      value={colorCarta}
+                      onChange={(e) => setColorCarta(e.target.value)}
+                      className="w-full h-10 bg-slate-900 border border-slate-800 rounded-xl cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Botón Principal</label>
+                    <input
+                      type="color"
+                      value={colorPrincipal}
+                      onChange={(e) => setColorPrincipal(e.target.value)}
+                      className="w-full h-10 bg-slate-900 border border-slate-800 rounded-xl cursor-pointer"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Tarjeta</label>
+
+                {/* Subir foto de fondo para la tarjeta */}
+                <div className="border-t border-slate-800 pt-3">
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                    Imagen de Fondo para la Tarjeta (Opcional)
+                  </label>
                   <input
-                    type="color"
-                    value={colorCarta}
-                    onChange={(e) => setColorCarta(e.target.value)}
-                    className="w-full h-10 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileUpload(e, 'fondo_carta')}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-slate-400"
                   />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Botón</label>
-                  <input
-                    type="color"
-                    value={colorPrincipal}
-                    onChange={(e) => setColorPrincipal(e.target.value)}
-                    className="w-full h-10 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer"
-                  />
+                  {fondoCartaUrl && (
+                    <div className="flex items-center justify-between gap-3 bg-slate-900 p-2 rounded-xl mt-2">
+                      <div className="flex items-center gap-2">
+                        <img src={fondoCartaUrl} alt="Fondo Tarjeta" className="w-10 h-10 object-cover rounded-lg" />
+                        <span className="text-[11px] text-emerald-400 font-bold">Imagen de tarjeta activa</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFondoCartaUrl('')}
+                        className="text-rose-400 hover:text-rose-300 text-xs px-2 py-1 bg-rose-500/10 rounded-lg"
+                      >
+                        Quitar
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Redes Sociales */}
+              {/* REDES SOCIALES */}
               <div className="border-t border-slate-800 pt-4 space-y-3">
                 <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Enlaces de Redes Sociales</h3>
                 
@@ -1793,33 +1852,45 @@ export default function AdminPage() {
                   }}
                 >
                   <div 
-                    className="p-5 rounded-2xl shadow-lg border border-white/20 transition-all duration-300"
-                    style={{ backgroundColor: colorCarta }}
+                    className="p-5 rounded-2xl shadow-lg border border-white/20 transition-all duration-300 relative overflow-hidden"
+                    style={{ 
+                      backgroundColor: colorCarta,
+                      backgroundImage: fondoCartaUrl ? `url(${fondoCartaUrl})` : undefined,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      color: colorTextoPreviewCarta
+                    }}
                   >
-                    <div className="w-16 h-16 rounded-full mx-auto mb-2 bg-slate-900 border-2 border-white overflow-hidden flex items-center justify-center text-white font-black text-xl shadow">
-                      {logoUrl ? <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" /> : nombreNegocio?.charAt(0) || 'L'}
-                    </div>
+                    {fondoCartaUrl && (
+                      <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] pointer-events-none"></div>
+                    )}
 
-                    <h3 className="font-extrabold text-sm text-slate-900">{nombreNegocio || 'Tu Negocio'}</h3>
-                    <p className="text-[10px] text-slate-500">{ubicacion || 'Tu Ubicación'}</p>
-                    <p className="text-[10px] text-slate-600 mt-1">{descripcion || 'Descripción del negocio'}</p>
+                    <div className="relative z-10">
+                      <div className="w-16 h-16 rounded-full mx-auto mb-2 bg-slate-900 border-2 border-white overflow-hidden flex items-center justify-center text-white font-black text-xl shadow">
+                        {logoUrl ? <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" /> : nombreNegocio?.charAt(0) || 'L'}
+                      </div>
 
-                    <div className="mt-4 space-y-2">
-                      {redes.map(r => (
-                        <div key={r.id} className="bg-slate-50 border border-slate-200 p-2 rounded-xl flex items-center justify-between text-[11px] font-bold text-slate-800">
-                          <div className="flex items-center gap-2">
-                            {renderIconoRed(r.plataforma)}
-                            <span>{r.nombreRed}</span>
+                      <h3 className="font-extrabold text-sm" style={{ color: colorTextoPreviewCarta }}>{nombreNegocio || 'Tu Negocio'}</h3>
+                      <p className="text-[10px]" style={{ color: colorTextoPreviewSuave }}>{ubicacion || 'Tu Ubicación'}</p>
+                      <p className="text-[10px] mt-1" style={{ color: colorTextoPreviewSuave }}>{descripcion || 'Descripción del negocio'}</p>
+
+                      <div className="mt-4 space-y-2">
+                        {redes.map(r => (
+                          <div key={r.id} className="bg-white/90 border border-black/10 p-2 rounded-xl flex items-center justify-between text-[11px] font-bold text-slate-800">
+                            <div className="flex items-center gap-2">
+                              {renderIconoRed(r.plataforma)}
+                              <span>{r.nombreRed}</span>
+                            </div>
+                            <span className="text-slate-400">›</span>
                           </div>
-                          <span className="text-slate-400">›</span>
-                        </div>
-                      ))}
+                        ))}
 
-                      <div 
-                        style={{ backgroundColor: colorPrincipal }}
-                        className="text-white p-2.5 rounded-xl text-[11px] font-bold shadow"
-                      >
-                        📅 Solicitar Turno / Pedido
+                        <div 
+                          style={{ backgroundColor: colorPrincipal, color: colorTextoPreviewBoton }}
+                          className="p-2.5 rounded-xl text-[11px] font-bold shadow"
+                        >
+                          📅 Solicitar Turno / Pedido
+                        </div>
                       </div>
                     </div>
                   </div>
