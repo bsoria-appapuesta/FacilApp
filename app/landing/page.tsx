@@ -2,17 +2,12 @@
 
 import Link from 'next/link'
 import { 
-  Calendar, 
   Clock, 
-  MessageCircle, 
-  Smartphone, 
-  ShieldCheck, 
   ArrowRight, 
   CheckCircle2, 
   Sparkles, 
   Palette, 
-  ExternalLink,
-  ChevronRight
+  ExternalLink
 } from 'lucide-react'
 import { FaWhatsapp } from 'react-icons/fa'
 
@@ -105,7 +100,6 @@ export default function LandingPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Card 1 */}
           <div className="bg-slate-900/60 border border-slate-800/80 p-6 rounded-3xl space-y-3">
             <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
               <Clock className="w-5 h-5" />
@@ -116,7 +110,6 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Card 2 */}
           <div className="bg-slate-900/60 border border-slate-800/80 p-6 rounded-3xl space-y-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
               <FaWhatsapp className="w-5 h-5" />
@@ -127,7 +120,6 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Card 3 */}
           <div className="bg-slate-900/60 border border-slate-800/80 p-6 rounded-3xl space-y-3">
             <div className="w-10 h-10 rounded-2xl bg-pink-600/20 border border-pink-500/30 flex items-center justify-center text-pink-400">
               <Palette className="w-5 h-5" />
