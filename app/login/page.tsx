@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Sparkles, CheckCircle2, Lock, ShieldCheck } from 'lucide-react'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
@@ -75,7 +76,7 @@ function LoginContent() {
       } else {
         setMensaje({
           tipo: 'exito',
-          texto: 'Cuenta creada. Revisá tu bandeja de correo para confirmar el registro.'
+          texto: 'Cuenta creada. Revisá tu casilla de correo para confirmar el acceso.'
         })
       }
     }
@@ -104,18 +105,50 @@ function LoginContent() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-black text-white">FacilApp</h1>
-          <p className="text-xs text-slate-400 mt-1">Gestión de turnos y suscripciones</p>
+      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5">
+        
+        {/* ENCABEZADO */}
+        <div className="text-center space-y-1">
+          <h1 className="text-2xl font-black text-white tracking-tight">FacilApp</h1>
+          <p className="text-xs text-slate-400">Plataforma de turnos online y catálogo digital</p>
         </div>
 
-        <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 mb-6">
+        {/* TARJETA DE PRECIO Y CONDICIONES (SIEMPRE VISIBLE) */}
+        <div className="bg-slate-950 border border-indigo-500/30 rounded-2xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> Prueba Gratis: 10 Días
+            </span>
+            <span className="text-xs font-black text-white">
+              $13.800 <span className="text-[10px] text-slate-400 font-normal">/ mes</span>
+            </span>
+          </div>
+
+          <ul className="text-[11px] text-slate-300 space-y-1.5 pt-2 border-t border-slate-800/80">
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>10 días de acceso total sin ingresar tarjeta ahora.</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>0% de comisiones por reservas o turnos confirmados.</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>Abono voluntario mes a mes sin permanencia ni renovación obligada.</span>
+            </li>
+          </ul>
+        </div>
+
+        {/* SELECTOR DE PESTAÑAS */}
+        <div className="flex bg-slate-950 p-1 rounded-2xl border border-slate-800">
           <button
             type="button"
             onClick={() => { setModo('login'); setMensaje(null) }}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
-              modo === 'login' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition ${
+              modo === 'login' 
+                ? 'bg-indigo-600 text-white shadow-lg' 
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             Iniciar Sesión
@@ -123,17 +156,20 @@ function LoginContent() {
           <button
             type="button"
             onClick={() => { setModo('registro'); setMensaje(null) }}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
-              modo === 'registro' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition ${
+              modo === 'registro' 
+                ? 'bg-indigo-600 text-white shadow-lg' 
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             Registrarse
           </button>
         </div>
 
+        {/* MENSAJES DE ESTADO */}
         {mensaje && (
           <div
-            className={`p-3 rounded-xl text-xs mb-4 border ${
+            className={`p-3.5 rounded-2xl text-xs border ${
               mensaje.tipo === 'error'
                 ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
                 : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
@@ -143,9 +179,12 @@ function LoginContent() {
           </div>
         )}
 
+        {/* FORMULARIO */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Correo electrónico</label>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">
+              Correo electrónico
+            </label>
             <input
               type="email"
               required
@@ -158,7 +197,9 @@ function LoginContent() {
 
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="block text-xs font-semibold text-slate-300">Contraseña</label>
+              <label className="block text-xs font-semibold text-slate-300">
+                Contraseña
+              </label>
               {modo === 'login' && (
                 <button
                   type="button"
@@ -185,19 +226,30 @@ function LoginContent() {
           <button
             type="submit"
             disabled={cargando}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-lg mt-2"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg mt-2"
           >
-            {cargando ? 'Procesando...' : modo === 'login' ? 'Entrar a mi panel' : 'Crear mi cuenta'}
+            {cargando 
+              ? 'Procesando...' 
+              : modo === 'login' 
+              ? 'Entrar a mi panel' 
+              : 'Comenzar mi prueba de 10 días'}
           </button>
         </form>
+
+        <p className="text-[10px] text-center text-slate-500 leading-relaxed pt-1">
+          Al registrarte aceptás las condiciones de servicio. Renovación voluntaria de $13.800/mes tras los 10 días de prueba.
+        </p>
       </div>
 
+      {/* MODAL RECUPERAR CONTRASEÑA */}
       {mostrarRecuperar && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm space-y-4">
-            <h3 className="text-base font-bold text-white">Recuperar contraseña</h3>
+        <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Lock className="w-4 h-4 text-indigo-400" /> Recuperar contraseña
+            </h3>
             <p className="text-xs text-slate-400">
-              Ingresá tu correo electrónico registrado y te enviaremos un enlace para cambiar tu contraseña.
+              Ingresá tu correo electrónico registrado y te enviaremos el enlace para restablecerla.
             </p>
 
             <form onSubmit={handleSolicitarRecuperacion} className="space-y-4">
@@ -217,14 +269,14 @@ function LoginContent() {
                 <button
                   type="button"
                   onClick={() => setMostrarRecuperar(false)}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold"
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={cargandoRecuperar}
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold"
+                  className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow"
                 >
                   {cargandoRecuperar ? 'Enviando...' : 'Enviar enlace'}
                 </button>
