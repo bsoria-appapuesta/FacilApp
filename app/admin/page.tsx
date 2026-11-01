@@ -55,21 +55,6 @@ interface RedItem {
   url: string
 }
 
-function obtenerColorTexto(hexColor: string, esSuave = false) {
-  if (!hexColor || hexColor.length < 6) return esSuave ? '#64748b' : '#0f172a'
-  const hex = hexColor.replace('#', '')
-  const r = parseInt(hex.substring(0, 2), 16) || 0
-  const g = parseInt(hex.substring(2, 4), 16) || 0
-  const b = parseInt(hex.substring(4, 6), 16) || 0
-  const yiq = (r * 299 + g * 587 + b * 114) / 1000
-  const esOscuro = yiq < 128
-
-  if (esSuave) {
-    return esOscuro ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.65)'
-  }
-  return esOscuro ? '#ffffff' : '#0f172a'
-}
-
 export default function AdminPage() {
   const router = useRouter()
   const [tab, setTab] = useState<'turnos' | 'servicios' | 'horarios_catalogo' | 'marca' | 'historial'>('turnos')
@@ -151,6 +136,7 @@ export default function AdminPage() {
   const [colorPrincipal, setColorPrincipal] = useState('#6366f1')
   const [colorFondo, setColorFondo] = useState('#0f172a')
   const [colorCarta, setColorCarta] = useState('#ffffff')
+  const [colorTexto, setColorTexto] = useState('#0f172a')
   const [tipoFondo, setTipoFondo] = useState('color')
   const [fondoImagenUrl, setFondoImagenUrl] = useState('')
   const [fondoCartaUrl, setFondoCartaUrl] = useState('')
@@ -254,6 +240,7 @@ export default function AdminPage() {
             color_principal: '#6366f1',
             color_fondo: '#0f172a',
             color_carta: '#ffffff',
+            color_texto: '#0f172a',
             tipo_fondo: 'color',
             fondo_carta_url: '',
             galeria_detallada: [],
@@ -304,6 +291,7 @@ export default function AdminPage() {
     setColorPrincipal(negData.color_principal || '#6366f1')
     setColorFondo(negData.color_fondo || '#0f172a')
     setColorCarta(negData.color_carta || '#ffffff')
+    setColorTexto(negData.color_texto || '#0f172a')
     setTipoFondo(negData.tipo_fondo || 'color')
     setFondoImagenUrl(negData.fondo_imagen_url || '')
     setFondoCartaUrl(negData.fondo_carta_url || '')
@@ -652,6 +640,7 @@ export default function AdminPage() {
         color_principal: colorPrincipal,
         color_fondo: colorFondo,
         color_carta: colorCarta,
+        color_texto: colorTexto,
         tipo_fondo: tipoFondo,
         fondo_imagen_url: fondoImagenUrl,
         fondo_carta_url: fondoCartaUrl,
@@ -759,11 +748,6 @@ export default function AdminPage() {
   })
 
   const maxVentaDia = Math.max(...facturacionPorDiaSemana, 1)
-
-  // Colores calculados de texto para preview
-  const colorTextoPreviewCarta = obtenerColorTexto(colorCarta)
-  const colorTextoPreviewSuave = obtenerColorTexto(colorCarta, true)
-  const colorTextoPreviewBoton = obtenerColorTexto(colorPrincipal)
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
@@ -1672,7 +1656,7 @@ export default function AdminPage() {
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-4">
                 <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Colores y Personalización</h3>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-400 mb-1">Fondo General</label>
                     <input
@@ -1692,6 +1676,15 @@ export default function AdminPage() {
                     />
                   </div>
                   <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Color del Texto</label>
+                    <input
+                      type="color"
+                      value={colorTexto}
+                      onChange={(e) => setColorTexto(e.target.value)}
+                      className="w-full h-10 bg-slate-900 border border-slate-800 rounded-xl cursor-pointer"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-xs font-bold text-slate-400 mb-1">Botón Principal</label>
                     <input
                       type="color"
@@ -1702,7 +1695,6 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* Subir foto de fondo para la tarjeta */}
                 <div className="border-t border-slate-800 pt-3">
                   <label className="block text-[11px] font-bold text-slate-300 mb-1">
                     Imagen de Fondo para la Tarjeta (Opcional)
@@ -1858,7 +1850,7 @@ export default function AdminPage() {
                       backgroundImage: fondoCartaUrl ? `url(${fondoCartaUrl})` : undefined,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
-                      color: colorTextoPreviewCarta
+                      color: colorTexto
                     }}
                   >
                     {fondoCartaUrl && (
@@ -1870,9 +1862,9 @@ export default function AdminPage() {
                         {logoUrl ? <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" /> : nombreNegocio?.charAt(0) || 'L'}
                       </div>
 
-                      <h3 className="font-extrabold text-sm" style={{ color: colorTextoPreviewCarta }}>{nombreNegocio || 'Tu Negocio'}</h3>
-                      <p className="text-[10px]" style={{ color: colorTextoPreviewSuave }}>{ubicacion || 'Tu Ubicación'}</p>
-                      <p className="text-[10px] mt-1" style={{ color: colorTextoPreviewSuave }}>{descripcion || 'Descripción del negocio'}</p>
+                      <h3 className="font-extrabold text-sm" style={{ color: colorTexto }}>{nombreNegocio || 'Tu Negocio'}</h3>
+                      <p className="text-[10px] opacity-80" style={{ color: colorTexto }}>{ubicacion || 'Tu Ubicación'}</p>
+                      <p className="text-[10px] mt-1 opacity-80" style={{ color: colorTexto }}>{descripcion || 'Descripción del negocio'}</p>
 
                       <div className="mt-4 space-y-2">
                         {redes.map(r => (
@@ -1886,7 +1878,7 @@ export default function AdminPage() {
                         ))}
 
                         <div 
-                          style={{ backgroundColor: colorPrincipal, color: colorTextoPreviewBoton }}
+                          style={{ backgroundColor: colorPrincipal, color: '#ffffff' }}
                           className="p-2.5 rounded-xl text-[11px] font-bold shadow"
                         >
                           📅 Solicitar Turno / Pedido

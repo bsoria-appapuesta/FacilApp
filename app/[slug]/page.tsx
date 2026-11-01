@@ -35,21 +35,6 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-function obtenerColorTexto(hexColor: string, esSuave = false) {
-  if (!hexColor || hexColor.length < 6) return esSuave ? '#64748b' : '#0f172a'
-  const hex = hexColor.replace('#', '')
-  const r = parseInt(hex.substring(0, 2), 16) || 0
-  const g = parseInt(hex.substring(2, 4), 16) || 0
-  const b = parseInt(hex.substring(4, 6), 16) || 0
-  const yiq = (r * 299 + g * 587 + b * 114) / 1000
-  const esOscuro = yiq < 128
-
-  if (esSuave) {
-    return esOscuro ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.65)'
-  }
-  return esOscuro ? '#ffffff' : '#0f172a'
-}
-
 export default function PaginaNegocioDinamica() {
   const params = useParams()
   const slugParam = params?.slug as string
@@ -306,15 +291,12 @@ export default function PaginaNegocioDinamica() {
   const colorPrincipal = negocio?.color_principal || '#6366f1'
   const colorFondo = negocio?.color_fondo || '#0f172a'
   const colorCarta = negocio?.color_carta || '#ffffff'
+  const colorTexto = negocio?.color_texto || '#0f172a'
   const tipoFondo = negocio?.tipo_fondo || 'color'
   const fondoDegradado = negocio?.fondo_degradado || 'linear-gradient(to bottom, #1e293b, #0f172a)'
   const fondoImagenUrl = negocio?.fondo_imagen_url || ''
   const fondoCartaUrl = negocio?.fondo_carta_url || ''
   const bordes = negocio?.bordes_redondeados || 'rounded-3xl'
-
-  const colorTextoCarta = obtenerColorTexto(colorCarta)
-  const colorTextoCartaSuave = obtenerColorTexto(colorCarta, true)
-  const colorTextoBotonPrincipal = obtenerColorTexto(colorPrincipal)
 
   const clasesTamanoFuente = {
     chico: 'text-xs',
@@ -367,7 +349,7 @@ export default function PaginaNegocioDinamica() {
           backgroundImage: fondoCartaUrl ? `url(${fondoCartaUrl})` : undefined,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          color: colorTextoCarta
+          color: colorTexto
         }}
       >
         {fondoCartaUrl && (
@@ -393,7 +375,7 @@ export default function PaginaNegocioDinamica() {
             <button
               onClick={() => setModalCompartir(true)}
               className="w-9 h-9 bg-black/10 hover:bg-black/20 rounded-2xl flex items-center justify-center transition shadow-sm border border-white/20 active:scale-95 shrink-0"
-              style={{ color: colorTextoCarta }}
+              style={{ color: colorTexto }}
               title="Compartir"
             >
               <Share2 className="w-4 h-4" />
@@ -411,17 +393,17 @@ export default function PaginaNegocioDinamica() {
             </div>
 
             <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight" style={{ color: colorTextoCarta }}>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight" style={{ color: colorTexto }}>
                 {negocio ? negocio.nombre : 'Cargando...'}
               </h1>
               
-              <p className="text-xs font-semibold mt-1 flex items-center justify-center gap-1" style={{ color: colorTextoCartaSuave }}>
+              <p className="text-xs font-semibold mt-1 flex items-center justify-center gap-1 opacity-80" style={{ color: colorTexto }}>
                 <MapPin className="w-3.5 h-3.5 text-rose-500 inline" />
                 {negocio?.ubicacion || 'Buenos Aires, Argentina'}
               </p>
 
               {negocio?.descripcion && (
-                <p className="text-xs mt-2 px-4 leading-relaxed font-medium" style={{ color: colorTextoCartaSuave }}>
+                <p className="text-xs mt-2 px-4 leading-relaxed font-medium opacity-80" style={{ color: colorTexto }}>
                   {negocio.descripcion}
                 </p>
               )}
@@ -457,11 +439,11 @@ export default function PaginaNegocioDinamica() {
 
             <button
               onClick={() => setSeccionAbierta(seccionAbierta === 'turnos' ? null : 'turnos')}
-              style={{ backgroundColor: colorPrincipal, color: colorTextoBotonPrincipal }}
+              style={{ backgroundColor: colorPrincipal, color: '#ffffff' }}
               className={`w-full p-4 flex items-center justify-between shadow-lg transition-all active:scale-[0.99] mt-4 ${bordes}`}
             >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
                   <CalendarIcon className="w-5 h-5" />
                 </div>
                 <div className="text-left">
@@ -501,7 +483,7 @@ export default function PaginaNegocioDinamica() {
                 <form onSubmit={handleReservar} className="space-y-4 text-slate-900">
                   
                   <div>
-                    <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1" style={{ color: colorTextoCartaSuave }}>
+                    <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1 opacity-80" style={{ color: colorTexto }}>
                       1. Seleccioná el Servicio
                     </label>
                     <select
@@ -522,7 +504,7 @@ export default function PaginaNegocioDinamica() {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1" style={{ color: colorTextoCartaSuave }}>
+                    <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1 opacity-80" style={{ color: colorTexto }}>
                       2. Tus Datos
                     </label>
                     <input
@@ -544,7 +526,7 @@ export default function PaginaNegocioDinamica() {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1" style={{ color: colorTextoCartaSuave }}>
+                    <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1 opacity-80" style={{ color: colorTexto }}>
                       3. Elegí Fecha en el Calendario
                     </label>
 
@@ -610,12 +592,12 @@ export default function PaginaNegocioDinamica() {
                       </div>
                     </div>
 
-                    <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1" style={{ color: colorTextoCartaSuave }}>
+                    <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1 opacity-80" style={{ color: colorTexto }}>
                       Horarios Disponibles para {fecha}
                     </label>
 
                     {cargandoHorarios ? (
-                      <p className="text-xs text-center py-3" style={{ color: colorTextoCartaSuave }}>Consultando horarios...</p>
+                      <p className="text-xs text-center py-3 opacity-80" style={{ color: colorTexto }}>Consultando horarios...</p>
                     ) : (
                       <div className="grid grid-cols-4 gap-1.5 max-h-36 overflow-y-auto p-1 bg-white border border-slate-200 rounded-xl">
                         {horariosDisponibles.map((h) => {
@@ -649,7 +631,7 @@ export default function PaginaNegocioDinamica() {
                   <button
                     type="submit"
                     disabled={cargando}
-                    style={{ backgroundColor: colorPrincipal, color: colorTextoBotonPrincipal }}
+                    style={{ backgroundColor: colorPrincipal, color: '#ffffff' }}
                     className={`w-full font-bold py-3.5 transition shadow-lg disabled:opacity-50 text-xs ${bordes}`}
                   >
                     {cargando ? 'Procesando...' : 'Confirmar Reserva ✨'}
@@ -662,7 +644,7 @@ export default function PaginaNegocioDinamica() {
           {/* CATÁLOGO VISUAL */}
           {galeriaLista.length > 0 && (
             <div className="border-t border-black/10 pt-5 space-y-3">
-              <p className="text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1.5" style={{ color: colorTextoCartaSuave }}>
+              <p className="text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1.5 opacity-80" style={{ color: colorTexto }}>
                 <ImageIcon className="w-3.5 h-3.5 opacity-70" />
                 Catálogo de Servicios & Productos
               </p>
@@ -701,7 +683,7 @@ export default function PaginaNegocioDinamica() {
         </div>
       </div>
 
-      {/* MODAL COMPARTIR (CON INSTAGRAM EN LUGAR DE GMAIL) */}
+      {/* MODAL COMPARTIR */}
       {modalCompartir && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white max-w-sm w-full rounded-3xl p-6 shadow-2xl border border-slate-100 relative space-y-4">
