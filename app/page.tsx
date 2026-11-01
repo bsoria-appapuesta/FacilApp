@@ -6,8 +6,7 @@ import {
   ArrowRight, 
   CheckCircle2, 
   Sparkles, 
-  Palette, 
-  ExternalLink
+  Palette 
 } from 'lucide-react'
 import { FaWhatsapp } from 'react-icons/fa'
 
@@ -60,21 +59,13 @@ export default function HomePage() {
           Olvidate de responder mensajes a deshora preguntando horarios disponibles. Creá tu página personalizada en 2 minutos: tus clientes eligen fecha, horario y te confirman al instante.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+        <div className="flex items-center justify-center pt-4">
           <Link
             href="/login"
             className="w-full sm:w-auto px-7 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-xl shadow-indigo-600/30 transition flex items-center justify-center gap-2"
           >
             <span>Crear mi página ahora</span>
             <ArrowRight className="w-4 h-4" />
-          </Link>
-
-          <Link
-            href="/barberia-demo"
-            className="w-full sm:w-auto px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 font-bold text-xs sm:text-sm rounded-2xl transition flex items-center justify-center gap-2"
-          >
-            <span>Ver demo en vivo</span>
-            <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
           </Link>
         </div>
 
