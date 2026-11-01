@@ -34,7 +34,7 @@ export default function HomePage() {
               Iniciar Sesión
             </Link>
             <Link
-              href="/login?mode=register"
+              href="/login?tab=registro"
               className="text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl transition shadow-md shadow-indigo-600/25 flex items-center gap-1.5"
             >
               <span>Empezar Gratis</span>
@@ -61,7 +61,7 @@ export default function HomePage() {
 
         <div className="flex items-center justify-center pt-4">
           <Link
-            href="/login?mode=register"
+            href="/login?tab=registro"
             className="w-full sm:w-auto px-7 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-xl shadow-indigo-600/30 transition flex items-center justify-center gap-2"
           >
             <span>Crear mi página ahora</span>
@@ -170,7 +170,7 @@ export default function HomePage() {
 
           <div className="pt-2">
             <Link
-              href="/login?mode=register"
+              href="/login?tab=registro"
               className="inline-flex items-center gap-2 px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-xl shadow-indigo-600/30 transition"
             >
               <span>Crear Cuenta Gratis</span>
