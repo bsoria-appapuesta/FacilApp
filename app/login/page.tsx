@@ -1,284 +1,243 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Lock, Mail, ArrowRight, ShieldCheck, UserPlus, KeyRound, CheckCircle2, Tag } from 'lucide-react'
+import Link from 'next/link'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-function AuthContent() {
+// Cliente con persistencia de sesión habilitada
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+})
+
+export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const tabInicial = searchParams.get('tab') === 'registro' ? 'registro' : 'login'
 
-  const [modo, setModo] = useState<'login' | 'registro' | 'recuperar'>('login')
-
-  useEffect(() => {
-    const tab = searchParams.get('tab')
-    if (tab === 'registro') {
-      setModo('registro')
-    }
-  }, [searchParams])
-
+  const [modo, setModo] = useState<'login' | 'registro'>(tabInicial)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [cargando, setCargando] = useState(false)
-  const [mensajeError, setMensajeError] = useState('')
-  const [mensajeExito, setMensajeExito] = useState('')
+  const [mensaje, setMensaje] = useState<{ tipo: 'error' | 'exito'; texto: string } | null>(null)
 
-  const limpiarAvisos = () => {
-    setMensajeError('')
-    setMensajeExito('')
-  }
+  // Estado para el modal de recuperación
+  const [mostrarRecuperar, setMostrarRecuperar] = useState(false)
+  const [emailRecuperar, setEmailRecuperar] = useState('')
+  const [cargandoRecuperar, setCargandoRecuperar] = useState(false)
 
-  // 1. INICIAR SESIÓN
-  const handleLogin = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setMensaje(null)
     setCargando(true)
-    limpiarAvisos()
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    if (modo === 'login') {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
 
-    setCargando(false)
+      setCargando(false)
 
-    if (error) {
-      setMensajeError(
-        error.message === 'Invalid login credentials'
-          ? 'Correo o contraseña incorrectos.'
-          : error.message
-      )
-    } else if (data?.user) {
-      router.push('/admin')
-    }
-  }
-
-  // 2. CREAR CUENTA
-  const handleRegistro = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setCargando(true)
-    limpiarAvisos()
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/admin` : undefined
+      if (error) {
+        setMensaje({ tipo: 'error', texto: error.message })
+        return
       }
-    })
 
-    setCargando(false)
-
-    if (error) {
-      setMensajeError(error.message)
-    } else {
-      if (data.session) {
-        router.push('/admin')
+      if (data.user?.email === 'braiandsoria@gmail.com') {
+        router.push('/superadmin')
       } else {
-        setMensajeExito('¡Cuenta creada! Te enviamos un email para confirmar tu cuenta.')
+        router.push('/admin')
+      }
+    } else {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password
+      })
+
+      setCargando(false)
+
+      if (error) {
+        setMensaje({ tipo: 'error', texto: error.message })
+        return
+      }
+
+      if (data.session) {
+        if (data.user?.email === 'braiandsoria@gmail.com') {
+          router.push('/superadmin')
+        } else {
+          router.push('/admin')
+        }
+      } else {
+        setMensaje({
+          tipo: 'exito',
+          texto: 'Cuenta creada. Revisá tu bandeja de correo para confirmar el registro si tenés la confirmación activada.'
+        })
       }
     }
   }
 
-  // 3. RECUPERAR CONTRASEÑA
-  const handleRecuperar = async (e: React.FormEvent) => {
+  async function handleSolicitarRecuperacion(e: React.FormEvent) {
     e.preventDefault()
-    setCargando(true)
-    limpiarAvisos()
+    setCargandoRecuperar(true)
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/admin` : undefined,
+    const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://facilapp-seven.vercel.app'
+
+    const { error } = await supabase.auth.resetPasswordForEmail(emailRecuperar, {
+      redirectTo: `${siteUrl}/recuperar-clave`
     })
 
-    setCargando(false)
+    setCargandoRecuperar(false)
 
     if (error) {
-      setMensajeError(error.message)
+      alert('Error al enviar correo: ' + error.message)
     } else {
-      setMensajeExito('Te enviamos un correo con las instrucciones para restablecer tu contraseña.')
+      alert(`Te enviamos un enlace de recuperación a ${emailRecuperar}. Revisá tu casilla de entrada y spam.`)
+      setMostrarRecuperar(false)
+      setEmailRecuperar('')
     }
   }
 
   return (
-    <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-      
-      {/* Encabezado dinámico */}
-      <div className="text-center space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center mx-auto text-indigo-400">
-          {modo === 'login' && <Lock className="w-6 h-6" />}
-          {modo === 'registro' && <UserPlus className="w-6 h-6" />}
-          {modo === 'recuperar' && <KeyRound className="w-6 h-6" />}
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-black text-white">FacilApp</h1>
+          <p className="text-xs text-slate-400 mt-1">Gestión de turnos y suscripciones</p>
         </div>
-        <h1 className="text-xl font-black text-white">
-          {modo === 'login' && 'Iniciar Sesión'}
-          {modo === 'registro' && 'Crear Cuenta'}
-          {modo === 'recuperar' && 'Recuperar Clave'}
-        </h1>
-        <p className="text-xs text-slate-400">
-          {modo === 'login' && 'Ingresá a tu panel de control de FacilApp'}
-          {modo === 'registro' && 'Comenzá tu prueba gratuita de 10 días'}
-          {modo === 'recuperar' && 'Ingresá tu correo para recibir el enlace'}
-        </p>
-      </div>
 
-      {/* Tarjeta destacada con el precio (visible solo en registro) */}
-      {modo === 'registro' && (
-        <div className="bg-indigo-950/50 border border-indigo-500/40 rounded-2xl p-4 text-center space-y-1 shadow-inner">
-          <div className="flex items-center justify-center gap-1.5 text-indigo-300 text-[11px] font-bold uppercase tracking-wider">
-            <Tag className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Plan Todo Incluido</span>
+        {/* Selector de pestañas */}
+        <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 mb-6">
+          <button
+            type="button"
+            onClick={() => { setModo('login'); setMensaje(null) }}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
+              modo === 'login' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Iniciar Sesión
+          </button>
+          <button
+            type="button"
+            onClick={() => { setModo('registro'); setMensaje(null) }}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
+              modo === 'registro' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Registrarse
+          </button>
+        </div>
+
+        {mensaje && (
+          <div
+            className={`p-3 rounded-xl text-xs mb-4 border ${
+              mensaje.tipo === 'error'
+                ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+            }`}
+          >
+            {mensaje.texto}
           </div>
-          <div className="text-2xl font-black text-emerald-400 tracking-tight">
-            $13.800 <span className="text-xs font-semibold text-slate-400">/ mes</span>
-          </div>
-          <p className="text-[10px] text-slate-400 font-medium pt-0.5">
-            10 días gratis • Sin tarjetas de crédito para registrarte
-          </p>
-        </div>
-      )}
+        )}
 
-      {/* Mensajes de feedback */}
-      {mensajeError && (
-        <div className="bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs p-3 rounded-xl text-center">
-          {mensajeError}
-        </div>
-      )}
-
-      {mensajeExito && (
-        <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs p-3 rounded-xl text-center flex items-center justify-center gap-1.5">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          <span>{mensajeExito}</span>
-        </div>
-      )}
-
-      {/* Formulario */}
-      <form 
-        onSubmit={
-          modo === 'login' 
-            ? handleLogin 
-            : modo === 'registro' 
-            ? handleRegistro 
-            : handleRecuperar
-        } 
-        className="space-y-4"
-      >
-        <div>
-          <label className="block text-[11px] font-bold text-slate-400 mb-1">Email</label>
-          <div className="relative">
-            <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3.5" />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Correo electrónico</label>
             <input
               type="email"
-              placeholder="admin@tunegocio.com"
+              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-white focus:outline-none focus:border-indigo-500"
-              required
+              placeholder="tu@correo.com"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
             />
           </div>
-        </div>
 
-        {modo !== 'recuperar' && (
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="block text-[11px] font-bold text-slate-400">Contraseña</label>
+              <label className="block text-xs font-semibold text-slate-300">Contraseña</label>
               {modo === 'login' && (
                 <button
                   type="button"
                   onClick={() => {
-                    limpiarAvisos()
-                    setModo('recuperar')
+                    setEmailRecuperar(email)
+                    setMostrarRecuperar(true)
                   }}
-                  className="text-[10px] text-indigo-400 hover:underline"
+                  className="text-[11px] text-indigo-400 hover:underline"
                 >
-                  ¿Olvidaste tu clave?
+                  ¿Olvidaste tu contraseña?
                 </button>
               )}
             </div>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3.5" />
-              <input
-                type="password"
-                placeholder="Mínimo 6 caracteres"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-white focus:outline-none focus:border-indigo-500"
-                minLength={6}
-                required
-              />
-            </div>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+            />
           </div>
-        )}
 
-        <button
-          type="submit"
-          disabled={cargando}
-          className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 disabled:opacity-50"
-        >
-          <span>
-            {cargando 
-              ? 'Procesando...' 
-              : modo === 'login' 
-              ? 'Ingresar al Panel' 
-              : modo === 'registro' 
-              ? 'Registrarme' 
-              : 'Enviar enlace al correo'}
-          </span>
-          <ArrowRight className="w-4 h-4" />
-        </button>
-      </form>
-
-      {/* Alternar modos */}
-      <div className="pt-2 text-center border-t border-slate-800 space-y-2">
-        {modo === 'login' ? (
-          <p className="text-xs text-slate-400">
-            ¿No tenés una cuenta?{' '}
-            <button
-              type="button"
-              onClick={() => {
-                limpiarAvisos()
-                setModo('registro')
-              }}
-              className="text-indigo-400 font-bold hover:underline"
-            >
-              Registrate acá
-            </button>
-          </p>
-        ) : (
-          <p className="text-xs text-slate-400">
-            ¿Ya tenés cuenta?{' '}
-            <button
-              type="button"
-              onClick={() => {
-                limpiarAvisos()
-                setModo('login')
-              }}
-              className="text-indigo-400 font-bold hover:underline"
-            >
-              Iniciá sesión
-            </button>
-          </p>
-        )}
-
-        <p className="text-[11px] text-slate-500 flex items-center justify-center gap-1 pt-1">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          Acceso seguro con Supabase Auth
-        </p>
+          <button
+            type="submit"
+            disabled={cargando}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-lg mt-2"
+          >
+            {cargando ? 'Procesando...' : modo === 'login' ? 'Entrar a mi panel' : 'Crear mi cuenta'}
+          </button>
+        </form>
       </div>
 
-    </div>
-  )
-}
+      {/* Modal para solicitar recuperación */}
+      {mostrarRecuperar && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm space-y-4">
+            <h3 className="text-base font-bold text-white">Recuperar contraseña</h3>
+            <p className="text-xs text-slate-400">
+              Ingresá tu correo electrónico registrado y te enviaremos un enlace para cambiar tu contraseña.
+            </p>
 
-export default function AuthPage() {
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
-      <Suspense fallback={<div className="text-xs text-slate-500">Cargando...</div>}>
-        <AuthContent />
-      </Suspense>
+            <form onSubmit={handleSolicitarRecuperacion} className="space-y-4">
+              <div>
+                <label className="block text-xs text-slate-300 mb-1">Correo electrónico</label>
+                <input
+                  type="email"
+                  required
+                  value={emailRecuperar}
+                  onChange={(e) => setEmailRecuperar(e.target.value)}
+                  placeholder="tu@correo.com"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setMostrarRecuperar(false)}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={cargandoRecuperar}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold"
+                >
+                  {cargandoRecuperar ? 'Enviando...' : 'Enviar enlace'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

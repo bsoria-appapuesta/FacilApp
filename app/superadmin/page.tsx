@@ -23,8 +23,8 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// REEMPLAZÁ CON TU EMAIL EXACTO CON EL QUE INICIÁS SESIÓN
-const SUPERADMIN_EMAIL = 'admin@facilapp.com'
+// TU EMAIL COMO SUPERADMIN
+const SUPERADMIN_EMAIL = 'braiandsoria@gmail.com'
 
 export default function SuperAdminPage() {
   const router = useRouter()
@@ -48,8 +48,7 @@ export default function SuperAdminPage() {
       return
     }
 
-    // Validación de seguridad por email
-    if (SUPERADMIN_EMAIL !== 'admin@facilapp.com' && user.email !== SUPERADMIN_EMAIL) {
+    if (user.email !== SUPERADMIN_EMAIL) {
       alert('Acceso restringido: No tenés permisos de Superadmin.')
       router.push('/admin')
       return
@@ -73,13 +72,11 @@ export default function SuperAdminPage() {
     }
   }
 
-  // SUMAR 30 DÍAS AL VENCIMIENTO
   async function handleExtender30Dias(negocio: any) {
     if (!confirm(`¿Confirmás el pago y la extensión de 30 días para "${negocio.nombre}"?`)) return
 
     setProcesandoAccion(true)
 
-    // Si ya tiene una fecha futura de vencimiento, le sumamos desde ahí; si no, desde hoy
     const fechaBase = negocio.fecha_vencimiento && new Date(negocio.fecha_vencimiento) > new Date()
       ? new Date(negocio.fecha_vencimiento)
       : new Date()
@@ -104,7 +101,6 @@ export default function SuperAdminPage() {
     }
   }
 
-  // SUSPENDER CUENTA
   async function handleSuspender(negocioId: string) {
     if (!confirm('¿Seguro que querés suspender este negocio? Su panel quedará bloqueado hasta nuevo pago.')) return
 
@@ -138,7 +134,6 @@ export default function SuperAdminPage() {
 
   if (!esAutorizado) return null
 
-  // FILTRADO Y MÉTRICAS
   const hoy = new Date()
 
   const negociosConDias = negocios.map(n => {
@@ -175,7 +170,7 @@ export default function SuperAdminPage() {
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* ENCABEZADO SUPERADMIN */}
+        {/* ENCABEZADO */}
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl flex justify-between items-center flex-wrap gap-4 shadow-xl">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
@@ -183,7 +178,7 @@ export default function SuperAdminPage() {
             </div>
             <div>
               <h1 className="text-xl font-black text-white">Panel Maestro • FacilApp</h1>
-              <p className="text-xs text-slate-400">Gestión global de negocios, pagos y suscripciones</p>
+              <p className="text-xs text-slate-400">Sesión iniciada como: {SUPERADMIN_EMAIL}</p>
             </div>
           </div>
 
@@ -205,7 +200,7 @@ export default function SuperAdminPage() {
           </div>
         </div>
 
-        {/* MÉTRICAS GENERALES */}
+        {/* MÉTRICAS */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Negocios</span>
@@ -230,7 +225,7 @@ export default function SuperAdminPage() {
           </div>
         </div>
 
-        {/* BARRA DE FILTROS Y BÚSQUEDA */}
+        {/* BÚSQUEDA Y FILTROS */}
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex justify-between items-center flex-wrap gap-3">
           <div className="relative flex-1 min-w-[240px]">
             <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
@@ -271,7 +266,7 @@ export default function SuperAdminPage() {
           </div>
         </div>
 
-        {/* TABLA PRINCIPAL DE NEGOCIOS */}
+        {/* TABLA DE NEGOCIOS */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
