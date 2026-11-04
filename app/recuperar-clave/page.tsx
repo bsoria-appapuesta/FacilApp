@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 
@@ -8,7 +8,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-export default function RecuperarClavePage() {
+function FormularioRecuperar() {
   const router = useRouter()
   const [nuevaPassword, setNuevaPassword] = useState('')
   const [confirmarPassword, setConfirmarPassword] = useState('')
@@ -16,23 +16,39 @@ export default function RecuperarClavePage() {
   const [mensaje, setMensaje] = useState<{ tipo: 'error' | 'exito'; texto: string } | null>(null)
 
   useEffect(() => {
-    // Verifica si la URL contiene el token de recuperación de Supabase
     supabase.auth.onAuthStateChange(async (event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setMensaje({
           tipo: 'exito',
-          texto: 'Enlace verificado. Por favor ingresá tu nueva contraseña.'
+          texto: 'Enlace verificado. Ingresá tu nueva contraseña.'
         })
       }
     })
   }, [])
 
+  function validarContrasena(pass: string): string | null {
+    if (pass.length < 8) {
+      return 'La contraseña debe tener al menos 8 caracteres.'
+    }
+    if (!/[A-Z]/.test(pass)) {
+      return 'La contraseña debe contener al menos una letra mayúscula.'
+    }
+    if (!/[a-z]/.test(pass)) {
+      return 'La contraseña debe contener al menos una letra minúscula.'
+    }
+    if (!/[0-9]/.test(pass)) {
+      return 'La contraseña debe contener al menos un número.'
+    }
+    return null
+  }
+
   async function handleCambiarClave(e: React.FormEvent) {
     e.preventDefault()
     setMensaje(null)
 
-    if (nuevaPassword.length < 6) {
-      setMensaje({ tipo: 'error', texto: 'La contraseña debe tener al menos 6 caracteres.' })
+    const errorClave = validarContrasena(nuevaPassword)
+    if (errorClave) {
+      setMensaje({ tipo: 'error', texto: errorClave })
       return
     }
 
@@ -83,9 +99,12 @@ export default function RecuperarClavePage() {
               required
               value={nuevaPassword}
               onChange={(e) => setNuevaPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mín. 8 caracteres, mayúscula y número"
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
             />
+            <p className="text-[10px] text-slate-500 mt-1">
+              Debe incluir mínimo 8 caracteres, una mayúscula, una minúscula y un número.
+            </p>
           </div>
 
           <div>
@@ -110,5 +129,17 @@ export default function RecuperarClavePage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function RecuperarClavePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <p className="text-xs text-slate-500">Cargando...</p>
+      </div>
+    }>
+      <FormularioRecuperar />
+    </Suspense>
   )
 }

@@ -35,6 +35,26 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// Función para normalizar números a formato internacional de WhatsApp (Argentina / General)
+function formatearNumeroWhatsApp(telefono: string): string {
+  let limpio = (telefono || '').replace(/\D/g, '')
+  if (!limpio) return ''
+
+  if (limpio.startsWith('0')) {
+    limpio = limpio.substring(1)
+  }
+
+  if (limpio.length === 10) {
+    return `549${limpio}`
+  }
+
+  if (limpio.length === 12 && limpio.startsWith('54') && !limpio.startsWith('549')) {
+    return `549${limpio.substring(2)}`
+  }
+
+  return limpio
+}
+
 export default function PaginaNegocioDinamica() {
   const params = useParams()
   const slugParam = params?.slug as string
@@ -238,7 +258,7 @@ export default function PaginaNegocioDinamica() {
       alert('Error al guardar la reserva: ' + error.message)
     } else {
       setExito(true)
-      const celDestino = (negocio.whatsapp || '').replace(/\D/g, '')
+      const celDestino = formatearNumeroWhatsApp(negocio.whatsapp || '')
       const msg = `¡Hola ${negocio.nombre}! 👋%0AMi nombre es *${nombre}*.%0A%0AQuiero reservar:%0A📌 *Servicio:* ${servicioSel.nombre}%0A📅 *Fecha:* ${fecha}%0A⏰ *Hora:* ${hora} hs%0A💰 *Precio:* $${servicioSel.precio}%0A%0A¿Me confirmás el turno?`
       setLinkWa(`https://wa.me/${celDestino}?text=${msg}`)
     }
@@ -298,21 +318,25 @@ export default function PaginaNegocioDinamica() {
   const fondoCartaUrl = negocio?.fondo_carta_url || ''
   const bordes = negocio?.bordes_redondeados || 'rounded-3xl'
 
+  const estiloRedes = negocio?.estilo_redes || 'tarjetas'
+  const colorRedes = negocio?.color_redes || '#ffffff'
+
   const clasesTamanoFuente = {
     chico: 'text-xs',
     mediano: 'text-sm',
     grande: 'text-base'
   }[negocio?.tamano_fuente as 'chico' | 'mediano' | 'grande'] || 'text-sm'
 
-  const getRedSocialIcon = (tipo: string) => {
+  const getRedSocialIcon = (tipo: string, soloIcono = false) => {
+    const claseIcono = soloIcono ? 'w-5 h-5' : 'w-5 h-5'
     switch (tipo.toLowerCase()) {
-      case 'whatsapp': return <FaWhatsapp className="w-5 h-5 text-emerald-500" />
-      case 'instagram': return <FaInstagram className="w-5 h-5 text-pink-500" />
-      case 'tiktok': return <FaTiktok className="w-5 h-5 text-slate-900" />
-      case 'facebook': return <FaFacebook className="w-5 h-5 text-blue-600" />
-      case 'linkedin': return <FaLinkedin className="w-5 h-5 text-sky-600" />
-      case 'youtube': return <FaYoutube className="w-5 h-5 text-rose-600" />
-      default: return <Globe className="w-5 h-5 text-indigo-500" />
+      case 'whatsapp': return <FaWhatsapp className={`${claseIcono} text-emerald-500`} />
+      case 'instagram': return <FaInstagram className={`${claseIcono} text-pink-500`} />
+      case 'tiktok': return <FaTiktok className={`${claseIcono} text-slate-900`} />
+      case 'facebook': return <FaFacebook className={`${claseIcono} text-blue-600`} />
+      case 'linkedin': return <FaLinkedin className={`${claseIcono} text-sky-600`} />
+      case 'youtube': return <FaYoutube className={`${claseIcono} text-rose-600`} />
+      default: return <Globe className={`${claseIcono} text-indigo-500`} />
     }
   }
 
@@ -410,32 +434,53 @@ export default function PaginaNegocioDinamica() {
             </div>
           </div>
 
-          {/* REDES SOCIALES */}
-          <div className="space-y-3 mb-6">
-            {redesList.map((red) => (
-              <a
-                key={red.id}
-                href={red.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`w-full bg-white/90 hover:bg-white text-slate-900 border border-black/10 p-3.5 flex items-center justify-between shadow-sm transition-all active:scale-[0.99] ${bordes}`}
-              >
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-                    {getRedSocialIcon(red.plataforma || 'web')}
-                  </div>
-                  <div className="text-left overflow-hidden">
-                    <span className="font-extrabold block leading-tight truncate">
-                      {red.nombreRed || 'Red Social'}
-                    </span>
-                    <span className="text-xs text-slate-500 block truncate font-medium">
-                      {red.usuarioODetalle}
-                    </span>
-                  </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-slate-400 shrink-0" />
-              </a>
-            ))}
+          {/* REDES SOCIALES (MODO TARJETAS O MODO SOLO ICONOS) */}
+          <div className="mb-6">
+            {estiloRedes === 'solo_iconos' ? (
+              <div className="flex flex-wrap items-center justify-center gap-2.5 py-1">
+                {redesList.map((red) => (
+                  <a
+                    key={red.id}
+                    href={red.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ backgroundColor: colorRedes }}
+                    className="w-12 h-12 rounded-2xl border border-black/10 flex items-center justify-center shadow-sm hover:scale-110 active:scale-95 transition-all"
+                    title={red.nombreRed || 'Red Social'}
+                  >
+                    {getRedSocialIcon(red.plataforma || 'web', true)}
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {redesList.map((red) => (
+                  <a
+                    key={red.id}
+                    href={red.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ backgroundColor: colorRedes }}
+                    className={`w-full text-slate-900 border border-black/10 p-3.5 flex items-center justify-between shadow-sm transition-all active:scale-[0.99] hover:opacity-95 ${bordes}`}
+                  >
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                        {getRedSocialIcon(red.plataforma || 'web')}
+                      </div>
+                      <div className="text-left overflow-hidden">
+                        <span className="font-extrabold block leading-tight truncate">
+                          {red.nombreRed || 'Red Social'}
+                        </span>
+                        <span className="text-xs text-slate-500 block truncate font-medium">
+                          {red.usuarioODetalle}
+                        </span>
+                      </div>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-slate-400 shrink-0" />
+                  </a>
+                ))}
+              </div>
+            )}
 
             <button
               onClick={() => setSeccionAbierta(seccionAbierta === 'turnos' ? null : 'turnos')}
@@ -676,7 +721,7 @@ export default function PaginaNegocioDinamica() {
               className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-2xl shadow transition"
             >
               <span>Creá tu página con FacilApp</span>
-              <ExternalLink className="w-3 h-3 text-slate-400" />
+              <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
             </Link>
           </div>
 
@@ -721,7 +766,7 @@ export default function PaginaNegocioDinamica() {
               </button>
 
               <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(urlActual)}`}
+                href={`https://facebook.com/sharer/sharer.php?u=${encodeURIComponent(urlActual)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-3 bg-blue-50 text-blue-800 border border-blue-200 rounded-2xl flex items-center gap-2 font-bold text-xs hover:bg-blue-100 transition"

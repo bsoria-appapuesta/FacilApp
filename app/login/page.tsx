@@ -31,9 +31,35 @@ function LoginContent() {
   const [emailRecuperar, setEmailRecuperar] = useState('')
   const [cargandoRecuperar, setCargandoRecuperar] = useState(false)
 
+  // Validación de requisitos de seguridad para contraseñas
+  function validarContrasena(pass: string): string | null {
+    if (pass.length < 8) {
+      return 'La contraseña debe tener al menos 8 caracteres.'
+    }
+    if (!/[A-Z]/.test(pass)) {
+      return 'La contraseña debe contener al menos una letra mayúscula.'
+    }
+    if (!/[a-z]/.test(pass)) {
+      return 'La contraseña debe contener al menos una letra minúscula.'
+    }
+    if (!/[0-9]/.test(pass)) {
+      return 'La contraseña debe contener al menos un número.'
+    }
+    return null
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setMensaje(null)
+
+    if (modo === 'registro') {
+      const errorClave = validarContrasena(password)
+      if (errorClave) {
+        setMensaje({ tipo: 'error', texto: errorClave })
+        return
+      }
+    }
+
     setCargando(true)
 
     if (modo === 'login') {
@@ -55,9 +81,14 @@ function LoginContent() {
         router.push('/admin')
       }
     } else {
+      const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://facilapp-seven.vercel.app'
+
       const { data, error } = await supabase.auth.signUp({
         email,
-        password
+        password,
+        options: {
+          emailRedirectTo: `${siteUrl}/auth/callback`
+        }
       })
 
       setCargando(false)
@@ -76,7 +107,7 @@ function LoginContent() {
       } else {
         setMensaje({
           tipo: 'exito',
-          texto: 'Cuenta creada. Revisá tu casilla de correo para confirmar el acceso.'
+          texto: 'Te enviamos un correo de confirmación. Hacé clic en el enlace para activar tu cuenta e ingresar.'
         })
       }
     }
@@ -117,10 +148,10 @@ function LoginContent() {
         <div className="bg-slate-950 border border-indigo-500/30 rounded-2xl p-4 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
-              <Sparkles className="w-3 h-3" /> Prueba Gratis: 10 Días
+              <Sparkles className="w-3.5 h-3.5" /> Prueba Gratis: 10 Días
             </span>
             <span className="text-xs font-black text-white">
-              $13.800 <span className="text-[10px] text-slate-400 font-normal">/ mes</span>
+              $15.000 <span className="text-[10px] text-slate-400 font-normal">/ mes</span>
             </span>
           </div>
 
@@ -218,9 +249,14 @@ function LoginContent() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder={modo === 'registro' ? 'Mín. 8 caracteres, mayúscula y número' : '••••••••'}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
             />
+            {modo === 'registro' && (
+              <p className="text-[10px] text-slate-500 mt-1">
+                Debe incluir mínimo 8 caracteres, una mayúscula, una minúscula y un número.
+              </p>
+            )}
           </div>
 
           <button
@@ -237,7 +273,7 @@ function LoginContent() {
         </form>
 
         <p className="text-[10px] text-center text-slate-500 leading-relaxed pt-1">
-          Al registrarte aceptás las condiciones de servicio. Renovación voluntaria de $13.800/mes tras los 10 días de prueba.
+          Al registrarte aceptás las condiciones de servicio. Renovación voluntaria de $15.000/mes tras los 10 días de prueba.
         </p>
       </div>
 

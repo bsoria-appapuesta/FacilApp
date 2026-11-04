@@ -164,7 +164,7 @@ export default function SuperAdminPage() {
   const totalActivos = negociosConDias.filter(n => n.estado === 'activo' && !n.estaVencido).length
   const totalPrueba = negociosConDias.filter(n => n.estado === 'prueba' && !n.estaVencido).length
   const totalVencidos = negociosConDias.filter(n => n.estaVencido).length
-  const ingresoMensualEstimado = totalActivos * 13800
+  const ingresoMensualEstimado = totalActivos * 15000
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8">
@@ -219,7 +219,7 @@ export default function SuperAdminPage() {
 
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1">
-              <DollarSign className="w-3 h-3" /> MRR Estimado
+              <DollarSign className="w-3.5 h-3.5" /> MRR Estimado
             </span>
             <p className="text-2xl font-black text-indigo-400">${ingresoMensualEstimado.toLocaleString()}</p>
           </div>

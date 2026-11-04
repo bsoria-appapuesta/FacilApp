@@ -53,7 +53,27 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey)
 // CONFIGURACIÓN DE COBRO Y CONTACTO
 const ALIAS_TRANSFERENCIA = 'facil.app.27'
 const NUMERO_WHATSAPP_SOPORTE = '5491150189781'
-const PRECIO_SUSCRIPCION = 13800
+const PRECIO_SUSCRIPCION = 15000
+
+// Normalización automática para que nunca falte el código de país
+function formatearNumeroWhatsApp(telefono: string): string {
+  let limpio = (telefono || '').replace(/\D/g, '')
+  if (!limpio) return ''
+
+  if (limpio.startsWith('0')) {
+    limpio = limpio.substring(1)
+  }
+
+  if (limpio.length === 10) {
+    return `549${limpio}`
+  }
+
+  if (limpio.length === 12 && limpio.startsWith('54') && !limpio.startsWith('549')) {
+    return `549${limpio.substring(2)}`
+  }
+
+  return limpio
+}
 
 interface RedItem {
   id: string
@@ -141,6 +161,10 @@ export default function AdminPage() {
   const [redNombre, setRedNombre] = useState('Instagram')
   const [redUsuario, setRedUsuario] = useState('')
   const [redUrl, setRedUrl] = useState('')
+
+  // NUEVOS AJUSTES PARA REDES
+  const [estiloRedes, setEstiloRedes] = useState<'tarjetas' | 'solo_iconos'>('tarjetas')
+  const [colorRedes, setColorRedes] = useState('#ffffff')
 
   const [colorPrincipal, setColorPrincipal] = useState('#6366f1')
   const [colorFondo, setColorFondo] = useState('#0f172a')
@@ -252,6 +276,8 @@ export default function AdminPage() {
             tipo_fuente: 'Plus Jakarta Sans',
             tamano_fuente: 'mediano',
             redes_sociales: [],
+            estilo_redes: 'tarjetas',
+            color_redes: '#ffffff',
             color_principal: '#6366f1',
             color_fondo: '#0f172a',
             color_carta: '#ffffff',
@@ -302,6 +328,9 @@ export default function AdminPage() {
     if (Array.isArray(negData.redes_sociales)) {
       setRedes(negData.redes_sociales)
     }
+
+    setEstiloRedes(negData.estilo_redes || 'tarjetas')
+    setColorRedes(negData.color_redes || '#ffffff')
 
     setColorPrincipal(negData.color_principal || '#6366f1')
     setColorFondo(negData.color_fondo || '#0f172a')
@@ -395,9 +424,9 @@ export default function AdminPage() {
   }
 
   function avisarWhatsApp(turno: any, accion: 'confirmar' | 'reprogramar' | 'cancelar', nuevaFecha = '', nuevaHora = '') {
-    const celular = turno.cliente_whatsapp?.replace(/\D/g, '') || ''
+    const celular = formatearNumeroWhatsApp(turno.cliente_whatsapp || '')
     if (!celular) {
-      alert('El cliente no tiene un teléfono de WhatsApp registrado.')
+      alert('El cliente no tiene un teléfono de WhatsApp válido registrado.')
       return
     }
 
@@ -577,7 +606,10 @@ export default function AdminPage() {
 
     let urlFinal = redUrl.trim()
     if (!urlFinal) {
-      if (redPlataforma === 'whatsapp') urlFinal = `https://wa.me/${redUsuario.replace(/\D/g, '')}`
+      if (redPlataforma === 'whatsapp') {
+        const telNorm = formatearNumeroWhatsApp(redUsuario)
+        urlFinal = `https://wa.me/${telNorm}`
+      }
       else if (redPlataforma === 'instagram') urlFinal = `https://instagram.com/${redUsuario.replace('@', '')}`
       else if (redPlataforma === 'tiktok') urlFinal = `https://tiktok.com/@${redUsuario.replace('@', '')}`
       else if (redPlataforma === 'facebook') urlFinal = `https://facebook.com/${redUsuario}`
@@ -652,6 +684,8 @@ export default function AdminPage() {
         tipo_fuente: tipoFuente,
         tamano_fuente: tamanoFuente,
         redes_sociales: redes,
+        estilo_redes: estiloRedes,
+        color_redes: colorRedes,
         color_principal: colorPrincipal,
         color_fondo: colorFondo,
         color_carta: colorCarta,
@@ -1841,10 +1875,42 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* REDES SOCIALES */}
+              {/* REDES SOCIALES (CON FORMATO Y COLOR PERSONALIZADO) */}
               <div className="border-t border-slate-800 pt-4 space-y-3">
-                <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Enlaces de Redes Sociales</h3>
+                <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Enlaces & Diseño de Redes Sociales</h3>
                 
+                {/* CONFIGURACIÓN VISUAL DE REDES */}
+                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Diseño de visualización</label>
+                    <select
+                      value={estiloRedes}
+                      onChange={(e) => setEstiloRedes(e.target.value as 'tarjetas' | 'solo_iconos')}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                    >
+                      <option value="tarjetas">Lista en tarjetas (con nombre y usuario)</option>
+                      <option value="solo_iconos">Fila de solo iconos (compacto)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Color fondo de los botones</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={colorRedes}
+                        onChange={(e) => setColorRedes(e.target.value)}
+                        className="w-12 h-9 bg-slate-900 border border-slate-700 rounded-xl cursor-pointer shrink-0"
+                      />
+                      <input
+                        type="text"
+                        value={colorRedes}
+                        onChange={(e) => setColorRedes(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <div>
@@ -1984,16 +2050,36 @@ export default function AdminPage() {
                       <p className="text-[10px] opacity-80" style={{ color: colorTexto }}>{ubicacion || 'Tu Ubicación'}</p>
                       <p className="text-[10px] mt-1 opacity-80" style={{ color: colorTexto }}>{descripcion || 'Descripción del negocio'}</p>
 
-                      <div className="mt-4 space-y-2">
-                        {redes.map(r => (
-                          <div key={r.id} className="bg-white/90 border border-black/10 p-2 rounded-xl flex items-center justify-between text-[11px] font-bold text-slate-800">
-                            <div className="flex items-center gap-2">
-                              {renderIconoRed(r.plataforma)}
-                              <span>{r.nombreRed}</span>
-                            </div>
-                            <span className="text-slate-400">›</span>
+                      <div className="mt-4">
+                        {estiloRedes === 'solo_iconos' ? (
+                          <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
+                            {redes.map(r => (
+                              <div
+                                key={r.id}
+                                style={{ backgroundColor: colorRedes }}
+                                className="w-9 h-9 rounded-xl border border-black/10 flex items-center justify-center shadow-sm"
+                              >
+                                {renderIconoRed(r.plataforma)}
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        ) : (
+                          <div className="space-y-2 mb-3">
+                            {redes.map(r => (
+                              <div
+                                key={r.id}
+                                style={{ backgroundColor: colorRedes }}
+                                className="border border-black/10 p-2 rounded-xl flex items-center justify-between text-[11px] font-bold text-slate-800"
+                              >
+                                <div className="flex items-center gap-2">
+                                  {renderIconoRed(r.plataforma)}
+                                  <span>{r.nombreRed}</span>
+                                </div>
+                                <span className="text-slate-400">›</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
 
                         <div 
                           style={{ backgroundColor: colorPrincipal, color: '#ffffff' }}
