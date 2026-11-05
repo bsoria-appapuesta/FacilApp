@@ -1,120 +1,79 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
+import { Lock, CheckCircle2 } from 'lucide-react'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+)
 
-function FormularioRecuperar() {
+export default function RecuperarClavePage() {
   const router = useRouter()
-  const [nuevaPassword, setNuevaPassword] = useState('')
-  const [confirmarPassword, setConfirmarPassword] = useState('')
+  const [password, setPassword] = useState('')
   const [cargando, setCargando] = useState(false)
   const [mensaje, setMensaje] = useState<{ tipo: 'error' | 'exito'; texto: string } | null>(null)
-
-  useEffect(() => {
-    supabase.auth.onAuthStateChange(async (event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setMensaje({
-          tipo: 'exito',
-          texto: 'Enlace verificado. Ingresá tu nueva contraseña.'
-        })
-      }
-    })
-  }, [])
-
-  function validarContrasena(pass: string): string | null {
-    if (pass.length < 8) {
-      return 'La contraseña debe tener al menos 8 caracteres.'
-    }
-    if (!/[A-Z]/.test(pass)) {
-      return 'La contraseña debe contener al menos una letra mayúscula.'
-    }
-    if (!/[a-z]/.test(pass)) {
-      return 'La contraseña debe contener al menos una letra minúscula.'
-    }
-    if (!/[0-9]/.test(pass)) {
-      return 'La contraseña debe contener al menos un número.'
-    }
-    return null
-  }
 
   async function handleCambiarClave(e: React.FormEvent) {
     e.preventDefault()
     setMensaje(null)
 
-    const errorClave = validarContrasena(nuevaPassword)
-    if (errorClave) {
-      setMensaje({ tipo: 'error', texto: errorClave })
-      return
-    }
-
-    if (nuevaPassword !== confirmarPassword) {
-      setMensaje({ tipo: 'error', texto: 'Las contraseñas no coinciden.' })
+    if (password.length < 8) {
+      setMensaje({ tipo: 'error', texto: 'La nueva contraseña debe tener al menos 8 caracteres.' })
       return
     }
 
     setCargando(true)
 
-    const { error } = await supabase.auth.updateUser({
-      password: nuevaPassword
-    })
+    const { error } = await supabase.auth.updateUser({ password })
 
     setCargando(false)
 
     if (error) {
-      setMensaje({ tipo: 'error', texto: error.message })
+      setMensaje({ tipo: 'error', texto: 'No se pudo actualizar la contraseña o el enlace expiró.' })
     } else {
-      alert('¡Tu contraseña se actualizó correctamente! Ya podés iniciar sesión.')
-      router.push('/login')
+      setMensaje({ tipo: 'exito', texto: '¡Contraseña actualizada con éxito! Redirigiendo a tu panel...' })
+      setTimeout(() => {
+        router.push('/admin')
+      }, 2000)
     }
   }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
-        <h1 className="text-xl font-black text-white text-center mb-1">Restablecer Contraseña</h1>
-        <p className="text-xs text-slate-400 text-center mb-6">Ingresá tu nueva clave para actualizar el acceso.</p>
+      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5">
+        <div className="text-center space-y-1">
+          <div className="w-12 h-12 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h1 className="text-2xl font-black text-white">Nueva contraseña</h1>
+          <p className="text-xs text-slate-400">Ingresá tu nueva clave para acceder a tu cuenta.</p>
+        </div>
 
         {mensaje && (
-          <div
-            className={`p-3 rounded-xl text-xs mb-4 border ${
-              mensaje.tipo === 'error'
-                ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-            }`}
-          >
-            {mensaje.texto}
+          <div className={`p-3.5 rounded-2xl text-xs border ${
+            mensaje.tipo === 'error'
+              ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 flex items-center gap-2'
+          }`}>
+            {mensaje.tipo === 'exito' && <CheckCircle2 className="w-4 h-4 shrink-0" />}
+            <span>{mensaje.texto}</span>
           </div>
         )}
 
         <form onSubmit={handleCambiarClave} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Nueva Contraseña</label>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">
+              Nueva contraseña
+            </label>
             <input
               type="password"
               required
-              value={nuevaPassword}
-              onChange={(e) => setNuevaPassword(e.target.value)}
-              placeholder="Mín. 8 caracteres, mayúscula y número"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
-            />
-            <p className="text-[10px] text-slate-500 mt-1">
-              Debe incluir mínimo 8 caracteres, una mayúscula, una minúscula y un número.
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Confirmar Nueva Contraseña</label>
-            <input
-              type="password"
-              required
-              value={confirmarPassword}
-              onChange={(e) => setConfirmarPassword(e.target.value)}
-              placeholder="Repetí la contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Mínimo 8 caracteres"
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
             />
           </div>
@@ -122,24 +81,12 @@ function FormularioRecuperar() {
           <button
             type="submit"
             disabled={cargando}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-lg mt-2"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg"
           >
-            {cargando ? 'Guardando cambios...' : 'Actualizar Contraseña'}
+            {cargando ? 'Guardando...' : 'Cambiar contraseña y entrar'}
           </button>
         </form>
       </div>
     </div>
-  )
-}
-
-export default function RecuperarClavePage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <p className="text-xs text-slate-500">Cargando...</p>
-      </div>
-    }>
-      <FormularioRecuperar />
-    </Suspense>
   )
 }

@@ -16,6 +16,30 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 })
 
+// Función para traducir los errores nativos de Supabase al español
+function traducirError(mensajeIngles: string): string {
+  const msg = mensajeIngles.toLowerCase()
+  if (msg.includes('invalid login credentials')) {
+    return 'Correo o contraseña incorrectos. Verificalos e intentá nuevamente.'
+  }
+  if (msg.includes('user already registered')) {
+    return 'Este correo ya tiene una cuenta registrada. Seleccioná "Iniciar Sesión".'
+  }
+  if (msg.includes('email rate limit exceeded')) {
+    return 'Se enviaron demasiados correos en poco tiempo. Por favor, esperá unos minutos.'
+  }
+  if (msg.includes('network request failed') || msg.includes('failed to fetch')) {
+    return 'Error de conexión. Revisá tu conexión a internet.'
+  }
+  if (msg.includes('password should be at least')) {
+    return 'La contraseña debe tener al menos 8 caracteres.'
+  }
+  if (msg.includes('email not confirmed')) {
+    return 'El correo no está confirmado todavía.'
+  }
+  return mensajeIngles // Retorna el mensaje original si no coincide con los patrones
+}
+
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -30,8 +54,8 @@ function LoginContent() {
   const [mostrarRecuperar, setMostrarRecuperar] = useState(false)
   const [emailRecuperar, setEmailRecuperar] = useState('')
   const [cargandoRecuperar, setCargandoRecuperar] = useState(false)
+  const [mensajeRecuperar, setMensajeRecuperar] = useState<{ tipo: 'error' | 'exito'; texto: string } | null>(null)
 
-  // Validación de requisitos de seguridad para contraseñas
   function validarContrasena(pass: string): string | null {
     if (pass.length < 8) {
       return 'La contraseña debe tener al menos 8 caracteres.'
@@ -71,7 +95,7 @@ function LoginContent() {
       setCargando(false)
 
       if (error) {
-        setMensaje({ tipo: 'error', texto: error.message })
+        setMensaje({ tipo: 'error', texto: traducirError(error.message) })
         return
       }
 
@@ -81,7 +105,6 @@ function LoginContent() {
         router.push('/admin')
       }
     } else {
-      // REGISTRO DIRECTO SIN CONFIRMACIÓN DE EMAIL
       const { data, error } = await supabase.auth.signUp({
         email,
         password
@@ -89,11 +112,10 @@ function LoginContent() {
 
       if (error) {
         setCargando(false)
-        setMensaje({ tipo: 'error', texto: error.message })
+        setMensaje({ tipo: 'error', texto: traducirError(error.message) })
         return
       }
 
-      // Si la sesión tarda unos milisegundos en poblarse, inicia sesión de inmediato
       if (!data.session) {
         await supabase.auth.signInWithPassword({
           email,
@@ -103,7 +125,6 @@ function LoginContent() {
 
       setCargando(false)
 
-      // Redirección inmediata según el tipo de usuario
       if (email === 'braiandsoria@gmail.com') {
         router.push('/superadmin')
       } else {
@@ -114,6 +135,7 @@ function LoginContent() {
 
   async function handleSolicitarRecuperacion(e: React.FormEvent) {
     e.preventDefault()
+    setMensajeRecuperar(null)
     setCargandoRecuperar(true)
 
     const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://facilapp-seven.vercel.app'
@@ -125,11 +147,15 @@ function LoginContent() {
     setCargandoRecuperar(false)
 
     if (error) {
-      alert('Error al enviar correo: ' + error.message)
+      setMensajeRecuperar({
+        tipo: 'error',
+        texto: traducirError(error.message)
+      })
     } else {
-      alert(`Te enviamos un enlace de recuperación a ${emailRecuperar}.`)
-      setMostrarRecuperar(false)
-      setEmailRecuperar('')
+      setMensajeRecuperar({
+        tipo: 'exito',
+        texto: `Si el correo ${emailRecuperar} está registrado, recibirás un enlace para cambiar tu contraseña en los próximos minutos.`
+      })
     }
   }
 
@@ -143,7 +169,7 @@ function LoginContent() {
           <p className="text-xs text-slate-400">Plataforma de turnos online y catálogo digital</p>
         </div>
 
-        {/* TARJETA DE PRECIO Y CONDICIONES (SIEMPRE VISIBLE) */}
+        {/* TARJETA DE PRECIO Y CONDICIONES */}
         <div className="bg-slate-950 border border-indigo-500/30 rounded-2xl p-4 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
@@ -235,6 +261,7 @@ function LoginContent() {
                   type="button"
                   onClick={() => {
                     setEmailRecuperar(email)
+                    setMensajeRecuperar(null)
                     setMostrarRecuperar(true)
                   }}
                   className="text-[11px] text-indigo-400 hover:underline"
@@ -284,8 +311,20 @@ function LoginContent() {
               <Lock className="w-4 h-4 text-indigo-400" /> Recuperar contraseña
             </h3>
             <p className="text-xs text-slate-400">
-              Ingresá tu correo electrónico registrado y te enviaremos el enlace para restablecerla.
+              Ingresá tu correo electrónico y te enviaremos el enlace para restablecerla.
             </p>
+
+            {mensajeRecuperar && (
+              <div
+                className={`p-3 rounded-xl text-xs border ${
+                  mensajeRecuperar.tipo === 'error'
+                    ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                }`}
+              >
+                {mensajeRecuperar.texto}
+              </div>
+            )}
 
             <form onSubmit={handleSolicitarRecuperacion} className="space-y-4">
               <div>
@@ -306,7 +345,7 @@ function LoginContent() {
                   onClick={() => setMostrarRecuperar(false)}
                   className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition"
                 >
-                  Cancelar
+                  Cerrar
                 </button>
                 <button
                   type="submit"
