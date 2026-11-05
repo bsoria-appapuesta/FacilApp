@@ -250,7 +250,7 @@ export default function AdminPage() {
       return
     }
 
-    let { data: negData } = await supabase
+    let { data: negData, error: errSelect } = await supabase
       .from('negocios')
       .select('*')
       .eq('user_id', user.id)
@@ -946,15 +946,21 @@ export default function AdminPage() {
         </div>
 
         <div className="pt-4 border-t border-slate-800 mt-6 md:mt-0 space-y-2">
-          <a
-            href={`/${slug || ''}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          {/* BOTÓN PÁGINA PÚBLICA CON VALIDACIÓN DE SLUG */}
+          <button
+            type="button"
+            onClick={() => {
+              if (!slug) {
+                alert('Aún no se ha cargado o configurado el enlace/slug de tu negocio. Completa y guarda tus datos en la pestaña "Datos & Redes".')
+                return
+              }
+              window.open(`/${slug}`, '_blank')
+            }}
             className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border border-slate-700 transition"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             <span>Ver Mi Página Pública</span>
-          </a>
+          </button>
 
           <button
             onClick={handleCerrarSesion}
@@ -1638,7 +1644,7 @@ export default function AdminPage() {
                     <img src={item.imagen_url} alt={item.titulo} className="w-full h-28 object-cover" />
                     <div className="p-2 space-y-0.5">
                       <p className="font-bold text-xs text-white truncate">{item.titulo}</p>
-                      {item.precio && <p className="text-xs text-emerald-400 font-black">${item.precio}</p>}
+                      {itemPrecio && <p className="text-xs text-emerald-400 font-black">${item.precio}</p>}
                     </div>
                     <button
                       type="button"
@@ -1875,11 +1881,10 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* REDES SOCIALES (CON FORMATO Y COLOR PERSONALIZADO) */}
+              {/* REDES SOCIALES */}
               <div className="border-t border-slate-800 pt-4 space-y-3">
                 <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Enlaces & Diseño de Redes Sociales</h3>
                 
-                {/* CONFIGURACIÓN VISUAL DE REDES */}
                 <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-400 mb-1">Diseño de visualización</label>

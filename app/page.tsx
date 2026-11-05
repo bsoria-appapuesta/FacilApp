@@ -6,7 +6,8 @@ import {
   ArrowRight, 
   CheckCircle2, 
   Sparkles, 
-  Palette 
+  Palette,
+  Scissors
 } from 'lucide-react'
 import { FaWhatsapp } from 'react-icons/fa'
 
@@ -123,7 +124,55 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4. CÓMO FUNCIONA */}
+      {/* 4. SECCIÓN: CÓMO PERSONALIZAR TU PÁGINA (NUEVA) */}
+      <section className="py-16 px-4 sm:px-6 max-w-5xl mx-auto border-t border-slate-900">
+        <div className="text-center space-y-2 mb-12">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-bold">
+            <Palette className="w-3.5 h-3.5" />
+            <span>Totalmente editable en minutos</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black text-white">
+            Diseñá tu página a tu gusto, sin saber programar
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
+            Desde tu panel de control podés cambiar todo en tiempo real con vista previa en vivo.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-3xl space-y-3 text-center sm:text-left">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mx-auto sm:mx-0">
+              <Palette className="w-5 h-5" />
+            </div>
+            <h3 className="font-extrabold text-sm text-white">1. Tu Identidad Visual</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Subí tu logo, elegí entre más de 10 tipografías profesionales y personalizá los colores de fondo y botones para que coincidan con tu marca.
+            </p>
+          </div>
+
+          <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-3xl space-y-3 text-center sm:text-left">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto sm:mx-0">
+              <Scissors className="w-5 h-5" />
+            </div>
+            <h3 className="font-extrabold text-sm text-white">2. Servicios y Galería</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Agregá tus servicios con precio y duración exacta. También podés subir fotos de tus mejores trabajos con precios visibles tipo catálogo.
+            </p>
+          </div>
+
+          <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-3xl space-y-3 text-center sm:text-left">
+            <div className="w-10 h-10 rounded-2xl bg-pink-600/20 border border-pink-500/30 flex items-center justify-center text-pink-400 mx-auto sm:mx-0">
+              <Clock className="w-5 h-5" />
+            </div>
+            <h3 className="font-extrabold text-sm text-white">3. Horarios y Redes</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Definí tus días de atención, el intervalo entre turnos (15, 30 o 60 min) y conectá tus perfiles directos de Instagram, TikTok y WhatsApp.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. CÓMO FUNCIONA */}
       <section className="py-16 px-4 sm:px-6 max-w-5xl mx-auto border-t border-slate-900">
         <h2 className="text-2xl sm:text-3xl font-black text-center text-white mb-10">
           En 3 simples pasos
@@ -156,7 +205,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 5. LLAMADO A LA ACCIÓN (FOOTER CTA) */}
+      {/* 6. LLAMADO A LA ACCIÓN (FOOTER CTA) */}
       <section className="py-20 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 border border-indigo-500/30 p-8 sm:p-12 rounded-[36px] text-center space-y-6 shadow-2xl relative overflow-hidden">
           <div className="space-y-3">
@@ -180,7 +229,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 6. PIE DE PÁGINA */}
+      {/* 7. PIE DE PÁGINA */}
       <footer className="border-t border-slate-900 py-8 px-4 text-center text-xs text-slate-500">
         <p>© 2026 FacilApp. Todos los derechos reservados.</p>
       </footer>
