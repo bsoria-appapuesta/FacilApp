@@ -32,7 +32,7 @@ export default function RecuperarClavePage() {
     setCargando(false)
 
     if (error) {
-      setMensaje({ tipo: 'error', texto: 'No se pudo actualizar la contraseña o el enlace expiró.' })
+      setMensaje({ tipo: 'error', texto: 'El enlace expiró o no es válido. Solicitá uno nuevo.' })
     } else {
       setMensaje({ tipo: 'exito', texto: '¡Contraseña actualizada con éxito! Redirigiendo a tu panel...' })
       setTimeout(() => {
