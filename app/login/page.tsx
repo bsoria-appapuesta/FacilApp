@@ -3,7 +3,7 @@
 import { useState, Suspense } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Sparkles, CheckCircle2, Lock, ShieldCheck } from 'lucide-react'
+import { Sparkles, CheckCircle2, Lock } from 'lucide-react'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
@@ -81,34 +81,33 @@ function LoginContent() {
         router.push('/admin')
       }
     } else {
-      const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://facilapp-seven.vercel.app'
-
+      // REGISTRO DIRECTO SIN CONFIRMACIÓN DE EMAIL
       const { data, error } = await supabase.auth.signUp({
         email,
-        password,
-        options: {
-          emailRedirectTo: `${siteUrl}/auth/callback`
-        }
+        password
       })
 
-      setCargando(false)
-
       if (error) {
+        setCargando(false)
         setMensaje({ tipo: 'error', texto: error.message })
         return
       }
 
-      if (data.session) {
-        if (data.user?.email === 'braiandsoria@gmail.com') {
-          router.push('/superadmin')
-        } else {
-          router.push('/admin')
-        }
-      } else {
-        setMensaje({
-          tipo: 'exito',
-          texto: 'Te enviamos un correo de confirmación. Hacé clic en el enlace para activar tu cuenta e ingresar.'
+      // Si la sesión tarda unos milisegundos en poblarse, inicia sesión de inmediato
+      if (!data.session) {
+        await supabase.auth.signInWithPassword({
+          email,
+          password
         })
+      }
+
+      setCargando(false)
+
+      // Redirección inmediata según el tipo de usuario
+      if (email === 'braiandsoria@gmail.com') {
+        router.push('/superadmin')
+      } else {
+        router.push('/admin')
       }
     }
   }
