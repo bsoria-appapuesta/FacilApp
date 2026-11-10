@@ -123,7 +123,6 @@ function LoginContent() {
 
       setCargando(false)
 
-      // Si requiere confirmación de email (data.session viene null hasta confirmar)
       if (!data.session) {
         setMensaje({
           tipo: 'exito',
@@ -147,23 +146,21 @@ function LoginContent() {
 
     const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://facilapp-seven.vercel.app'
 
-    const { error } = await supabase.auth.resetPasswordForEmail(emailRecuperar, {
+    const { error } = await supabase.auth.resetPasswordForEmail(emailRecuperar.trim(), {
       redirectTo: `${siteUrl}/recuperar-clave`
     })
 
-    setCargandoRecuperar(false)
-
     if (error) {
+      setCargandoRecuperar(false)
       setMensajeRecuperar({
         tipo: 'error',
         texto: traducirError(error.message)
       })
-    } else {
-      setMensajeRecuperar({
-        tipo: 'exito',
-        texto: `Si el correo ${emailRecuperar} está registrado, recibirás un enlace para cambiar tu contraseña en los próximos minutos.`
-      })
+      return
     }
+
+    // Redirige directamente a la pantalla de recuperación con el email precargado
+    router.push(`/recuperar-clave?email=${encodeURIComponent(emailRecuperar.trim())}`)
   }
 
   return (
@@ -318,7 +315,7 @@ function LoginContent() {
               <Lock className="w-4 h-4 text-indigo-400" /> Recuperar contraseña
             </h3>
             <p className="text-xs text-slate-400">
-              Ingresá tu correo electrónico y te enviaremos el enlace para restablecerla.
+              Ingresá tu correo electrónico y te enviaremos el código para restablecerla.
             </p>
 
             {mensajeRecuperar && (
