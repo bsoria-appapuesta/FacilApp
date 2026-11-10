@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 export default function RecuperarClavePage() {
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [codigo, setCodigo] = useState('')
   const [password, setPassword] = useState('')
@@ -12,6 +13,14 @@ export default function RecuperarClavePage() {
   const [mensaje, setMensaje] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+
+  // Carga automáticamente el correo si viene en la URL (?email=...)
+  useEffect(() => {
+    const emailParam = searchParams.get('email')
+    if (emailParam) {
+      setEmail(emailParam)
+    }
+  }, [searchParams])
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,7 +50,7 @@ export default function RecuperarClavePage() {
       setError(updateError.message)
       setLoading(false)
     } else {
-      setMensaje('Contraseña actualizada con éxito. Redirigiendo...')
+      setMensaje('Contraseña actualizada con éxito. Redirigiendo al login...')
       setTimeout(() => {
         router.push('/login')
       }, 2000)
@@ -53,7 +62,7 @@ export default function RecuperarClavePage() {
       <div className="w-full max-w-md p-8 space-y-6 bg-gray-800 rounded-xl shadow-lg border border-gray-700">
         <h2 className="text-2xl font-bold text-center">Restablecer contraseña</h2>
         <p className="text-sm text-center text-gray-400">
-          Ingresá tu correo, el código que recibiste y tu nueva clave.
+          Ingresá el código que te llegó al correo y tu nueva clave.
         </p>
 
         {error && (
@@ -85,7 +94,7 @@ export default function RecuperarClavePage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-300">
-              Código de recuperación (6 dígitos)
+              Código de recuperación
             </label>
             <input
               type="text"
@@ -93,7 +102,7 @@ export default function RecuperarClavePage() {
               onChange={(e) => setCodigo(e.target.value)}
               required
               maxLength={10}
-              placeholder="123456"
+              placeholder="Pegá el código acá"
               className="w-full mt-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-center tracking-widest text-lg font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
           </div>
