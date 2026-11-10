@@ -35,9 +35,9 @@ function traducirError(mensajeIngles: string): string {
     return 'La contraseña debe tener al menos 8 caracteres.'
   }
   if (msg.includes('email not confirmed')) {
-    return 'El correo no está confirmado todavía.'
+    return 'El correo no está confirmado todavía. Revisá tu casilla de correo.'
   }
-  return mensajeIngles // Retorna el mensaje original si no coincide con los patrones
+  return mensajeIngles
 }
 
 function LoginContent() {
@@ -105,9 +105,14 @@ function LoginContent() {
         router.push('/admin')
       }
     } else {
+      const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://facilapp-seven.vercel.app'
+
       const { data, error } = await supabase.auth.signUp({
         email,
-        password
+        password,
+        options: {
+          emailRedirectTo: `${siteUrl}/auth/callback`,
+        },
       })
 
       if (error) {
@@ -116,14 +121,16 @@ function LoginContent() {
         return
       }
 
-      if (!data.session) {
-        await supabase.auth.signInWithPassword({
-          email,
-          password
-        })
-      }
-
       setCargando(false)
+
+      // Si requiere confirmación de email (data.session viene null hasta confirmar)
+      if (!data.session) {
+        setMensaje({
+          tipo: 'exito',
+          texto: '¡Cuenta creada! Te enviamos un enlace de confirmación a tu correo. Revisá tu casilla de entrada o spam para activar el acceso.'
+        })
+        return
+      }
 
       if (email === 'braiandsoria@gmail.com') {
         router.push('/superadmin')
