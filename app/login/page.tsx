@@ -111,7 +111,7 @@ function LoginContent() {
         email,
         password,
         options: {
-          emailRedirectTo: `${siteUrl}/auth/callback`,
+          emailRedirectTo: `${siteUrl}/confirmar-cuenta`,
         },
       })
 
@@ -123,11 +123,9 @@ function LoginContent() {
 
       setCargando(false)
 
+      // Si requiere confirmación por email, redirige directo a la pantalla del código
       if (!data.session) {
-        setMensaje({
-          tipo: 'exito',
-          texto: '¡Cuenta creada! Te enviamos un enlace de confirmación a tu correo. Revisá tu casilla de entrada o spam para activar el acceso.'
-        })
+        router.push(`/confirmar-cuenta?email=${encodeURIComponent(email.trim())}`)
         return
       }
 
@@ -159,7 +157,6 @@ function LoginContent() {
       return
     }
 
-    // Redirige directamente a la pantalla de recuperación con el email precargado
     router.push(`/recuperar-clave?email=${encodeURIComponent(emailRecuperar.trim())}`)
   }
 
