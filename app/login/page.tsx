@@ -192,7 +192,7 @@ function LoginContent() {
             </li>
             <li className="flex items-center gap-2">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span>Abono voluntario mes a mes sin permanencia ni renovación obligada.</span>
+              <span>Abono mes a mes sin permanencia ni renovación obligada.</span>
             </li>
           </ul>
         </div>
