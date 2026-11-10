@@ -13,26 +13,52 @@ export default function RecuperarClavePage() {
   const router = useRouter()
 
   useEffect(() => {
-    // 1. Escuchar el evento oficial de recuperación de Supabase
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'PASSWORD_RECOVERY' || session) {
+    const procesarToken = async () => {
+      // 1. Extraer los parámetros del hash (#) o de la query (?)
+      const hash = window.location.hash.substring(1)
+      const search = window.location.search.substring(1)
+      const params = new URLSearchParams(hash || search)
+
+      const tokenHash = params.get('token_hash') || params.get('access_token')
+
+      if (tokenHash) {
+        // Si es el token hexadecimal de Supabase, lo verificamos como OTP de recuperación
+        const { error: otpError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: 'recovery',
+        })
+
+        if (!otpError) {
           setTokenListo(true)
           setError(null)
+          return
+        }
+
+        // Si falló verifyOtp, intentamos como sesión normal por si fuese un JWT
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: tokenHash,
+          refresh_token: params.get('refresh_token') || '',
+        })
+
+        if (!sessionError) {
+          setTokenListo(true)
+          setError(null)
+          return
+        }
+
+        setError('El enlace expiró o no es válido. Solicitá uno nuevo.')
+      } else {
+        // Comprobar si ya existía una sesión activa
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          setTokenListo(true)
+        } else {
+          setError('No se detectó el token en la dirección.')
         }
       }
-    )
-
-    // 2. Verificar si ya existe una sesión activa por el token
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setTokenListo(true)
-      }
-    })
-
-    return () => {
-      authListener.subscription.unsubscribe()
     }
+
+    procesarToken()
   }, [])
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
@@ -94,7 +120,7 @@ export default function RecuperarClavePage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !tokenListo}
             className="w-full py-2.5 px-4 text-white font-medium bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
           >
             {loading ? 'Guardando...' : 'Cambiar contraseña y entrar'}
