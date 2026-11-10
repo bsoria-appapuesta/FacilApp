@@ -6,6 +6,11 @@ export const metadata = {
   description: 'Tu perfil comercial en minutos',
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: {
