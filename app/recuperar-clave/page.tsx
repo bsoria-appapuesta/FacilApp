@@ -13,32 +13,25 @@ export default function RecuperarClavePage() {
   const router = useRouter()
 
   useEffect(() => {
-    const hash = window.location.hash.substring(1)
-    const params = new URLSearchParams(hash)
-    const accessToken = params.get('access_token')
-    const refreshToken = params.get('refresh_token')
-
-    if (accessToken) {
-      supabase.auth
-        .setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken || '',
-        })
-        .then(({ error }) => {
-          if (error) {
-            setError('El enlace expiró o no es válido. Solicitá uno nuevo.')
-          } else {
-            setTokenListo(true)
-          }
-        })
-    } else {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
+    // 1. Escuchar el evento oficial de recuperación de Supabase
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'PASSWORD_RECOVERY' || session) {
           setTokenListo(true)
-        } else {
-          setError('No se detectó un enlace de recuperación válido.')
+          setError(null)
         }
-      })
+      }
+    )
+
+    // 2. Verificar si ya existe una sesión activa por el token
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setTokenListo(true)
+      }
+    })
+
+    return () => {
+      authListener.subscription.unsubscribe()
     }
   }, [])
 
@@ -101,7 +94,7 @@ export default function RecuperarClavePage() {
 
           <button
             type="submit"
-            disabled={loading || !tokenListo}
+            disabled={loading}
             className="w-full py-2.5 px-4 text-white font-medium bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
           >
             {loading ? 'Guardando...' : 'Cambiar contraseña y entrar'}
