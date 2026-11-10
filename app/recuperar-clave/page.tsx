@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createBrowserClient } from '@supabase/ssr'
+import { supabase } from '@/lib/supabase'
 
 export default function RecuperarClavePage() {
   const [password, setPassword] = useState('')
@@ -12,13 +12,7 @@ export default function RecuperarClavePage() {
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-
   useEffect(() => {
-    // 1. Extraer los tokens que vienen en el hash (#access_token=...&refresh_token=...)
     const hash = window.location.hash.substring(1)
     const params = new URLSearchParams(hash)
     const accessToken = params.get('access_token')
@@ -38,7 +32,6 @@ export default function RecuperarClavePage() {
           }
         })
     } else {
-      // Si no viene en el hash, comprobar si ya hay sesión abierta
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session) {
           setTokenListo(true)
@@ -47,7 +40,7 @@ export default function RecuperarClavePage() {
         }
       })
     }
-  }, [supabase])
+  }, [])
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,7 +56,7 @@ export default function RecuperarClavePage() {
       setError(error.message)
       setLoading(false)
     } else {
-      setMensaje('Contraseña actualizada con éxito. Redirigiendo al login...')
+      setMensaje('Contraseña actualizada con éxito. Redirigiendo...')
       setTimeout(() => {
         router.push('/login')
       }, 2000)
