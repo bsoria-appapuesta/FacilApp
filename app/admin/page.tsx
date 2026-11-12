@@ -34,7 +34,9 @@ import {
   ShieldCheck,
   Sparkles,
   Copy,
-  ShieldAlert
+  ShieldAlert,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react'
 
 import { 
@@ -675,6 +677,16 @@ export default function AdminPage() {
 
   function handleEliminarItemGaleria(index: number) {
     setGaleria(galeria.filter((_, i) => i !== index))
+  }
+
+  function handleMoverItemGaleria(index: number, direccion: 'arriba' | 'abajo') {
+    const nuevoIndice = direccion === 'arriba' ? index - 1 : index + 1
+    if (nuevoIndice < 0 || nuevoIndice >= galeria.length) return
+    const nuevaGaleria = [...galeria]
+    const temp = nuevaGaleria[index]
+    nuevaGaleria[index] = nuevaGaleria[nuevoIndice]
+    nuevaGaleria[nuevoIndice] = temp
+    setGaleria(nuevaGaleria)
   }
 
   async function handleGuardarConfiguracion(e: React.FormEvent) {
@@ -1660,6 +1672,26 @@ export default function AdminPage() {
                     <div className="p-2 space-y-0.5">
                       <p className="font-bold text-xs text-white truncate">{item.titulo}</p>
                       {itemPrecio && <p className="text-xs text-emerald-400 font-black">${item.precio}</p>}
+                    </div>
+                    <div className="absolute top-2 left-2 flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleMoverItemGaleria(index, 'arriba')}
+                        disabled={index === 0}
+                        title="Mover arriba"
+                        className="bg-slate-900/90 hover:bg-indigo-600 disabled:opacity-40 text-white p-1.5 rounded-lg text-xs transition"
+                      >
+                        <ArrowUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoverItemGaleria(index, 'abajo')}
+                        disabled={index === galeria.length - 1}
+                        title="Mover abajo"
+                        className="bg-slate-900/90 hover:bg-indigo-600 disabled:opacity-40 text-white p-1.5 rounded-lg text-xs transition"
+                      >
+                        <ArrowDown className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                     <button
                       type="button"
