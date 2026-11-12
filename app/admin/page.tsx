@@ -166,6 +166,7 @@ export default function AdminPage() {
 
   // NUEVOS AJUSTES PARA REDES
   const [estiloRedes, setEstiloRedes] = useState<'tarjetas' | 'solo_iconos'>('tarjetas')
+  const [textoIconosRedes, setTextoIconosRedes] = useState<'ninguno' | 'nombre' | 'usuario'>('ninguno')
   const [colorRedes, setColorRedes] = useState('#ffffff')
 
   const [colorPrincipal, setColorPrincipal] = useState('#6366f1')
@@ -281,6 +282,7 @@ export default function AdminPage() {
             tamano_fuente: 'mediano',
             redes_sociales: [],
             estilo_redes: 'tarjetas',
+            texto_iconos_redes: 'ninguno',
             color_redes: '#ffffff',
             color_principal: '#6366f1',
             color_fondo: '#0f172a',
@@ -334,6 +336,7 @@ export default function AdminPage() {
     }
 
     setEstiloRedes(negData.estilo_redes || 'tarjetas')
+    setTextoIconosRedes(negData.texto_iconos_redes || 'ninguno')
     setColorRedes(negData.color_redes || '#ffffff')
 
     setColorPrincipal(negData.color_principal || '#6366f1')
@@ -714,6 +717,7 @@ export default function AdminPage() {
         tamano_fuente: tamanoFuente,
         redes_sociales: redes,
         estilo_redes: estiloRedes,
+        texto_iconos_redes: textoIconosRedes,
         color_redes: colorRedes,
         color_principal: colorPrincipal,
         color_fondo: colorFondo,
@@ -1962,6 +1966,21 @@ export default function AdminPage() {
                       />
                     </div>
                   </div>
+
+                  {estiloRedes === 'solo_iconos' && (
+                    <div className="sm:col-span-2 pt-2 border-t border-slate-800/80">
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">Etiqueta debajo del icono (Opcional)</label>
+                      <select
+                        value={textoIconosRedes}
+                        onChange={(e) => setTextoIconosRedes(e.target.value as 'ninguno' | 'nombre' | 'usuario')}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                      >
+                        <option value="ninguno">Solo el icono (sin texto)</option>
+                        <option value="nombre">Mostrar nombre de la red (ej. Instagram)</option>
+                        <option value="usuario">Mostrar usuario o detalle (ej. @usuario)</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
@@ -2105,14 +2124,23 @@ export default function AdminPage() {
 
                       <div className="mt-4">
                         {estiloRedes === 'solo_iconos' ? (
-                          <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
+                          <div className="flex flex-wrap items-start justify-center gap-2.5 mb-3">
                             {redes.map(r => (
-                              <div
-                                key={r.id}
-                                style={{ backgroundColor: colorRedes }}
-                                className="w-9 h-9 rounded-xl border border-black/10 flex items-center justify-center shadow-sm"
-                              >
-                                {renderIconoRed(r.plataforma)}
+                              <div key={r.id} className="flex flex-col items-center gap-1 max-w-[64px]">
+                                <div
+                                  style={{ backgroundColor: colorRedes }}
+                                  className="w-9 h-9 rounded-xl border border-black/10 flex items-center justify-center shadow-sm"
+                                >
+                                  {renderIconoRed(r.plataforma)}
+                                </div>
+                                {textoIconosRedes !== 'ninguno' && (
+                                  <span
+                                    className="text-[9px] font-bold leading-tight truncate w-full text-center opacity-90"
+                                    style={{ color: colorTexto }}
+                                  >
+                                    {textoIconosRedes === 'nombre' ? r.nombreRed : r.usuarioODetalle}
+                                  </span>
+                                )}
                               </div>
                             ))}
                           </div>
