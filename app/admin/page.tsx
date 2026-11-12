@@ -183,8 +183,10 @@ export default function AdminPage() {
   const [itemImagenUrl, setItemImagenUrl] = useState('')
 
   // Balances
-  const [filtroHistorial, setFiltroHistorial] = useState<'todo' | 'dia' | 'semana'>('todo')
+  const [filtroHistorial, setFiltroHistorial] = useState<'todo' | 'dia' | 'rango'>('todo')
   const [fechaFiltroHistorial, setFechaFiltroHistorial] = useState(fechaHoy)
+  const [fechaDesdeHistorial, setFechaDesdeHistorial] = useState(fechaHoy)
+  const [fechaHastaHistorial, setFechaHastaHistorial] = useState(fechaHoy)
 
   useEffect(() => {
     cargarDatos()
@@ -840,11 +842,10 @@ export default function AdminPage() {
     if (filtroHistorial === 'todo') return true
     const fechaTurno = t.fecha_hora.split('T')[0]
     if (filtroHistorial === 'dia') return fechaTurno === fechaFiltroHistorial
-    if (filtroHistorial === 'semana') {
-      const dTurno = new Date(fechaTurno)
-      const dRef = new Date(fechaFiltroHistorial)
-      const diffDias = Math.abs((dRef.getTime() - dTurno.getTime()) / (1000 * 3600 * 24))
-      return diffDias <= 7
+    if (filtroHistorial === 'rango') {
+      if (fechaDesdeHistorial && fechaTurno < fechaDesdeHistorial) return false
+      if (fechaHastaHistorial && fechaTurno > fechaHastaHistorial) return false
+      return true
     }
     return true
   })
@@ -986,7 +987,7 @@ export default function AdminPage() {
             className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border border-slate-700 transition"
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            <span>Ver Mi Página Pública</span>
+            <span>Ver Mi Página</span>
           </button>
 
           <button
@@ -2174,29 +2175,52 @@ export default function AdminPage() {
                     Todo
                   </button>
                   <button
-                    onClick={() => setFiltroHistorial('semana')}
-                    className={`px-3 py-1.5 rounded-xl font-bold transition ${filtroHistorial === 'semana' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
-                  >
-                    Por Semana
-                  </button>
-                  <button
                     onClick={() => setFiltroHistorial('dia')}
                     className={`px-3 py-1.5 rounded-xl font-bold transition ${filtroHistorial === 'dia' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
                   >
                     Por Día
                   </button>
+                  <button
+                    onClick={() => setFiltroHistorial('rango')}
+                    className={`px-3 py-1.5 rounded-xl font-bold transition ${filtroHistorial === 'rango' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                  >
+                    Desde - Hasta
+                  </button>
                 </div>
               </div>
 
-              {filtroHistorial !== 'todo' && (
+              {filtroHistorial === 'dia' && (
                 <div className="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800 max-w-sm">
-                  <span className="text-xs text-slate-400">Fecha de referencia:</span>
+                  <span className="text-xs text-slate-400">Fecha:</span>
                   <input
                     type="date"
                     value={fechaFiltroHistorial}
                     onChange={(e) => setFechaFiltroHistorial(e.target.value)}
                     className="bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-white"
                   />
+                </div>
+              )}
+
+              {filtroHistorial === 'rango' && (
+                <div className="flex flex-wrap items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800 max-w-lg">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400">Desde:</span>
+                    <input
+                      type="date"
+                      value={fechaDesdeHistorial}
+                      onChange={(e) => setFechaDesdeHistorial(e.target.value)}
+                      className="bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-white"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400">Hasta:</span>
+                    <input
+                      type="date"
+                      value={fechaHastaHistorial}
+                      onChange={(e) => setFechaHastaHistorial(e.target.value)}
+                      className="bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-white"
+                    />
+                  </div>
                 </div>
               )}
 
