@@ -349,11 +349,15 @@ export default function AdminPage() {
 
     if (turnosData) setTurnos(turnosData)
 
-    const { data: servData } = await supabase
+    const { data: servData, error: errServ } = await supabase
       .from('servicios')
       .select('*')
       .eq('negocio_id', negData.id)
       .eq('activo', true)
+
+    if (errServ) {
+      alert('Error al cargar servicios: ' + errServ.message)
+    }
 
     if (servData) {
       setServicios(servData)
@@ -524,7 +528,10 @@ export default function AdminPage() {
 
   async function handleGuardarServicio(e: React.FormEvent) {
     e.preventDefault()
-    if (!nomServicio || !precioServicio || !negocio) return
+    if (!nomServicio || !precioServicio || !negocio) {
+      alert('Falta completar datos o no cargó el negocio')
+      return
+    }
 
     setCargando(true)
     if (servicioEditandoId) {
@@ -537,7 +544,9 @@ export default function AdminPage() {
         .eq('id', servicioEditandoId)
 
       setCargando(false)
-      if (!error) {
+      if (error) {
+        alert('Error al actualizar servicio: ' + error.message)
+      } else {
         cancelarEdicionServicio()
         cargarDatos()
       }
@@ -553,7 +562,9 @@ export default function AdminPage() {
       ])
 
       setCargando(false)
-      if (!error) {
+      if (error) {
+        alert('Error al guardar servicio: ' + error.message)
+      } else {
         setNomServicio('')
         setPrecioServicio('')
         setDuracionServicio('30')
@@ -579,9 +590,13 @@ export default function AdminPage() {
   async function handleEliminarServicio(servicioId: string) {
     if (!confirm('¿Eliminar servicio?')) return
     setCargando(true)
-    await supabase.from('servicios').update({ activo: false }).eq('id', servicioId)
+    const { error } = await supabase.from('servicios').update({ activo: false }).eq('id', servicioId)
     setCargando(false)
-    cargarDatos()
+    if (error) {
+      alert('Error al eliminar servicio: ' + error.message)
+    } else {
+      cargarDatos()
+    }
   }
 
   function cambiarPlataformaRed(plat: RedItem['plataforma']) {
