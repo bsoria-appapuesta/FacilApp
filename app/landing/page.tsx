@@ -8,7 +8,6 @@ import {
   CheckCircle2, 
   Sparkles, 
   Palette, 
-  ExternalLink,
   Globe,
   Calendar,
   ChevronRight,
@@ -82,12 +81,10 @@ const TEMAS = {
 const HORARIOS_DEMO = ['10:00', '11:30', '15:00', '16:30', '18:00']
 
 export default function LandingPage() {
-  // Estados de navegación del simulador
   const [activeTab, setActiveTab] = useState<'servicios' | 'turnos'>('servicios')
   const [selectedService, setSelectedService] = useState<number>(1)
   const [selectedTime, setSelectedTime] = useState<string>('15:00')
 
-  // Estados de edición en vivo para mostrar que es 100% personalizable
   const [isEditing, setIsEditing] = useState<boolean>(false)
   const [bizName, setBizName] = useState<string>('Studio Facil Barber')
   const [bizCategory, setBizCategory] = useState<string>('Barbería & Estilismo')
@@ -172,18 +169,10 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2">
               <Link
                 href="/login"
-                className="w-full sm:w-auto px-7 py-3.5 bg-violet-600 hover:bg-violet-500 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-xl shadow-violet-600/30 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 py-4 bg-violet-600 hover:bg-violet-500 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-xl shadow-violet-600/30 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2"
               >
                 <span>Crear mi perfil gratis</span>
                 <ArrowRight className="w-4 h-4" />
-              </Link>
-
-              <Link
-                href="/barberia-demo"
-                className="w-full sm:w-auto px-6 py-3.5 bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-800 font-bold text-xs sm:text-sm rounded-2xl transition flex items-center justify-center gap-2"
-              >
-                <span>Ver demo pantalla completa</span>
-                <ExternalLink className="w-3.5 h-3.5 text-teal-300" />
               </Link>
             </div>
 
@@ -314,7 +303,7 @@ export default function LandingPage() {
                   Cortes de autor, barbería tradicional y color. Reservá tu lugar en 30 segundos 👇
                 </p>
 
-                {/* B. BARRA DE ICONOS SOCIALES (Instagram, WhatsApp, Facebook, Web) */}
+                {/* B. BARRA DE ICONOS SOCIALES */}
                 <div className="mt-4 flex items-center justify-center gap-2.5">
                   {[
                     { icon: FaInstagram, label: 'Instagram', href: '#', color: 'hover:border-pink-500/50 hover:text-pink-400' },
@@ -366,7 +355,7 @@ export default function LandingPage() {
                 </button>
               </div>
 
-              {/* D. CATÁLOGO DE SERVICIOS (Con edición rápida de precio si isEditing está activo) */}
+              {/* D. CATÁLOGO DE SERVICIOS */}
               <div className="mt-4 min-h-[270px]">
                 {activeTab === 'servicios' ? (
                   <div className="space-y-2.5">
