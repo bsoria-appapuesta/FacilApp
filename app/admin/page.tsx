@@ -36,7 +36,8 @@ import {
   Copy,
   ShieldAlert,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  RefreshCw
 } from 'lucide-react'
 
 import { 
@@ -87,6 +88,7 @@ interface RedItem {
 
 export default function AdminPage() {
   const router = useRouter()
+  const [verificandoSesion, setVerificandoSesion] = useState(true)
   const [tab, setTab] = useState<'turnos' | 'servicios' | 'horarios_catalogo' | 'marca' | 'historial' | 'suscripcion'>('turnos')
   const [negocio, setNegocio] = useState<any>(null)
   const [turnos, setTurnos] = useState<any[]>([])
@@ -109,6 +111,12 @@ export default function AdminPage() {
     return `${year}-${month}-${day}`
   }
   const fechaHoy = obtenerFechaLocal()
+
+  const extraerFechaLocalDeISO = (isoStr: string) => {
+    if (!isoStr) return ''
+    const d = new Date(isoStr)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
 
   // Calendario Semanal / Diario de Turnos
   const [fechaTurnosFiltro, setFechaTurnosFiltro] = useState(fechaHoy)
@@ -245,7 +253,7 @@ export default function AdminPage() {
   const diasSemanaVisible = obtenerDiasSemanaAdmin()
 
   const turnosDelDia = turnos
-    .filter(t => t.fecha_hora?.startsWith(fechaTurnosFiltro) && t.estado !== 'finalizado')
+    .filter(t => extraerFechaLocalDeISO(t.fecha_hora) === fechaTurnosFiltro && t.estado !== 'finalizado')
     .sort((a, b) => new Date(a.fecha_hora).getTime() - new Date(b.fecha_hora).getTime())
 
   async function cargarDatos() {
@@ -300,6 +308,7 @@ export default function AdminPage() {
 
       if (errCrear) {
         alert('Error al inicializar el negocio: ' + errCrear.message)
+        setVerificandoSesion(false)
         return
       }
       negData = nuevoNegocio
@@ -370,6 +379,8 @@ export default function AdminPage() {
       setServicios(servData)
       if (servData.length > 0) setManualServicioId(servData[0].id)
     }
+
+    setVerificandoSesion(false)
   }
 
   async function handleCerrarSesion() {
@@ -379,11 +390,11 @@ export default function AdminPage() {
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>, campo: 'logo' | 'fondo' | 'fondo_carta' | 'catalogo') {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !negocio?.id) return
 
     setCargando(true)
     const fileExt = file.name.split('.').pop()
-    const fileName = `${Math.random()}.${fileExt}`
+    const fileName = `${negocio.id}/${Date.now()}.${fileExt}`
 
     const { error: uploadError } = await supabase.storage
       .from('facilapp-uploads')
@@ -477,7 +488,7 @@ export default function AdminPage() {
     if (!turnoAEditar || !editFecha || !editHora) return
 
     setCargando(true)
-    const nuevaFechaHora = new Date(`${editFecha}T${editHora}:00`).toISOString()
+    const nuevaFechaHora = `${editFecha}T${editHora}:00-03:00`
     const servElegido = servicios.find(s => s.id === editServicioId)
 
     const { error } = await supabase
@@ -509,7 +520,7 @@ export default function AdminPage() {
 
     setCargando(true)
     const servElegido = servicios.find(s => s.id === manualServicioId)
-    const fechaHora = new Date(`${manualFecha}T${manualHora}:00`).toISOString()
+    const fechaHora = `${manualFecha}T${manualHora}:00-03:00`
 
     const { error } = await supabase.from('turnos').insert([
       {
@@ -743,6 +754,16 @@ export default function AdminPage() {
     }
   }
 
+  if (verificandoSesion) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
+        <p className="text-xs text-slate-500 flex items-center gap-2">
+          <RefreshCw className="w-4 h-4 animate-spin text-indigo-400" /> Cargando panel...
+        </p>
+      </div>
+    )
+  }
+
   const mensajeWhatsAppSuscripcion = `¡Hola! Envío comprobante de pago de suscripción mensual ($${PRECIO_SUSCRIPCION.toLocaleString()}) para el local "${negocio?.nombre || 'Mi Negocio'}" (ID: ${negocio?.id}).`
 
   // MENSAJE DE VENCIMIENTO SI ESTÁ SUSPENDIDO O EXPIRADO
@@ -844,7 +865,7 @@ export default function AdminPage() {
 
   const turnosFiltradosHistorial = turnosHistorial.filter(t => {
     if (filtroHistorial === 'todo') return true
-    const fechaTurno = t.fecha_hora.split('T')[0]
+    const fechaTurno = extraerFechaLocalDeISO(t.fecha_hora)
     if (filtroHistorial === 'dia') return fechaTurno === fechaFiltroHistorial
     if (filtroHistorial === 'rango') {
       if (fechaDesdeHistorial && fechaTurno < fechaDesdeHistorial) return false
@@ -1141,7 +1162,7 @@ export default function AdminPage() {
                 {diasSemanaVisible.map(d => {
                   const esSeleccionado = fechaTurnosFiltro === d.iso
                   const esHoy = d.iso === fechaHoy
-                  const cantTurnos = turnos.filter(t => t.fecha_hora?.startsWith(d.iso) && t.estado !== 'finalizado').length
+                  const cantTurnos = turnos.filter(t => extraerFechaLocalDeISO(t.fecha_hora) === d.iso && t.estado !== 'finalizado').length
 
                   return (
                     <button
@@ -1449,7 +1470,7 @@ export default function AdminPage() {
                           <button
                             onClick={() => {
                               setTurnoAEditar(t)
-                              setEditFecha(t.fecha_hora.split('T')[0])
+                              setEditFecha(extraerFechaLocalDeISO(t.fecha_hora))
                               const horaMin = new Date(t.fecha_hora)
                               setEditHora(`${String(horaMin.getHours()).padStart(2, '0')}:${String(horaMin.getMinutes()).padStart(2, '0')}`)
                               setEditServicioId(t.servicio_id)
@@ -1676,7 +1697,7 @@ export default function AdminPage() {
                     <img src={item.imagen_url} alt={item.titulo} className="w-full h-28 object-cover" />
                     <div className="p-2 space-y-0.5">
                       <p className="font-bold text-xs text-white truncate">{item.titulo}</p>
-                      {itemPrecio && <p className="text-xs text-emerald-400 font-black">${item.precio}</p>}
+                      {item.precio && <p className="text-xs text-emerald-400 font-black">${item.precio}</p>}
                     </div>
                     <div className="absolute top-2 left-2 flex gap-1">
                       <button

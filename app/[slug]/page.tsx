@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -30,11 +30,6 @@ import {
   FaYoutube 
 } from 'react-icons/fa'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-// Función para normalizar números a formato internacional de WhatsApp (Argentina / General)
 function formatearNumeroWhatsApp(telefono: string): string {
   let limpio = (telefono || '').replace(/\D/g, '')
   if (!limpio) return ''
@@ -82,6 +77,7 @@ export default function PaginaNegocioDinamica() {
   const [whatsapp, setWhatsapp] = useState('')
   const [fecha, setFecha] = useState(fechaHoy)
   const [hora, setHora] = useState('')
+  const [campoTrampa, setCampoTrampa] = useState('')
   const [horasOcupadas, setHorasOcupadas] = useState<string[]>([])
   const [cargandoHorarios, setCargandoHorarios] = useState(false)
   const [cargando, setCargando] = useState(false)
@@ -125,7 +121,14 @@ export default function PaginaNegocioDinamica() {
   async function cargarPerfil() {
     const { data: negData, error } = await supabase
       .from('negocios')
-      .select('*')
+      .select(`
+        id, user_id, nombre, slug, ubicacion, descripcion, whatsapp, logo_url,
+        hora_apertura, hora_cierre, intervalo_minutos,
+        tipo_fuente, tamano_fuente, redes_sociales, estilo_redes, color_redes,
+        color_principal, color_fondo, color_carta, color_texto,
+        tipo_fondo, fondo_degradado, fondo_imagen_url, fondo_carta_url,
+        bordes_redondeados, galeria_detallada, estado, fecha_vencimiento
+      `)
       .eq('slug', slugParam)
       .maybeSingle()
 
@@ -155,7 +158,7 @@ export default function PaginaNegocioDinamica() {
 
     const { data: servData } = await supabase
       .from('servicios')
-      .select('*')
+      .select('id, nombre, precio, duracion_minutos')
       .eq('negocio_id', negData.id)
       .eq('activo', true)
 
@@ -167,25 +170,13 @@ export default function PaginaNegocioDinamica() {
 
   async function cargarTurnosOcupados(fechaSeleccionada: string) {
     setCargandoHorarios(true)
-    const inicioDia = `${fechaSeleccionada}T00:00:00`
-    const finDia = `${fechaSeleccionada}T23:59:59`
+    const { data, error } = await supabase.rpc('obtener_horas_ocupadas', {
+      p_negocio_id: negocio.id,
+      p_fecha: fechaSeleccionada
+    })
 
-    const { data: turnosData } = await supabase
-      .from('turnos')
-      .select('fecha_hora')
-      .eq('negocio_id', negocio.id)
-      .gte('fecha_hora', inicioDia)
-      .lte('fecha_hora', finDia)
-      .in('estado', ['pendiente', 'confirmado'])
-
-    if (turnosData) {
-      const horasReservadas = turnosData.map((t: any) => {
-        const date = new Date(t.fecha_hora)
-        const hh = String(date.getHours()).padStart(2, '0')
-        const mm = String(date.getMinutes()).padStart(2, '0')
-        return `${hh}:${mm}`
-      })
-      setHorasOcupadas(horasReservadas)
+    if (!error && Array.isArray(data)) {
+      setHorasOcupadas(data.map((item: any) => item.hora_ocupada))
     } else {
       setHorasOcupadas([])
     }
@@ -212,7 +203,7 @@ export default function PaginaNegocioDinamica() {
       try {
         await navigator.share(shareData)
       } catch (err) {
-        // El usuario canceló el menú de compartir
+        // Usuario canceló
       }
     } else {
       setModalCompartir(true)
@@ -234,6 +225,21 @@ export default function PaginaNegocioDinamica() {
 
   const handleReservar = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // 1. Trampa Honeypot: si el campo oculto tiene texto, es un bot
+    if (campoTrampa) return
+
+    // 2. Cooldown local: evita envíos repetidos seguidos desde el mismo navegador (30 seg)
+    if (typeof window !== 'undefined' && negocio?.id) {
+      const claveCooldown = `facilapp_ultima_reserva_${negocio.id}`
+      const ultimaReserva = Number(localStorage.getItem(claveCooldown) || 0)
+      const segundosTranscurridos = Math.floor((Date.now() - ultimaReserva) / 1000)
+      if (ultimaReserva && segundosTranscurridos < 30) {
+        alert(`Por favor aguardá ${30 - segundosTranscurridos} segundos antes de realizar otra reserva.`)
+        return
+      }
+    }
+
     if (!nombre || !whatsapp || !fecha || !hora || !servicioSel) {
       alert('Por favor completá todos los campos, incluyendo el horario.')
       return
@@ -255,14 +261,14 @@ export default function PaginaNegocioDinamica() {
     }
 
     setCargando(true)
-    const fechaHora = new Date(`${fecha}T${hora}:00`).toISOString()
+    const fechaHora = `${fecha}T${hora}:00-03:00`
 
     const { error } = await supabase.from('turnos').insert([
       {
         negocio_id: negocio.id,
         servicio_id: servicioSel.id,
-        cliente_nombre: nombre,
-        cliente_whatsapp: whatsapp,
+        cliente_nombre: nombre.trim(),
+        cliente_whatsapp: whatsapp.trim(),
         fecha_hora: fechaHora,
         monto_cobrado: servicioSel.precio || 0,
         estado: 'pendiente'
@@ -272,8 +278,16 @@ export default function PaginaNegocioDinamica() {
     setCargando(false)
 
     if (error) {
-      alert('Error al guardar la reserva: ' + error.message)
+      if (error.code === '23505') {
+        alert('¡Ups! Alguien acaba de reservar ese mismo horario hace un instante. Por favor elegí otro.')
+        cargarTurnosOcupados(fecha)
+      } else {
+        alert('Error al guardar la reserva: ' + error.message)
+      }
     } else {
+      if (typeof window !== 'undefined' && negocio?.id) {
+        localStorage.setItem(`facilapp_ultima_reserva_${negocio.id}`, String(Date.now()))
+      }
       setExito(true)
       const celDestino = formatearNumeroWhatsApp(negocio.whatsapp || '')
       const msg = `¡Hola ${negocio.nombre}! 👋%0AMi nombre es *${nombre}*.%0A%0AQuiero reservar:%0A📌 *Servicio:* ${servicioSel.nombre}%0A📅 *Fecha:* ${fecha}%0A⏰ *Hora:* ${hora} hs%0A💰 *Precio:* $${servicioSel.precio}%0A%0A¿Me confirmás el turno?`
@@ -399,7 +413,7 @@ export default function PaginaNegocioDinamica() {
 
         <div className="relative z-10">
           
-          {/* BARRA SUPERIOR CON BOTÓN EDITAR Y COMPARTIR NATIVO */}
+          {/* BARRA SUPERIOR */}
           <div className="flex justify-between items-center mb-6">
             <div>
               {esDuenio && (
@@ -452,7 +466,7 @@ export default function PaginaNegocioDinamica() {
             </div>
           </div>
 
-          {/* REDES SOCIALES (MODO TARJETAS O MODO SOLO ICONOS) */}
+          {/* REDES SOCIALES */}
           <div className="mb-6">
             {estiloRedes === 'solo_iconos' ? (
               <div className="flex flex-wrap items-center justify-center gap-2.5 py-1">
@@ -545,6 +559,18 @@ export default function PaginaNegocioDinamica() {
               ) : (
                 <form onSubmit={handleReservar} className="space-y-4 text-slate-900">
                   
+                  {/* CAMPO TRAMPA INVISIBLE PARA BOTS (HONEYPOT) */}
+                  <input
+                    type="text"
+                    name="website_url"
+                    value={campoTrampa}
+                    onChange={(e) => setCampoTrampa(e.target.value)}
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
+                    className="hidden"
+                  />
+
                   <div>
                     <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1 opacity-80" style={{ color: colorTexto }}>
                       1. Seleccioná el Servicio
@@ -746,7 +772,7 @@ export default function PaginaNegocioDinamica() {
         </div>
       </div>
 
-      {/* MODAL COMPARTIR (Respaldo para navegadores de PC sin Web Share API) */}
+      {/* MODAL COMPARTIR (Respaldo para PC) */}
       {modalCompartir && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white max-w-sm w-full rounded-3xl p-6 shadow-2xl border border-slate-100 relative space-y-4">
