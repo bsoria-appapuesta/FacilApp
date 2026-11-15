@@ -991,7 +991,7 @@ export default function AdminPage() {
             className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border border-slate-700 transition"
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            <span>Ver mi página</span>
+            <span>Ver Mi Página</span>
           </button>
 
           <button
