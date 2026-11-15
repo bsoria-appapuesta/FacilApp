@@ -536,7 +536,7 @@ export default function LandingPage() {
             <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-teal-300">01</span>
             <h4 className="font-bold text-sm text-white">Creá tu cuenta</h4>
             <p className="text-xs text-slate-400 leading-relaxed">
-             Crea tu usuario, agregá los servicios que ofrecés y definí tus horarios disponibles.
+              Ingresá tu correo, agregá los servicios que ofrecés y definí tus horarios disponibles.
             </p>
           </div>
 
