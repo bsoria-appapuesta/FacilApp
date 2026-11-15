@@ -11,7 +11,6 @@ import {
   MapPin, 
   ExternalLink, 
   ImageIcon, 
-  Settings, 
   X, 
   Copy, 
   Check, 
@@ -202,6 +201,24 @@ export default function PaginaNegocioDinamica() {
     return ahora.getTime() > horaTurno.getTime()
   }
 
+  const handleCompartirNativo = async () => {
+    const shareData = {
+      title: negocio?.nombre || 'FacilApp',
+      text: `Mirá el perfil de ${negocio?.nombre || 'este negocio'} y reservá tu turno online 👇`,
+      url: window.location.href,
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share(shareData)
+      } catch (err) {
+        // El usuario canceló el menú de compartir
+      }
+    } else {
+      setModalCompartir(true)
+    }
+  }
+
   const handleCopiarLink = () => {
     navigator.clipboard.writeText(window.location.href)
     setCopiado(true)
@@ -382,7 +399,7 @@ export default function PaginaNegocioDinamica() {
 
         <div className="relative z-10">
           
-          {/* BARRA SUPERIOR CON BOTÓN EDITAR ADENTRO */}
+          {/* BARRA SUPERIOR CON BOTÓN EDITAR Y COMPARTIR NATIVO */}
           <div className="flex justify-between items-center mb-6">
             <div>
               {esDuenio && (
@@ -397,7 +414,8 @@ export default function PaginaNegocioDinamica() {
             </div>
 
             <button
-              onClick={() => setModalCompartir(true)}
+              type="button"
+              onClick={handleCompartirNativo}
               className="w-9 h-9 bg-black/10 hover:bg-black/20 rounded-2xl flex items-center justify-center transition shadow-sm border border-white/20 active:scale-95 shrink-0"
               style={{ color: colorTexto }}
               title="Compartir"
@@ -624,7 +642,7 @@ export default function PaginaNegocioDinamica() {
                               }}
                               className={`p-1.5 text-xs font-bold rounded-xl transition ${
                                 esPasado 
-                                  ? 'text-slate-300 line-through cursor-not-allowed'
+                                  ? 'text-slate-300 line-through cursor-not-allowed' 
                                   : esSeleccionado 
                                     ? 'bg-rose-500 text-white shadow' 
                                     : 'hover:bg-slate-100 text-slate-700'
@@ -728,7 +746,7 @@ export default function PaginaNegocioDinamica() {
         </div>
       </div>
 
-      {/* MODAL COMPARTIR */}
+      {/* MODAL COMPARTIR (Respaldo para navegadores de PC sin Web Share API) */}
       {modalCompartir && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white max-w-sm w-full rounded-3xl p-6 shadow-2xl border border-slate-100 relative space-y-4">
