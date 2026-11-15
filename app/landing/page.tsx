@@ -9,17 +9,17 @@ import {
   Sparkles, 
   Palette, 
   ExternalLink,
-  MapPin,
   Globe,
   Calendar,
   ChevronRight,
   Star,
-  Check
+  Check,
+  SlidersHorizontal,
+  Eye
 } from 'lucide-react'
-import { FaWhatsapp, FaInstagram } from 'react-icons/fa'
+import { FaWhatsapp, FaInstagram, FaFacebook } from 'react-icons/fa'
 
-// Datos de ejemplo para el perfil híbrido interactivo
-const SERVICIOS_DEMO = [
+const SERVICIOS_INICIALES = [
   {
     id: 1,
     nombre: 'Corte + Perfilado de Barba',
@@ -49,23 +49,68 @@ const SERVICIOS_DEMO = [
   },
 ]
 
+const TEMAS = {
+  violet: {
+    label: 'Violeta',
+    dot: 'bg-violet-500',
+    banner: 'from-violet-600/40 via-purple-600/30 to-teal-400/30',
+    badge: 'bg-violet-500/15 border-violet-500/30 text-violet-300',
+    tab: 'bg-violet-600 shadow-violet-600/25',
+    btn: 'bg-violet-600/15 hover:bg-violet-600 text-violet-300 hover:text-white border-violet-500/30',
+    price: 'text-teal-300',
+  },
+  teal: {
+    label: 'Turquesa',
+    dot: 'bg-teal-400',
+    banner: 'from-teal-500/40 via-cyan-600/30 to-violet-500/30',
+    badge: 'bg-teal-500/15 border-teal-500/30 text-teal-300',
+    tab: 'bg-teal-500 text-slate-950 shadow-teal-500/25',
+    btn: 'bg-teal-500/15 hover:bg-teal-500 text-teal-300 hover:text-slate-950 border-teal-500/30',
+    price: 'text-teal-300',
+  },
+  rose: {
+    label: 'Estética',
+    dot: 'bg-pink-500',
+    banner: 'from-pink-600/40 via-rose-500/30 to-violet-500/30',
+    badge: 'bg-pink-500/15 border-pink-500/30 text-pink-300',
+    tab: 'bg-pink-600 shadow-pink-600/25',
+    btn: 'bg-pink-600/15 hover:bg-pink-600 text-pink-300 hover:text-white border-pink-500/30',
+    price: 'text-pink-300',
+  },
+}
+
 const HORARIOS_DEMO = ['10:00', '11:30', '15:00', '16:30', '18:00']
 
 export default function LandingPage() {
-  // Estado para la micro-interacción de pestañas (Catálogo / Turnos / Links)
+  // Estados de navegación del simulador
   const [activeTab, setActiveTab] = useState<'servicios' | 'turnos'>('servicios')
   const [selectedService, setSelectedService] = useState<number>(1)
   const [selectedTime, setSelectedTime] = useState<string>('15:00')
+
+  // Estados de edición en vivo para mostrar que es 100% personalizable
+  const [isEditing, setIsEditing] = useState<boolean>(false)
+  const [bizName, setBizName] = useState<string>('Studio Facil Barber')
+  const [bizCategory, setBizCategory] = useState<string>('Barbería & Estilismo')
+  const [themeKey, setThemeKey] = useState<keyof typeof TEMAS>('violet')
+  const [servicios, setServicios] = useState(SERVICIOS_INICIALES)
+
+  const theme = TEMAS[themeKey]
 
   const handleReservarServicio = (id: number) => {
     setSelectedService(id)
     setActiveTab('turnos')
   }
 
+  const handlePriceChange = (id: number, newPrice: string) => {
+    setServicios((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, precio: newPrice } : item))
+    )
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-violet-600 selection:text-white">
       
-      {/* 1. NAVEGACIÓN SUPERIOR (Adaptada a identidad Violeta + Turquesa) */}
+      {/* 1. NAVEGACIÓN SUPERIOR */}
       <header className="sticky top-0 z-50 bg-slate-950/85 backdrop-blur-md border-b border-slate-800/80">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
@@ -99,9 +144,8 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* 2. HERO SECTION + PREVIEW INTERACTIVO MOBILE-FIRST */}
+      {/* 2. HERO SECTION + DEMO INTERACTIVA EDITABLE */}
       <section className="relative pt-12 pb-20 px-4 sm:px-6 max-w-6xl mx-auto">
-        {/* Glow ambiental con los colores del logo */}
         <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[340px] h-[340px] bg-violet-600/20 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute top-32 left-1/3 w-[240px] h-[240px] bg-teal-400/10 rounded-full blur-[100px] pointer-events-none" />
 
@@ -111,7 +155,7 @@ export default function LandingPage() {
           <div className="lg:col-span-7 text-center lg:text-left space-y-6">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-violet-500/10 border border-teal-400/30 text-teal-300 text-xs font-bold">
               <Sparkles className="w-3.5 h-3.5 text-teal-300" />
-              <span>Tu Linktree profesional con turnos integrados</span>
+              <span>100% personalizable a la identidad de tu negocio</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.1]">
@@ -122,7 +166,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="text-sm sm:text-base text-slate-400 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              Convertí las visitas de tu Instagram en clientes reales. Creá tu perfil Card UI en 2 minutos: mostrale tus servicios con precios y dejá que reserven sin vueltas.
+              Personalizá tus colores, foto, redes sociales, servicios y precios en minutos. Probá editar el ejemplo de al lado para ver cómo queda tu página en celulares.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2">
@@ -145,28 +189,107 @@ export default function LandingPage() {
 
             <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-5 text-xs text-slate-400 font-medium">
               <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-teal-400" /> Sin comisiones por turno
+                <CheckCircle2 className="w-4 h-4 text-teal-400" /> Editás precios y horarios cuando quieras
               </span>
               <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-teal-400" /> Diseño 100% Mobile-First
+                <CheckCircle2 className="w-4 h-4 text-teal-400" /> Sin comisiones por turno
               </span>
             </div>
           </div>
 
-          {/* Columna Derecha: COMPONENTE PRINCIPAL DE PERFIL (Simulador Mobile Card UI) */}
-          <div className="lg:col-span-5 flex justify-center">
-            <div className="w-full max-w-[390px] bg-slate-900/95 border border-slate-800 rounded-[36px] p-5 shadow-2xl shadow-violet-950/50 relative overflow-hidden">
-              
-              {/* Banner superior sutil con gradiente de marca */}
-              <div className="h-20 -mx-5 -mt-5 bg-gradient-to-r from-violet-600/40 via-purple-600/30 to-teal-400/30 border-b border-slate-800/60" />
+          {/* Columna Derecha: COMPONENTE DE PERFIL CON MODO EDICIÓN EN VIVO */}
+          <div className="lg:col-span-5 flex flex-col items-center">
+            
+            {/* Barra superior de control para probar la personalización */}
+            <div className="w-full max-w-[390px] mb-3 flex items-center justify-between bg-slate-900/90 border border-slate-800 px-3.5 py-2 rounded-2xl">
+              <span className="text-[11px] font-bold text-slate-400">
+                Ejemplo interactivo
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsEditing(!isEditing)}
+                className={`px-3 py-1 rounded-xl text-[11px] font-bold transition flex items-center gap-1.5 ${
+                  isEditing
+                    ? 'bg-teal-400 text-slate-950 shadow-md shadow-teal-400/20'
+                    : 'bg-violet-600/20 text-violet-300 border border-violet-500/30 hover:bg-violet-600/30'
+                }`}
+              >
+                {isEditing ? (
+                  <>
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Ver como cliente</span>
+                  </>
+                ) : (
+                  <>
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                    <span>Probar editar</span>
+                  </>
+                )}
+              </button>
+            </div>
 
-              {/* A. SECCIÓN DE IDENTIDAD (Header con Avatar, Categoría, Bio) */}
+            {/* Panel rápido de personalización cuando isEditing === true */}
+            {isEditing && (
+              <div className="w-full max-w-[390px] mb-3 bg-slate-900 border border-teal-400/40 rounded-2xl p-3.5 space-y-3 text-left shadow-xl">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-extrabold text-teal-300 uppercase tracking-wider">
+                    Personalizá el ejemplo
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {(Object.keys(TEMAS) as Array<keyof typeof TEMAS>).map((key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setThemeKey(key)}
+                        title={TEMAS[key].label}
+                        className={`w-5 h-5 rounded-full ${TEMAS[key].dot} transition-transform ${
+                          themeKey === key ? 'ring-2 ring-white scale-110' : 'opacity-60 hover:opacity-100'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block mb-1">
+                      Nombre del negocio
+                    </label>
+                    <input
+                      type="text"
+                      value={bizName}
+                      onChange={(e) => setBizName(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-teal-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block mb-1">
+                      Rubro / Categoría
+                    </label>
+                    <input
+                      type="text"
+                      value={bizCategory}
+                      onChange={(e) => setBizCategory(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-teal-400"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tarjeta Mobile Card UI */}
+            <div className="w-full max-w-[390px] bg-slate-900/95 border border-slate-800 rounded-[36px] p-5 shadow-2xl shadow-violet-950/50 relative overflow-hidden transition-all">
+              
+              {/* Banner superior dinámico */}
+              <div className={`h-20 -mx-5 -mt-5 bg-gradient-to-r ${theme.banner} border-b border-slate-800/60 transition-colors duration-300`} />
+
+              {/* A. SECCIÓN DE IDENTIDAD */}
               <div className="relative -mt-10 flex flex-col items-center text-center">
                 <div className="relative">
                   <div className="w-20 h-20 rounded-full bg-white p-1 shadow-xl ring-2 ring-teal-300">
                     <img
                       src="/logo.jpeg"
-                      alt="Studio Barber & Hair"
+                      alt={bizName}
                       className="w-full h-full object-cover rounded-full"
                     />
                   </div>
@@ -176,12 +299,12 @@ export default function LandingPage() {
                   />
                 </div>
 
-                <span className="mt-3 px-2.5 py-0.5 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-300 text-[10px] font-bold uppercase tracking-wider">
-                  Barbería & Estilismo
+                <span className={`mt-3 px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-colors ${theme.badge}`}>
+                  {bizCategory || 'Tu Rubro'}
                 </span>
 
                 <h2 className="mt-1.5 text-lg font-black text-white tracking-tight flex items-center gap-1.5">
-                  Studio Facil Barber
+                  {bizName || 'Nombre de tu Negocio'}
                   <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-teal-400/20 text-teal-300">
                     <Check className="w-2.5 h-2.5 stroke-[3]" />
                   </span>
@@ -191,13 +314,13 @@ export default function LandingPage() {
                   Cortes de autor, barbería tradicional y color. Reservá tu lugar en 30 segundos 👇
                 </p>
 
-                {/* B. BARRA DE ICONOS SOCIALES */}
+                {/* B. BARRA DE ICONOS SOCIALES (Instagram, WhatsApp, Facebook, Web) */}
                 <div className="mt-4 flex items-center justify-center gap-2.5">
                   {[
                     { icon: FaInstagram, label: 'Instagram', href: '#', color: 'hover:border-pink-500/50 hover:text-pink-400' },
                     { icon: FaWhatsapp, label: 'WhatsApp', href: '#', color: 'hover:border-emerald-500/50 hover:text-emerald-400' },
-                    { icon: MapPin, label: 'Ubicación', href: '#', color: 'hover:border-teal-400/50 hover:text-teal-300' },
-                    { icon: Globe, label: 'Web', href: '#', color: 'hover:border-violet-400/50 hover:text-violet-300' },
+                    { icon: FaFacebook, label: 'Facebook', href: '#', color: 'hover:border-blue-500/50 hover:text-blue-400' },
+                    { icon: Globe, label: 'Web', href: '#', color: 'hover:border-teal-400/50 hover:text-teal-300' },
                   ].map((social, idx) => {
                     const Icon = social.icon
                     return (
@@ -215,14 +338,14 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* C. SELECTOR DE NAVEGACIÓN (Segmented Control con transición fluida) */}
+              {/* C. SELECTOR DE NAVEGACIÓN */}
               <div className="mt-5 p-1 bg-slate-950 rounded-2xl border border-slate-800/80 grid grid-cols-2 gap-1">
                 <button
                   type="button"
                   onClick={() => setActiveTab('servicios')}
                   className={`py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
                     activeTab === 'servicios'
-                      ? 'bg-violet-600 text-white shadow-md shadow-violet-600/25'
+                      ? `${theme.tab} text-white shadow-md`
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -234,7 +357,7 @@ export default function LandingPage() {
                   onClick={() => setActiveTab('turnos')}
                   className={`py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
                     activeTab === 'turnos'
-                      ? 'bg-violet-600 text-white shadow-md shadow-violet-600/25'
+                      ? `${theme.tab} text-white shadow-md`
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -243,23 +366,21 @@ export default function LandingPage() {
                 </button>
               </div>
 
-              {/* D. CONTENIDO DINÁMICO: CATÁLOGO DE SERVICIOS O RESERVA */}
+              {/* D. CATÁLOGO DE SERVICIOS (Con edición rápida de precio si isEditing está activo) */}
               <div className="mt-4 min-h-[270px]">
                 {activeTab === 'servicios' ? (
-                  <div className="space-y-2.5 animate-fadeIn">
-                    {SERVICIOS_DEMO.map((servicio) => (
+                  <div className="space-y-2.5">
+                    {servicios.map((servicio) => (
                       <div
                         key={servicio.id}
-                        className="group bg-slate-950/90 hover:bg-slate-950 border border-slate-800/90 hover:border-violet-500/40 rounded-2xl p-2.5 transition-all duration-200 flex items-center gap-3"
+                        className="group bg-slate-950/90 hover:bg-slate-950 border border-slate-800/90 hover:border-slate-700 rounded-2xl p-2.5 transition-all duration-200 flex items-center gap-3"
                       >
-                        {/* Miniatura del servicio */}
                         <img
                           src={servicio.imagen}
                           alt={servicio.nombre}
                           className="w-14 h-14 rounded-xl object-cover shrink-0 border border-slate-800 group-hover:scale-105 transition-transform duration-300"
                         />
 
-                        {/* Info del servicio */}
                         <div className="flex-1 min-w-0 text-left">
                           <div className="flex items-center gap-1.5">
                             <h3 className="text-xs font-bold text-white truncate">
@@ -273,20 +394,28 @@ export default function LandingPage() {
                             {servicio.descripcion}
                           </p>
                           <div className="flex items-center gap-2 mt-1.5">
-                            <span className="text-xs font-extrabold text-teal-300">
-                              {servicio.precio}
-                            </span>
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                value={servicio.precio}
+                                onChange={(e) => handlePriceChange(servicio.id, e.target.value)}
+                                className="w-20 bg-slate-900 border border-teal-400/50 rounded px-1.5 py-0.5 text-xs font-extrabold text-teal-300 focus:outline-none"
+                              />
+                            ) : (
+                              <span className={`text-xs font-extrabold ${theme.price}`}>
+                                {servicio.precio}
+                              </span>
+                            )}
                             <span className="text-[10px] text-slate-500">
                               • {servicio.duracion}
                             </span>
                           </div>
                         </div>
 
-                        {/* Botón de acción rápida */}
                         <button
                           type="button"
                           onClick={() => handleReservarServicio(servicio.id)}
-                          className="shrink-0 px-2.5 py-2 rounded-xl bg-violet-600/15 hover:bg-violet-600 text-violet-300 hover:text-white border border-violet-500/30 text-[11px] font-bold transition-all active:scale-95 flex items-center gap-0.5"
+                          className={`shrink-0 px-2.5 py-2 rounded-xl border text-[11px] font-bold transition-all active:scale-95 flex items-center gap-0.5 ${theme.btn}`}
                         >
                           <span>Turno</span>
                           <ChevronRight className="w-3 h-3" />
@@ -295,16 +424,15 @@ export default function LandingPage() {
                     ))}
                   </div>
                 ) : (
-                  /* Vista rápida del sistema de turnos integrado */
                   <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-3.5 space-y-3.5 text-left">
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         1. Servicio elegido
                       </span>
                       <p className="text-xs font-bold text-white mt-0.5">
-                        {SERVICIOS_DEMO.find((s) => s.id === selectedService)?.nombre} —{' '}
-                        <span className="text-teal-300">
-                          {SERVICIOS_DEMO.find((s) => s.id === selectedService)?.precio}
+                        {servicios.find((s) => s.id === selectedService)?.nombre} —{' '}
+                        <span className={theme.price}>
+                          {servicios.find((s) => s.id === selectedService)?.precio}
                         </span>
                       </p>
                     </div>
@@ -343,7 +471,6 @@ export default function LandingPage() {
                 )}
               </div>
 
-              {/* Footer marca de agua del perfil */}
               <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-center gap-1.5 text-[10px] text-slate-500">
                 <span>Creado con</span>
                 <span className="font-bold text-slate-300">FacilApp</span>
@@ -392,7 +519,7 @@ export default function LandingPage() {
             </div>
             <h3 className="font-extrabold text-base text-white">Catálogo y Marca Propia</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Personalizá los colores, tipografía, logo oficial, links a tus redes sociales (Instagram, TikTok) y mostrá fotos de tus trabajos con precios visibles.
+              Personalizá los colores, tipografía, logo oficial, links a tus redes sociales (Instagram, Facebook, TikTok) y mostrá fotos de tus trabajos con precios visibles.
             </p>
           </div>
         </div>
@@ -409,7 +536,7 @@ export default function LandingPage() {
             <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-teal-300">01</span>
             <h4 className="font-bold text-sm text-white">Creá tu cuenta</h4>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Ingresá tu correo, agregá los servicios que ofrecés y definí tus horarios disponibles.
+             Crea tu usuario, agregá los servicios que ofrecés y definí tus horarios disponibles.
             </p>
           </div>
 
@@ -417,7 +544,7 @@ export default function LandingPage() {
             <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-teal-300">02</span>
             <h4 className="font-bold text-sm text-white">Compartí tu enlace</h4>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Pegá tu link en tu biografía de Instagram, TikTok o ponelo como respuesta automática de WhatsApp.
+              Pegá tu link en tu biografía de Instagram, Facebook o ponelo como respuesta automática de WhatsApp.
             </p>
           </div>
 
