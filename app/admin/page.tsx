@@ -97,6 +97,7 @@ export default function AdminPage() {
   const [bloqueadoPorVencimiento, setBloqueadoPorVencimiento] = useState(false)
   const [diasRestantes, setDiasRestantes] = useState<number | null>(null)
   const [copiadoAlias, setCopiadoAlias] = useState(false)
+  const [pagandoMP, setPagandoMP] = useState(false)
 
   // Configuración de Horarios
   const [horaApertura, setHoraApertura] = useState('09:00')
@@ -205,6 +206,32 @@ export default function AdminPage() {
     navigator.clipboard.writeText(ALIAS_TRANSFERENCIA)
     setCopiadoAlias(true)
     setTimeout(() => setCopiadoAlias(false), 2500)
+  }
+
+  async function handlePagarConMercadoPago() {
+    try {
+      setPagandoMP(true)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        alert('Tu sesión expiró. Volvé a iniciar sesión.')
+        return
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      })
+
+      if (error || !data?.init_point) {
+        alert('No se pudo iniciar el pago con Mercado Pago. Intentá nuevamente.')
+        return
+      }
+
+      window.location.href = data.init_point
+    } catch (err) {
+      alert('Error al conectar con Mercado Pago.')
+    } finally {
+      setPagandoMP(false)
+    }
   }
 
   function generarHorarios(desde: string, hasta: string, paso: number): string[] {
@@ -793,6 +820,23 @@ export default function AdminPage() {
             </div>
           </div>
 
+          {/* BOTÓN AUTOMÁTICO MERCADO PAGO */}
+          <button
+            type="button"
+            onClick={handlePagarConMercadoPago}
+            disabled={pagandoMP}
+            className="w-full py-3.5 px-4 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-slate-950 rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition shadow-lg shadow-sky-950"
+          >
+            <CreditCard className="w-4 h-4" />
+            {pagandoMP ? 'Redirigiendo a Mercado Pago...' : 'Pagar con Mercado Pago (Activación Automática)'}
+          </button>
+
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-slate-800"></div>
+            <span className="flex-shrink mx-3 text-[10px] text-slate-500 uppercase font-bold">o por transferencia manual</span>
+            <div className="flex-grow border-t border-slate-800"></div>
+          </div>
+
           {/* RECUADRO COPIAR ALIAS */}
           <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-2.5">
             <div>
@@ -897,50 +941,82 @@ export default function AdminPage() {
   const maxVentaDia = Math.max(...facturacionPorDiaSemana, 1)
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       <link 
         href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Cinzel:wght@500;700;800&family=Dancing+Script:wght@600;700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,400&family=Montserrat:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" 
         rel="stylesheet" 
       />
       
-      {/* MENÚ LATERAL */}
-      <aside className="w-full md:w-64 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 p-5 flex flex-col justify-between shrink-0">
-        <div className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center font-black text-white text-lg shadow-lg">
-              {negocio?.nombre?.charAt(0) || 'A'}
+      {/* MENÚ HORIZONTAL RESPONSIVE SUPERIOR */}
+      <header className="w-full bg-slate-900 border-b border-slate-800 sticky top-0 z-30">
+        <div className="max-w-6xl mx-auto px-4 pt-3.5 pb-2.5 space-y-3">
+          {/* Fila superior: Nombre del negocio + Aviso prueba + Acciones */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-white text-base shadow-lg shrink-0">
+                {negocio?.nombre?.charAt(0) || 'A'}
+              </div>
+              <div className="min-w-0">
+                <h1 className="font-extrabold text-sm text-white leading-tight truncate max-w-[160px] sm:max-w-[260px]">
+                  {negocio?.nombre || 'Administración'}
+                </h1>
+                <p className="text-[11px] text-slate-400">Panel de Control</p>
+              </div>
             </div>
-            <div>
-              <h1 className="font-extrabold text-sm text-white leading-tight truncate max-w-[150px]">
-                {negocio?.nombre || 'Administración'}
-              </h1>
-              <p className="text-[11px] text-slate-400">Panel de Control</p>
+
+            <div className="flex items-center gap-2">
+              {negocio?.estado === 'prueba' && diasRestantes !== null && (
+                <button
+                  type="button"
+                  onClick={() => setTab('suscripcion')}
+                  className="bg-amber-500/10 border border-amber-500/30 px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 text-[11px] text-amber-300 font-bold hover:bg-amber-500/20 transition"
+                >
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="hidden sm:inline">Prueba:</span>
+                  <span>{diasRestantes > 0 ? `${diasRestantes}d` : '0d'}</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!slug) {
+                    alert('Aún no se ha cargado o configurado el enlace/slug de tu negocio. Completa y guarda tus datos en la pestaña "Datos & Redes".')
+                    return
+                  }
+                  window.open(`/${slug}`, '_blank')
+                }}
+                className="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition"
+              >
+                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">Ver Mi Página</span>
+                <span className="sm:hidden">Página</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCerrarSesion}
+                title="Cerrar Sesión"
+                className="py-2 px-3 bg-slate-950 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-800 transition"
+              >
+                <LogOut className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden md:inline">Salir</span>
+              </button>
             </div>
           </div>
 
-          {negocio?.estado === 'prueba' && diasRestantes !== null && (
-            <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-2xl space-y-1">
-              <div className="flex items-center gap-1.5 text-amber-400 font-bold text-[11px]">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                <span>Prueba gratuita activa</span>
-              </div>
-              <p className="text-[10px] text-slate-400">
-                Te quedan <strong className="text-amber-300">{diasRestantes > 0 ? diasRestantes : 0} días</strong> de prueba.
-              </p>
-            </div>
-          )}
-
-          <nav className="space-y-1.5">
+          {/* Fila inferior: Pestañas horizontales con scroll táctil en móvil */}
+          <nav className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
             <button
               onClick={() => setTab('turnos')}
-              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
-                tab === 'turnos' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800'
+              className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
+                tab === 'turnos' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
               }`}
             >
-              <Calendar className="w-4 h-4 shrink-0" />
-              <span>Turnos Reservados</span>
+              <Calendar className="w-3.5 h-3.5 shrink-0" />
+              <span>Turnos</span>
               {turnosPendientes.length > 0 && (
-                <span className="ml-auto bg-amber-500 text-slate-950 text-[10px] px-2 py-0.5 rounded-full font-black">
+                <span className="bg-amber-500 text-slate-950 text-[10px] px-1.5 py-0.2 rounded-full font-black">
                   {turnosPendientes.length}
                 </span>
               )}
@@ -948,85 +1024,59 @@ export default function AdminPage() {
 
             <button
               onClick={() => setTab('servicios')}
-              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
-                tab === 'servicios' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800'
+              className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
+                tab === 'servicios' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
               }`}
             >
-              <Scissors className="w-4 h-4 shrink-0" />
-              <span>Gestor de Servicios</span>
+              <Scissors className="w-3.5 h-3.5 shrink-0" />
+              <span>Servicios</span>
             </button>
 
             <button
               onClick={() => setTab('horarios_catalogo')}
-              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
-                tab === 'horarios_catalogo' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800'
+              className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
+                tab === 'horarios_catalogo' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
               }`}
             >
-              <Clock className="w-4 h-4 shrink-0" />
+              <Clock className="w-3.5 h-3.5 shrink-0" />
               <span>Horarios & Catálogo</span>
             </button>
 
             <button
               onClick={() => setTab('marca')}
-              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
-                tab === 'marca' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800'
+              className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
+                tab === 'marca' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
               }`}
             >
-              <Palette className="w-4 h-4 shrink-0" />
+              <Palette className="w-3.5 h-3.5 shrink-0" />
               <span>Datos & Redes</span>
             </button>
 
             <button
               onClick={() => setTab('historial')}
-              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
-                tab === 'historial' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800'
+              className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
+                tab === 'historial' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
               }`}
             >
-              <BarChart3 className="w-4 h-4 shrink-0" />
-              <span>Historial & Balances</span>
+              <BarChart3 className="w-3.5 h-3.5 shrink-0" />
+              <span>Balances</span>
             </button>
 
             <button
               onClick={() => setTab('suscripcion')}
-              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition ${
-                tab === 'suscripcion' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800'
+              className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
+                tab === 'suscripcion' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
               }`}
             >
-              <CreditCard className="w-4 h-4 shrink-0" />
-              <span>Suscripción & Plan</span>
+              <CreditCard className="w-3.5 h-3.5 shrink-0" />
+              <span>Suscripción</span>
             </button>
           </nav>
         </div>
-
-        <div className="pt-4 border-t border-slate-800 mt-6 md:mt-0 space-y-2">
-          {/* BOTÓN PÁGINA PÚBLICA CON VALIDACIÓN DE SLUG */}
-          <button
-            type="button"
-            onClick={() => {
-              if (!slug) {
-                alert('Aún no se ha cargado o configurado el enlace/slug de tu negocio. Completa y guarda tus datos en la pestaña "Datos & Redes".')
-                return
-              }
-              window.open(`/${slug}`, '_blank')
-            }}
-            className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border border-slate-700 transition"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span>Ver Mi Página</span>
-          </button>
-
-          <button
-            onClick={handleCerrarSesion}
-            className="w-full py-2.5 px-4 bg-slate-950 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border border-slate-800/80 transition"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Cerrar Sesión</span>
-          </button>
-        </div>
-      </aside>
+      </header>
 
       {/* CONTENIDO CENTRAL */}
-      <main className="flex-1 p-4 sm:p-8 overflow-y-auto max-w-6xl">
+      <main className="flex-1 w-full mx-auto p-4 sm:p-8 max-w-6xl">
         
         {/* PESTAÑA 1: TURNOS */}
         {tab === 'turnos' && (
@@ -1038,7 +1088,7 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
                     <AlertTriangle className="w-4 h-4 text-amber-400" />
-                    <span>Tu período finaliza pronto ({diasRestantes > 0 ? `${diasRestantes} días restantes` : 'vencido hoy'}). Renovalo por transferencia directa:</span>
+                    <span>Tu período finaliza pronto ({diasRestantes > 0 ? `${diasRestantes} días restantes` : 'vencido hoy'}). Renovalo al instante o por transferencia:</span>
                   </div>
                   <button
                     onClick={() => setTab('suscripcion')}
@@ -1054,7 +1104,17 @@ export default function AdminPage() {
                     <span className="text-sm font-mono font-black text-indigo-300">{ALIAS_TRANSFERENCIA}</span>
                   </div>
 
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+                    <button
+                      type="button"
+                      onClick={handlePagarConMercadoPago}
+                      disabled={pagandoMP}
+                      className="flex-1 sm:flex-initial px-3 py-1.5 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 bg-sky-500 hover:bg-sky-400 text-slate-950 transition"
+                    >
+                      <CreditCard className="w-3.5 h-3.5" />
+                      {pagandoMP ? 'Conectando...' : 'Mercado Pago'}
+                    </button>
+
                     <button
                       type="button"
                       onClick={copiarAlias}
@@ -2108,7 +2168,7 @@ export default function AdminPage() {
 
             {/* PREVIEW EN TIEMPO REAL */}
             <div className="lg:col-span-5 flex flex-col items-center">
-              <div className="sticky top-6 w-full max-w-[320px] bg-slate-900 border-4 border-slate-700 rounded-[40px] p-3 shadow-2xl overflow-hidden">
+              <div className="sticky top-28 w-full max-w-[320px] bg-slate-900 border-4 border-slate-700 rounded-[40px] p-3 shadow-2xl overflow-hidden">
                 <div className="w-20 h-4 bg-slate-800 rounded-full mx-auto mb-3"></div>
 
                 <div 
@@ -2452,6 +2512,23 @@ export default function AdminPage() {
                   </p>
                 </div>
 
+                {/* BOTÓN AUTOMÁTICO MERCADO PAGO */}
+                <button
+                  type="button"
+                  onClick={handlePagarConMercadoPago}
+                  disabled={pagandoMP}
+                  className="w-full py-3.5 px-4 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-slate-950 rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition shadow-lg"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  {pagandoMP ? 'Conectando con Mercado Pago...' : 'Renovar al instante con Mercado Pago'}
+                </button>
+
+                <div className="relative flex py-1 items-center">
+                  <div className="flex-grow border-t border-indigo-500/20"></div>
+                  <span className="flex-shrink mx-3 text-[10px] text-slate-400 uppercase font-bold">o por transferencia manual</span>
+                  <div className="flex-grow border-t border-indigo-500/20"></div>
+                </div>
+
                 {/* BLOQUE COPIAR ALIAS */}
                 <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
                   <div>
@@ -2519,7 +2596,7 @@ export default function AdminPage() {
                   <span>¿Cómo funciona la renovación?</span>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Realizás la transferencia directa al alias oficial y nos mandás el comprobante tocando el botón de WhatsApp. Tu acceso se extenderá por 30 días más inmediatamente a partir de tu fecha de vencimiento actual.
+                  Si abonás con Mercado Pago tu cuenta se activa de forma inmediata y automática. Si elegís transferencia directa al alias oficial, mandanos el comprobante por WhatsApp y extendemos tu acceso por 30 días más.
                 </p>
                 <div className="pt-2 text-[11px] text-slate-500">
                   ID de tu local para el comprobante: <code className="text-indigo-400 font-bold bg-slate-900 px-2 py-0.5 rounded">{negocio?.id}</code>
