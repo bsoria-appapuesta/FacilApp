@@ -222,13 +222,13 @@ export default function AdminPage() {
       })
 
       if (error || !data?.init_point) {
-        alert('No se pudo iniciar el pago con Mercado Pago. Intentá nuevamente.')
+        alert('Detalle error: ' + JSON.stringify({ error, data }))
         return
       }
 
       window.location.href = data.init_point
-    } catch (err) {
-      alert('Error al conectar con Mercado Pago.')
+    } catch (err: any) {
+      alert('Error al conectar con Mercado Pago: ' + (err?.message || String(err)))
     } finally {
       setPagandoMP(false)
     }
