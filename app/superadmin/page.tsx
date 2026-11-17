@@ -164,7 +164,7 @@ export default function SuperAdminPage() {
   const totalActivos = negociosConDias.filter(n => n.estado === 'activo' && !n.estaVencido).length
   const totalPrueba = negociosConDias.filter(n => n.estado === 'prueba' && !n.estaVencido).length
   const totalVencidos = negociosConDias.filter(n => n.estaVencido).length
-  const ingresoMensualEstimado = totalActivos * 15000
+  const ingresoMensualEstimado = totalActivos * 16400
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8">

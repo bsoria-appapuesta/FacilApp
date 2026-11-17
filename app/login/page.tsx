@@ -177,7 +177,7 @@ function LoginContent() {
               <Sparkles className="w-3.5 h-3.5" /> Prueba Gratis: 10 Días
             </span>
             <span className="text-xs font-black text-white">
-              $15.000 <span className="text-[10px] text-slate-400 font-normal">/ mes</span>
+              $16.400 <span className="text-[10px] text-slate-400 font-normal">/ mes</span>
             </span>
           </div>
 
@@ -300,7 +300,7 @@ function LoginContent() {
         </form>
 
         <p className="text-[10px] text-center text-slate-500 leading-relaxed pt-1">
-          Al registrarte aceptás las condiciones de servicio. Renovación voluntaria de $15.000/mes tras los 10 días de prueba.
+          Al registrarte aceptás las condiciones de servicio. Renovación voluntaria de $16.400/mes tras los 10 días de prueba.
         </p>
       </div>
 
