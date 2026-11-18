@@ -935,8 +935,8 @@ export default function AdminPage() {
       </header>
 
       {/* CONTENIDO CENTRAL (CON MARGEN INFERIOR EXTRA PARA NO SUPERPONERSE CON EL MENÚ) */}
-      <main className="flex-1 w-full mx-auto p-4 sm:p-8 pb-48 max-w-6xl">
-        
+<main className="flex-1 w-full mx-auto p-4 sm:p-8 max-w-6xl" style={{ paddingBottom: '140px' }}>
+          
         {/* PESTAÑA 1: TURNOS */}
         {tab === 'turnos' && (
           <div className="space-y-6">
