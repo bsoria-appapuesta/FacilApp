@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Sparkles, CheckCircle2, Lock } from 'lucide-react'
@@ -49,12 +49,40 @@ function LoginContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [cargando, setCargando] = useState(false)
+  const [cargandoGoogle, setCargandoGoogle] = useState(false)
   const [mensaje, setMensaje] = useState<{ tipo: 'error' | 'exito'; texto: string } | null>(null)
 
   const [mostrarRecuperar, setMostrarRecuperar] = useState(false)
   const [emailRecuperar, setEmailRecuperar] = useState('')
   const [cargandoRecuperar, setCargandoRecuperar] = useState(false)
   const [mensajeRecuperar, setMensajeRecuperar] = useState<{ tipo: 'error' | 'exito'; texto: string } | null>(null)
+
+  // Si ya inició sesión (por ejemplo, al regresar de Google), redirige automáticamente
+  useEffect(() => {
+    const verificarSesionExistente = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        if (session.user.email === 'braiandsoria@gmail.com') {
+          router.push('/superadmin')
+        } else {
+          router.push('/admin')
+        }
+      }
+    }
+    verificarSesionExistente()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        if (session.user.email === 'braiandsoria@gmail.com') {
+          router.push('/superadmin')
+        } else {
+          router.push('/admin')
+        }
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [router])
 
   function validarContrasena(pass: string): string | null {
     if (pass.length < 8) {
@@ -70,6 +98,25 @@ function LoginContent() {
       return 'La contraseña debe contener al menos un número.'
     }
     return null
+  }
+
+  async function handleLoginGoogle() {
+    setMensaje(null)
+    setCargandoGoogle(true)
+
+    const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://facilapp-seven.vercel.app'
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${siteUrl}/admin`,
+      },
+    })
+
+    if (error) {
+      setCargandoGoogle(false)
+      setMensaje({ tipo: 'error', texto: traducirError(error.message) })
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -118,6 +165,16 @@ function LoginContent() {
       if (error) {
         setCargando(false)
         setMensaje({ tipo: 'error', texto: traducirError(error.message) })
+        return
+      }
+
+      // Valida si el correo ya estaba registrado en Supabase
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        setCargando(false)
+        setMensaje({
+          tipo: 'error',
+          texto: 'Este correo ya tiene una cuenta registrada. Seleccioná "Iniciar Sesión".'
+        })
         return
       }
 
@@ -288,7 +345,7 @@ function LoginContent() {
 
           <button
             type="submit"
-            disabled={cargando}
+            disabled={cargando || cargandoGoogle}
             className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg mt-2"
           >
             {cargando 
@@ -298,6 +355,41 @@ function LoginContent() {
               : 'Comenzar mi prueba de 10 días'}
           </button>
         </form>
+
+        {/* SEPARADOR */}
+        <div className="relative flex items-center py-0.5">
+          <div className="flex-grow border-t border-slate-800"></div>
+          <span className="shrink mx-3 text-[11px] text-slate-500 font-medium">o continuá con</span>
+          <div className="flex-grow border-t border-slate-800"></div>
+        </div>
+
+        {/* BOTÓN DE GOOGLE */}
+        <button
+          type="button"
+          onClick={handleLoginGoogle}
+          disabled={cargandoGoogle || cargando}
+          className="w-full bg-white hover:bg-slate-100 disabled:opacity-60 text-slate-900 font-bold py-3 px-4 rounded-xl text-xs transition shadow flex items-center justify-center gap-2.5"
+        >
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+            <path
+              fill="#4285F4"
+              d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 24c3.3 0 6.08-1.09 8.11-2.96l-3.88-3.05c-1.1.74-2.51 1.18-4.23 1.18-3.26 0-6.02-2.2-7-5.16H1.01v3.14C3.05 21.2 7.24 24 12 24Z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5 14.01c-.25-.74-.39-1.54-.39-2.36 0-.82.14-1.62.39-2.36V6.15H1.01C.37 7.43 0 8.87 0 10.39s.37 2.96 1.01 4.24l3.99-3.14Z"
+            />
+            <path
+              fill="#EA4335"
+              d="M12 4.75c1.79 0 3.41.62 4.68 1.82l3.51-3.51C18.07 1.19 15.3 0 12 0 7.24 0 3.05 2.8 1.01 6.85l3.99 3.14c.98-2.96 3.74-5.24 7-5.24Z"
+            />
+          </svg>
+          <span>{cargandoGoogle ? 'Conectando con Google...' : 'Continuar con Google'}</span>
+        </button>
 
         <p className="text-[10px] text-center text-slate-500 leading-relaxed pt-1">
           Al registrarte aceptás las condiciones de servicio. Renovación voluntaria de $16.400/mes tras los 10 días de prueba.
