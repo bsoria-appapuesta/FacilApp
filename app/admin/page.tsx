@@ -934,8 +934,8 @@ export default function AdminPage() {
         </div>
       </header>
 
-      {/* CONTENIDO CENTRAL */}
-      <main className="flex-1 w-full mx-auto p-4 sm:p-8 pb-28 max-w-6xl">
+      {/* CONTENIDO CENTRAL (CON MARGEN INFERIOR EXTRA PARA NO SUPERPONERSE CON EL MENÚ) */}
+      <main className="flex-1 w-full mx-auto p-4 sm:p-8 pb-36 max-w-6xl">
         
         {/* PESTAÑA 1: TURNOS */}
         {tab === 'turnos' && (
@@ -2373,84 +2373,86 @@ export default function AdminPage() {
 
       </main>
 
-      {/* MENÚ DE NAVEGACIÓN INFERIOR CENTRADO */}
+      {/* MENÚ DE NAVEGACIÓN INFERIOR ESTILO INSTAGRAM */}
       <nav className="fixed bottom-4 inset-x-0 z-40 px-3 flex justify-center pointer-events-none">
-        <div className="pointer-events-auto max-w-full flex items-center gap-1.5 overflow-x-auto no-scrollbar bg-slate-900/90 backdrop-blur-xl border border-slate-700/80 p-2 rounded-2xl shadow-[0_12px_40px_-8px_rgba(0,0,0,0.9),0_0_24px_-4px_rgba(99,102,241,0.35)] ring-1 ring-white/10">
+        <div className="pointer-events-auto max-w-full flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar bg-slate-900/90 backdrop-blur-2xl border border-white/15 px-3 py-2 rounded-[26px] shadow-[0_18px_45px_-10px_rgba(0,0,0,0.95),0_0_28px_-4px_rgba(139,92,246,0.35)]">
           <button
             onClick={() => setTab('turnos')}
-            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`relative shrink-0 flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-2xl transition-all duration-200 ${
               tab === 'turnos'
-                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40'
-                : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+                ? 'bg-gradient-to-tr from-indigo-600 via-violet-600 to-fuchsia-500 text-white shadow-lg shadow-violet-500/40 scale-105'
+                : 'text-slate-400 hover:bg-white/5 hover:text-white'
             }`}
           >
-            <Calendar className="w-4 h-4 shrink-0" />
-            <span>Turnos</span>
-            {turnosPendientes.length > 0 && (
-              <span className="bg-amber-400 text-slate-950 text-[10px] px-1.5 py-0.5 rounded-full font-black">
-                {turnosPendientes.length}
-              </span>
-            )}
+            <div className="relative">
+              <Calendar className="w-5 h-5" />
+              {turnosPendientes.length > 0 && (
+                <span className="absolute -top-1.5 -right-2.5 bg-rose-500 text-white text-[9px] min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full font-black ring-2 ring-slate-900">
+                  {turnosPendientes.length}
+                </span>
+              )}
+            </div>
+            <span className="text-[11px] font-bold tracking-tight">Turnos</span>
           </button>
 
           <button
             onClick={() => setTab('servicios')}
-            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`shrink-0 flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-2xl transition-all duration-200 ${
               tab === 'servicios'
-                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40'
-                : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+                ? 'bg-gradient-to-tr from-indigo-600 via-violet-600 to-fuchsia-500 text-white shadow-lg shadow-violet-500/40 scale-105'
+                : 'text-slate-400 hover:bg-white/5 hover:text-white'
             }`}
           >
-            <Scissors className="w-4 h-4 shrink-0" />
-            <span>Servicios</span>
+            <Scissors className="w-5 h-5" />
+            <span className="text-[11px] font-bold tracking-tight">Servicios</span>
           </button>
 
           <button
             onClick={() => setTab('horarios_catalogo')}
-            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`shrink-0 flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-2xl transition-all duration-200 ${
               tab === 'horarios_catalogo'
-                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40'
-                : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+                ? 'bg-gradient-to-tr from-indigo-600 via-violet-600 to-fuchsia-500 text-white shadow-lg shadow-violet-500/40 scale-105'
+                : 'text-slate-400 hover:bg-white/5 hover:text-white'
             }`}
           >
-            <Clock className="w-4 h-4 shrink-0" />
-            <span>Horarios & Catálogo</span>
+            <Clock className="w-5 h-5" />
+            <span className="text-[11px] font-bold tracking-tight">Horarios & Catálogo</span>
           </button>
 
           <button
             onClick={() => setTab('marca')}
-            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`shrink-0 flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-2xl transition-all duration-200 ${
               tab === 'marca'
-                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40'
-                : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+                ? 'bg-gradient-to-tr from-indigo-600 via-violet-600 to-fuchsia-500 text-white shadow-lg shadow-violet-500/40 scale-105'
+                : 'text-slate-400 hover:bg-white/5 hover:text-white'
             }`}
           >
-            <Palette className="w-4 h-4 shrink-0" />
-            <span>Datos & Redes</span>
+            <Palette className="w-5 h-5" />
+            <span className="text-[11px] font-bold tracking-tight">Datos & Redes</span>
           </button>
 
           <button
             onClick={() => setTab('historial')}
-            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`shrink-0 flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-2xl transition-all duration-200 ${
               tab === 'historial'
-                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40'
-                : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+                ? 'bg-gradient-to-tr from-indigo-600 via-violet-600 to-fuchsia-500 text-white shadow-lg shadow-violet-500/40 scale-105'
+                : 'text-slate-400 hover:bg-white/5 hover:text-white'
             }`}
           >
-            <BarChart3 className="w-4 h-4 shrink-0" />
-            <span>Balances</span>
+            <BarChart3 className="w-5 h-5" />
+            <span className="text-[11px] font-bold tracking-tight">Balances</span>
           </button>
 
           <button
             onClick={() => setTab('suscripcion')}
-            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`shrink-0 flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-2xl transition-all duration-200 ${
               tab === 'suscripcion'
-                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40'
-                : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+                ? 'bg-gradient-to-tr from-indigo-600 via-violet-600 to-fuchsia-500 text-white shadow-lg shadow-violet-500/40 scale-105'
+                : 'text-slate-400 hover:bg-white/5 hover:text-white'
             }`}
           >
-            <CreditCard className="w-4 h-4 shrink-0" />
-            <span>Suscripción</span>
+            <CreditCard className="w-5 h-5" />
+            <span className="text-[11px] font-bold tracking-tight">Suscripción</span>
           </button>
         </div>
       </nav>
