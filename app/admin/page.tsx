@@ -866,9 +866,10 @@ export default function AdminPage() {
   })
 
   const maxVentaDia = Math.max(...facturacionPorDiaSemana, 1)
+  const inicialNegocio = (negocio?.nombre?.trim()?.charAt(0) || 'A').toUpperCase()
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col overflow-x-hidden">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       <link 
         href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Cinzel:wght@500;700;800&family=Dancing+Script:wght@600;700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,400&family=Montserrat:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" 
         rel="stylesheet" 
@@ -877,21 +878,20 @@ export default function AdminPage() {
       {/* ENCABEZADO SUPERIOR */}
       <header className="w-full bg-slate-900 border-b border-slate-800 sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4 py-3.5">
-          {/* Fila superior: Nombre del negocio + Aviso prueba + Acciones */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-white text-base shadow-lg shrink-0">
-                {negocio?.nombre?.charAt(0) || 'A'}
+              <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-white text-base shadow-lg shrink-0 select-none">
+                <span>{inicialNegocio}</span>
               </div>
               <div className="min-w-0">
-                <h1 className="font-extrabold text-sm text-white leading-tight truncate max-w-[140px] sm:max-w-[260px]">
+                <h1 className="font-extrabold text-sm text-white leading-tight truncate max-w-[160px] sm:max-w-[260px]">
                   {negocio?.nombre || 'Administración'}
                 </h1>
                 <p className="text-[11px] text-slate-400">Panel de Control</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <div className="flex items-center gap-2">
               {negocio?.estado === 'prueba' && diasRestantes !== null && (
                 <button
                   type="button"
@@ -913,7 +913,7 @@ export default function AdminPage() {
                   }
                   window.open(`/${slug}`, '_blank')
                 }}
-                className="py-2 px-2.5 sm:px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition"
+                className="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition"
               >
                 <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                 <span className="hidden sm:inline">Ver Mi Página</span>
@@ -924,7 +924,7 @@ export default function AdminPage() {
                 type="button"
                 onClick={handleCerrarSesion}
                 title="Cerrar Sesión"
-                className="py-2 px-2.5 sm:px-3 bg-slate-950 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-800 transition"
+                className="py-2 px-3 bg-slate-950 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-800 transition"
               >
                 <LogOut className="w-3.5 h-3.5 shrink-0" />
                 <span className="hidden md:inline">Salir</span>
@@ -935,7 +935,7 @@ export default function AdminPage() {
       </header>
 
       {/* CONTENIDO CENTRAL */}
-      <main className="flex-1 w-full mx-auto p-3.5 sm:p-8 pb-28 max-w-6xl">
+      <main className="flex-1 w-full mx-auto p-4 sm:p-8 pb-28 max-w-6xl">
         
         {/* PESTAÑA 1: TURNOS */}
         {tab === 'turnos' && (
@@ -956,15 +956,15 @@ export default function AdminPage() {
                     type="button"
                     onClick={handlePagarConMercadoPago}
                     disabled={pagandoMP}
-                    className="flex-1 sm:flex-initial px-4 py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 bg-sky-500 hover:bg-sky-400 text-slate-950 transition shadow whitespace-nowrap"
+                    className="flex-1 sm:flex-initial px-4 py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 bg-sky-500 hover:bg-sky-400 text-slate-950 transition shadow"
                   >
-                    <CreditCard className="w-3.5 h-3.5 shrink-0" />
+                    <CreditCard className="w-3.5 h-3.5" />
                     {pagandoMP ? 'Conectando...' : `Renovar ($${PRECIO_SUSCRIPCION.toLocaleString()})`}
                   </button>
 
                   <button
                     onClick={() => setTab('suscripcion')}
-                    className="px-3 py-2 text-xs text-indigo-400 hover:underline font-bold shrink-0"
+                    className="px-3 py-2 text-xs text-indigo-400 hover:underline font-bold"
                   >
                     Ver plan
                   </button>
@@ -972,7 +972,7 @@ export default function AdminPage() {
               </div>
             )}
 
-            <div className="flex justify-between items-center flex-wrap gap-3 bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-800 shadow-xl">
+            <div className="flex justify-between items-center flex-wrap gap-3 bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">
               <div>
                 <h2 className="text-lg font-black text-white">Turnos Reservados</h2>
                 <p className="text-xs text-slate-400">Confirmá y abrí el chat de WhatsApp al instante</p>
@@ -986,7 +986,7 @@ export default function AdminPage() {
             </div>
 
             {/* MINI CALENDARIO SEMANAL */}
-            <div className="bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+            <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 shadow-xl space-y-4">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div>
                   <h3 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5">
@@ -1045,13 +1045,13 @@ export default function AdminPage() {
                     type="date"
                     value={fechaTurnosFiltro}
                     onChange={(e) => seleccionarFechaEspecifica(e.target.value)}
-                    className="bg-slate-950 border border-slate-800 rounded-xl px-2 py-1 text-xs text-white max-w-[130px]"
+                    className="bg-slate-950 border border-slate-800 rounded-xl px-2 py-1 text-xs text-white"
                     title="Ir a una fecha específica"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+              <div className="grid grid-cols-7 gap-1.5">
                 {diasSemanaVisible.map(d => {
                   const esSeleccionado = fechaTurnosFiltro === d.iso
                   const esHoy = d.iso === fechaHoy
@@ -1062,7 +1062,7 @@ export default function AdminPage() {
                       key={d.iso}
                       type="button"
                       onClick={() => setFechaTurnosFiltro(d.iso)}
-                      className={`py-2 px-1 sm:p-2 rounded-2xl flex flex-col items-center justify-center transition border min-w-0 ${
+                      className={`p-2 rounded-2xl flex flex-col items-center justify-center transition border ${
                         esSeleccionado
                           ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg'
                           : esHoy
@@ -1070,9 +1070,9 @@ export default function AdminPage() {
                           : 'bg-slate-950/70 hover:bg-slate-800 border-slate-800 text-slate-300'
                       }`}
                     >
-                      <span className="text-[9px] sm:text-[10px] font-medium opacity-80">{d.nombreDia}</span>
-                      <span className="text-xs sm:text-sm font-black leading-tight my-0.5">{d.numero}</span>
-                      <span className="text-[8px] sm:text-[9px] opacity-70">{d.mesCorto}</span>
+                      <span className="text-[10px] font-medium opacity-80">{d.nombreDia}</span>
+                      <span className="text-sm font-black leading-tight my-0.5">{d.numero}</span>
+                      <span className="text-[9px] opacity-70">{d.mesCorto}</span>
 
                       {cantTurnos > 0 && (
                         <span className={`mt-1 text-[9px] px-1.5 rounded-full font-black ${
@@ -1086,7 +1086,7 @@ export default function AdminPage() {
                 })}
               </div>
 
-              <div className="bg-slate-950 p-3.5 sm:p-4 rounded-2xl border border-slate-800/80 space-y-2.5">
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800/80 space-y-2.5">
                 <div className="flex items-center justify-between border-b border-slate-800/60 pb-2">
                   <span className="text-xs font-bold text-slate-300">
                     Cronograma del {fechaTurnosFiltro.split('-').reverse().join('/')}
@@ -1109,8 +1109,8 @@ export default function AdminPage() {
 
                       return (
                         <div key={t.id} className="py-2.5 flex items-center justify-between gap-2 first:pt-1 last:pb-1">
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className="px-2 py-1 rounded-xl bg-slate-900 border border-slate-800 text-indigo-300 font-black text-[11px] shrink-0 whitespace-nowrap">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <span className="px-2 py-1 rounded-xl bg-slate-900 border border-slate-800 text-indigo-300 font-black text-xs shrink-0 whitespace-nowrap">
                               {horaMin} hs
                             </span>
                             <div className="min-w-0 flex-1">
@@ -1118,13 +1118,13 @@ export default function AdminPage() {
                                 {t.cliente_nombre}
                               </p>
                               <p className="text-[10px] text-slate-400 truncate">
-                                {t.servicios?.nombre || 'General'} • {t.cliente_whatsapp}
+                                {t.servicios?.nombre || 'General'} • WA: {t.cliente_whatsapp}
                               </p>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-1.5 shrink-0">
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                               esPendiente 
                                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
                                 : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
@@ -1132,7 +1132,7 @@ export default function AdminPage() {
                               {t.estado}
                             </span>
                             <span className="font-bold text-xs text-emerald-400 whitespace-nowrap">
-                              ${Number(t.monto_cobrado).toLocaleString()}
+                              ${t.monto_cobrado}
                             </span>
                           </div>
                         </div>
@@ -1147,8 +1147,8 @@ export default function AdminPage() {
             {turnoAEditar && (
               <div className="bg-slate-900 border border-slate-700 p-5 rounded-2xl space-y-4 shadow-2xl">
                 <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <h3 className="font-bold text-sm text-white truncate pr-2">Reprogramar Turno de {turnoAEditar.cliente_nombre}</h3>
-                  <button onClick={() => setTurnoAEditar(null)} className="text-slate-400 hover:text-white shrink-0">
+                  <h3 className="font-bold text-sm text-white">Reprogramar Turno de {turnoAEditar.cliente_nombre}</h3>
+                  <button onClick={() => setTurnoAEditar(null)} className="text-slate-400 hover:text-white">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
@@ -1292,7 +1292,7 @@ export default function AdminPage() {
             )}
 
             {/* Solicitudes Pendientes */}
-            <div className="bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-4">
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
               <h3 className="text-sm font-bold text-amber-400">⏳ Solicitudes Pendientes ({turnosPendientes.length})</h3>
               <div className="space-y-3">
                 {turnosPendientes.length === 0 ? (
@@ -1313,14 +1313,14 @@ export default function AdminPage() {
                         <div className="flex items-center gap-2 shrink-0">
                           <button
                             onClick={() => handleConfirmarTurno(t)}
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5 shadow whitespace-nowrap"
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5 shadow"
                           >
-                            <FaWhatsapp className="w-4 h-4 shrink-0" /> Confirmar & Abrir WA
+                            <FaWhatsapp className="w-4 h-4" /> Confirmar & Abrir WA
                           </button>
 
                           <button
                             onClick={() => handleEliminarTurno(t)}
-                            className="p-2.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 rounded-xl border border-rose-500/30 transition shrink-0"
+                            className="p-2.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 rounded-xl border border-rose-500/30 transition"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -1333,7 +1333,7 @@ export default function AdminPage() {
             </div>
 
             {/* Turnos Confirmados */}
-            <div className="bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-4">
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
               <h3 className="text-sm font-bold text-emerald-400">✓ Turnos Confirmados & Próximos ({turnosConfirmados.length})</h3>
               <div className="space-y-3">
                 {turnosConfirmados.length === 0 ? (
@@ -1399,8 +1399,8 @@ export default function AdminPage() {
         {/* PESTAÑA 2: SERVICIOS */}
         {tab === 'servicios' && (
           <div className="space-y-6">
-            <form onSubmit={handleGuardarServicio} className="bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
-              <div className="flex justify-between items-center gap-2">
+            <form onSubmit={handleGuardarServicio} className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
+              <div className="flex justify-between items-center">
                 <h2 className="text-lg font-black text-white">
                   {servicioEditandoId ? '✏️ Editar Servicio' : '➕ Agregar Nuevo Servicio'}
                 </h2>
@@ -1408,7 +1408,7 @@ export default function AdminPage() {
                   <button
                     type="button"
                     onClick={cancelarEdicionServicio}
-                    className="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 shrink-0"
+                    className="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800"
                   >
                     <X className="w-3.5 h-3.5" /> Cancelar
                   </button>
@@ -1451,22 +1451,20 @@ export default function AdminPage() {
               </button>
             </form>
 
-            <div className="bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-3 shadow-xl">
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-3 shadow-xl">
               <h3 className="text-sm font-bold text-slate-400">Listado de Servicios Activos</h3>
               {servicios.length === 0 ? (
                 <p className="text-xs text-slate-500 text-center py-4">No tenés servicios agregados.</p>
               ) : (
                 servicios.map((s) => (
-                  <div key={s.id} className="bg-slate-950 p-3.5 sm:p-4 rounded-2xl border border-slate-800 flex justify-between items-center gap-2">
+                  <div key={s.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center gap-2">
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-sm text-white truncate">{s.nombre}</p>
-                      <p className="text-xs text-slate-400">⏱️ {s.duracion_minutos || 30} min</p>
+                      <p className="text-xs text-slate-400">⏱️ {s.duracion_minutos || 30} minutos</p>
                     </div>
 
                     <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                      <span className="font-black text-emerald-400 text-sm whitespace-nowrap">
-                        ${Number(s.precio).toLocaleString()}
-                      </span>
+                      <span className="font-black text-emerald-400 text-sm whitespace-nowrap">${s.precio}</span>
                       <button
                         type="button"
                         onClick={() => iniciarEdicionServicio(s)}
@@ -1492,10 +1490,10 @@ export default function AdminPage() {
         {/* PESTAÑA 3: HORARIOS & CATÁLOGO */}
         {tab === 'horarios_catalogo' && (
           <form onSubmit={handleGuardarConfiguracion} className="space-y-6">
-            <div className="bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
               <div>
                 <h2 className="text-lg font-black text-white flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-indigo-400 shrink-0" />
+                  <Clock className="w-5 h-5 text-indigo-400" />
                   Horarios de Atención
                 </h2>
                 <p className="text-xs text-slate-400">Definí las horas de apertura y el intervalo entre turnos</p>
@@ -1537,10 +1535,10 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
               <div>
                 <h2 className="text-lg font-black text-white flex items-center gap-2">
-                  <ImageIcon className="w-5 h-5 text-indigo-400 shrink-0" />
+                  <ImageIcon className="w-5 h-5 text-indigo-400" />
                   Catálogo Visual / Fotos con Precio
                 </h2>
               </div>
@@ -1592,7 +1590,7 @@ export default function AdminPage() {
                     <img src={item.imagen_url} alt={item.titulo} className="w-full h-28 object-cover" />
                     <div className="p-2 space-y-0.5">
                       <p className="font-bold text-xs text-white truncate">{item.titulo}</p>
-                      {item.precio && <p className="text-xs text-emerald-400 font-black whitespace-nowrap">${item.precio}</p>}
+                      {item.precio && <p className="text-xs text-emerald-400 font-black">${item.precio}</p>}
                     </div>
                     <div className="absolute top-2 left-2 flex gap-1">
                       <button
@@ -1640,7 +1638,7 @@ export default function AdminPage() {
         {tab === 'marca' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            <form onSubmit={handleGuardarConfiguracion} className="lg:col-span-7 bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
+            <form onSubmit={handleGuardarConfiguracion} className="lg:col-span-7 bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
               <div>
                 <h2 className="text-lg font-black text-white">Datos del Negocio, Redes & Diseño</h2>
                 <p className="text-xs text-slate-400">Configurá la foto de perfil, tu enlace personalizado y estilo</p>
@@ -1662,7 +1660,7 @@ export default function AdminPage() {
                     )}
                   </div>
 
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1">
                     <input
                       type="file"
                       accept="image/*"
@@ -1687,7 +1685,7 @@ export default function AdminPage() {
                     value={slug}
                     onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                     placeholder="mi-local"
-                    className="bg-transparent text-white font-bold w-full min-w-0 focus:outline-none pl-1"
+                    className="bg-transparent text-white font-bold w-full focus:outline-none pl-1"
                     required
                   />
                 </div>
@@ -1833,14 +1831,14 @@ export default function AdminPage() {
                   />
                   {fondoCartaUrl && (
                     <div className="flex items-center justify-between gap-3 bg-slate-900 p-2 rounded-xl mt-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <img src={fondoCartaUrl} alt="Fondo Tarjeta" className="w-10 h-10 object-cover rounded-lg shrink-0" />
-                        <span className="text-[11px] text-emerald-400 font-bold truncate">Imagen de tarjeta activa</span>
+                      <div className="flex items-center gap-2">
+                        <img src={fondoCartaUrl} alt="Fondo Tarjeta" className="w-10 h-10 object-cover rounded-lg" />
+                        <span className="text-[11px] text-emerald-400 font-bold">Imagen de tarjeta activa</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => setFondoCartaUrl('')}
-                        className="text-rose-400 hover:text-rose-300 text-xs px-2 py-1 bg-rose-500/10 rounded-lg shrink-0"
+                        className="text-rose-400 hover:text-rose-300 text-xs px-2 py-1 bg-rose-500/10 rounded-lg"
                       >
                         Quitar
                       </button>
@@ -1878,7 +1876,7 @@ export default function AdminPage() {
                         type="text"
                         value={colorRedes}
                         onChange={(e) => setColorRedes(e.target.value)}
-                        className="w-full min-w-0 bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white font-mono"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white font-mono"
                       />
                     </div>
                   </div>
@@ -1964,7 +1962,7 @@ export default function AdminPage() {
                 <div className="space-y-2">
                   {redes.map((r) => (
                     <div key={r.id} className="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 overflow-hidden min-w-0">
+                      <div className="flex items-center gap-3 overflow-hidden">
                         <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center shrink-0 border border-slate-800">
                           {renderIconoRed(r.plataforma)}
                         </div>
@@ -1974,7 +1972,7 @@ export default function AdminPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2">
                         <a
                           href={r.url}
                           target="_blank"
@@ -2101,17 +2099,17 @@ export default function AdminPage() {
         {/* PESTAÑA 5: HISTORIAL */}
         {tab === 'historial' && (
           <div className="space-y-6">
-            <div className="bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
               <div className="flex justify-between items-center flex-wrap gap-3">
                 <div>
                   <h2 className="text-lg font-black text-white flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-indigo-400 shrink-0" />
+                    <BarChart3 className="w-5 h-5 text-indigo-400" />
                     Estadísticas & Balances Financieros
                   </h2>
                   <p className="text-xs text-slate-400">Control de ingresos por turnos finalizados</p>
                 </div>
 
-                <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-xs flex-wrap">
+                <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-xs">
                   <button
                     onClick={() => setFiltroHistorial('todo')}
                     className={`px-3 py-1.5 rounded-xl font-bold transition ${filtroHistorial === 'todo' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
@@ -2173,7 +2171,7 @@ export default function AdminPage() {
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                     <DollarSign className="w-3.5 h-3.5 text-emerald-400" /> Facturación Total
                   </span>
-                  <p className="text-2xl font-black text-emerald-400 tracking-tight whitespace-nowrap">
+                  <p className="text-2xl font-black text-emerald-400 tracking-tight">
                     ${totalRecaudado.toLocaleString()}
                   </p>
                   <p className="text-[10px] text-slate-500">Período seleccionado</p>
@@ -2193,7 +2191,7 @@ export default function AdminPage() {
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                     <TrendingUp className="w-3.5 h-3.5 text-indigo-400" /> Promedio / Turno
                   </span>
-                  <p className="text-2xl font-black text-indigo-400 tracking-tight whitespace-nowrap">
+                  <p className="text-2xl font-black text-indigo-400 tracking-tight">
                     ${promedioPorTurno.toLocaleString()}
                   </p>
                   <p className="text-[10px] text-slate-500">Ticket promedio</p>
@@ -2202,7 +2200,7 @@ export default function AdminPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
+              <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
                 <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">
                   Facturación por Día de la Semana ($)
                 </h3>
@@ -2211,8 +2209,8 @@ export default function AdminPage() {
                   {facturacionPorDiaSemana.map((monto, idx) => {
                     const porcentaje = Math.max((monto / maxVentaDia) * 100, 4)
                     return (
-                      <div key={idx} className="flex-1 flex flex-col items-center gap-2 group min-w-0">
-                        <span className="text-[9px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                      <div key={idx} className="flex-1 flex flex-col items-center gap-2 group">
+                        <span className="text-[9px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
                           ${monto}
                         </span>
                         <div className="w-full max-w-[24px] bg-slate-800 rounded-lg overflow-hidden flex items-end h-28">
@@ -2228,7 +2226,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
+              <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
                 <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">
                   Servicios Más Vendidos
                 </h3>
@@ -2243,7 +2241,7 @@ export default function AdminPage() {
                         <div key={nombre} className="space-y-1">
                           <div className="flex justify-between text-xs gap-2">
                             <span className="font-bold text-white truncate">{nombre} ({datos.cantidad})</span>
-                            <span className="font-black text-emerald-400 shrink-0 whitespace-nowrap">${datos.total.toLocaleString()}</span>
+                            <span className="font-black text-emerald-400 shrink-0 whitespace-nowrap">${datos.total}</span>
                           </div>
                           <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                             <div 
@@ -2259,7 +2257,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-3 shadow-xl">
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-3 shadow-xl">
               <h3 className="text-sm font-bold text-slate-300">Detalle de Turnos Facturados</h3>
               <div className="space-y-2">
                 {turnosFiltradosHistorial.length === 0 ? (
@@ -2272,11 +2270,11 @@ export default function AdminPage() {
                         <div className="min-w-0 flex-1">
                           <p className="font-bold text-xs text-white truncate">{t.cliente_nombre}</p>
                           <p className="text-[11px] text-slate-400 truncate">
-                            {t.servicios?.nombre || 'Servicio'} • {f.toLocaleDateString()} {f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} hs
+                            {t.servicios?.nombre || 'Servicio'} • {f.toLocaleDateString()} a las {f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} hs
                           </p>
                         </div>
-                        <span className="font-black text-emerald-400 text-xs sm:text-sm bg-emerald-950/40 border border-emerald-900/50 px-2.5 py-1 rounded-xl shrink-0 whitespace-nowrap">
-                          +${Number(t.monto_cobrado).toLocaleString()}
+                        <span className="font-black text-emerald-400 text-sm bg-emerald-950/40 border border-emerald-900/50 px-2.5 py-1 rounded-xl shrink-0 whitespace-nowrap">
+                          +${t.monto_cobrado}
                         </span>
                       </div>
                     )
@@ -2290,9 +2288,9 @@ export default function AdminPage() {
         {/* PESTAÑA 6: SUSCRIPCIÓN & PLAN (SOLO MERCADO PAGO) */}
         {tab === 'suscripcion' && (
           <div className="space-y-6 max-w-3xl">
-            <div className="bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-800 shadow-xl space-y-2">
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl space-y-2">
               <h2 className="text-lg font-black text-white flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-indigo-400 shrink-0" />
+                <CreditCard className="w-5 h-5 text-indigo-400" />
                 Tu Suscripción & Acceso
               </h2>
               <p className="text-xs text-slate-400">
@@ -2301,13 +2299,13 @@ export default function AdminPage() {
             </div>
 
             {/* ESTADO ACTUAL */}
-            <div className="bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-3 pb-4 border-b border-slate-800">
                 <div>
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                     Estado de la Cuenta
                   </span>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <div className="flex items-center gap-2 mt-1">
                     <span className={`text-xs font-black uppercase px-2.5 py-1 rounded-full ${
                       negocio?.estado === 'activo'
                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
@@ -2321,7 +2319,7 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <div className="sm:text-right">
+                <div className="text-right">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                     Próximo Vencimiento
                   </span>
@@ -2334,12 +2332,12 @@ export default function AdminPage() {
               </div>
 
               {/* CARD PRECIO */}
-              <div className="bg-indigo-950/40 border border-indigo-500/30 p-5 sm:p-6 rounded-2xl space-y-4">
+              <div className="bg-indigo-950/40 border border-indigo-500/30 p-6 rounded-2xl space-y-4">
                 <div className="space-y-1">
                   <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" /> Plan Completo FacilApp
+                    <Sparkles className="w-4 h-4 text-indigo-400" /> Plan Completo FacilApp
                   </span>
-                  <p className="text-2xl font-black text-emerald-400 whitespace-nowrap">
+                  <p className="text-2xl font-black text-emerald-400">
                     ${PRECIO_SUSCRIPCION.toLocaleString()} <span className="text-xs text-slate-400 font-semibold">/ mes</span>
                   </p>
                   <p className="text-[11px] text-slate-400">
@@ -2354,8 +2352,8 @@ export default function AdminPage() {
                   disabled={pagandoMP}
                   className="w-full py-3.5 px-4 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-slate-950 rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition shadow-lg"
                 >
-                  <CreditCard className="w-4 h-4 shrink-0" />
-                  <span>{pagandoMP ? 'Conectando con Mercado Pago...' : `Renovar 30 días con Mercado Pago ($${PRECIO_SUSCRIPCION.toLocaleString()})`}</span>
+                  <CreditCard className="w-4 h-4" />
+                  {pagandoMP ? 'Conectando con Mercado Pago...' : `Renovar 30 días con Mercado Pago ($${PRECIO_SUSCRIPCION.toLocaleString()})`}
                 </button>
               </div>
 
@@ -2375,21 +2373,21 @@ export default function AdminPage() {
 
       </main>
 
-      {/* MENÚ DE NAVEGACIÓN INFERIOR FLOTANTE Y CENTRADO */}
-      <nav className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-fit">
-        <div className="flex items-center justify-start sm:justify-center gap-1.5 overflow-x-auto no-scrollbar bg-slate-900/85 backdrop-blur-xl border border-slate-700/70 p-2 rounded-2xl shadow-[0_12px_40px_-8px_rgba(0,0,0,0.85),0_0_25px_-5px_rgba(99,102,241,0.3)] ring-1 ring-white/10">
+      {/* MENÚ DE NAVEGACIÓN INFERIOR CENTRADO */}
+      <nav className="fixed bottom-4 inset-x-0 z-40 px-3 flex justify-center pointer-events-none">
+        <div className="pointer-events-auto max-w-full flex items-center gap-1.5 overflow-x-auto no-scrollbar bg-slate-900/90 backdrop-blur-xl border border-slate-700/80 p-2 rounded-2xl shadow-[0_12px_40px_-8px_rgba(0,0,0,0.9),0_0_24px_-4px_rgba(99,102,241,0.35)] ring-1 ring-white/10">
           <button
             onClick={() => setTab('turnos')}
-            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
               tab === 'turnos'
-                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40 scale-[1.03]'
+                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40'
                 : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
             }`}
           >
             <Calendar className="w-4 h-4 shrink-0" />
             <span>Turnos</span>
             {turnosPendientes.length > 0 && (
-              <span className="bg-amber-400 text-slate-950 text-[10px] px-1.5 py-0.5 rounded-full font-black shadow-sm animate-pulse">
+              <span className="bg-amber-400 text-slate-950 text-[10px] px-1.5 py-0.5 rounded-full font-black">
                 {turnosPendientes.length}
               </span>
             )}
@@ -2397,9 +2395,9 @@ export default function AdminPage() {
 
           <button
             onClick={() => setTab('servicios')}
-            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
               tab === 'servicios'
-                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40 scale-[1.03]'
+                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40'
                 : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
             }`}
           >
@@ -2409,9 +2407,9 @@ export default function AdminPage() {
 
           <button
             onClick={() => setTab('horarios_catalogo')}
-            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
               tab === 'horarios_catalogo'
-                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40 scale-[1.03]'
+                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40'
                 : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
             }`}
           >
@@ -2421,9 +2419,9 @@ export default function AdminPage() {
 
           <button
             onClick={() => setTab('marca')}
-            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
               tab === 'marca'
-                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40 scale-[1.03]'
+                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40'
                 : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
             }`}
           >
@@ -2433,9 +2431,9 @@ export default function AdminPage() {
 
           <button
             onClick={() => setTab('historial')}
-            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
               tab === 'historial'
-                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40 scale-[1.03]'
+                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40'
                 : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
             }`}
           >
@@ -2445,9 +2443,9 @@ export default function AdminPage() {
 
           <button
             onClick={() => setTab('suscripcion')}
-            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
               tab === 'suscripcion'
-                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40 scale-[1.03]'
+                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40'
                 : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
             }`}
           >
