@@ -874,9 +874,9 @@ export default function AdminPage() {
         rel="stylesheet" 
       />
       
-      {/* MENÚ HORIZONTAL RESPONSIVE SUPERIOR */}
+      {/* ENCABEZADO SUPERIOR */}
       <header className="w-full bg-slate-900 border-b border-slate-800 sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-4 pt-3.5 pb-2.5 space-y-3">
+        <div className="max-w-6xl mx-auto px-4 py-3.5">
           {/* Fila superior: Nombre del negocio + Aviso prueba + Acciones */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -931,79 +931,11 @@ export default function AdminPage() {
               </button>
             </div>
           </div>
-
-          {/* Fila inferior: Pestañas horizontales con scroll táctil en móvil */}
-          <nav className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-            <button
-              onClick={() => setTab('turnos')}
-              className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
-                tab === 'turnos' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <Calendar className="w-3.5 h-3.5 shrink-0" />
-              <span>Turnos</span>
-              {turnosPendientes.length > 0 && (
-                <span className="bg-amber-500 text-slate-950 text-[10px] px-1.5 py-0.2 rounded-full font-black">
-                  {turnosPendientes.length}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setTab('servicios')}
-              className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
-                tab === 'servicios' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <Scissors className="w-3.5 h-3.5 shrink-0" />
-              <span>Servicios</span>
-            </button>
-
-            <button
-              onClick={() => setTab('horarios_catalogo')}
-              className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
-                tab === 'horarios_catalogo' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5 shrink-0" />
-              <span>Horarios & Catálogo</span>
-            </button>
-
-            <button
-              onClick={() => setTab('marca')}
-              className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
-                tab === 'marca' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <Palette className="w-3.5 h-3.5 shrink-0" />
-              <span>Datos & Redes</span>
-            </button>
-
-            <button
-              onClick={() => setTab('historial')}
-              className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
-                tab === 'historial' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <BarChart3 className="w-3.5 h-3.5 shrink-0" />
-              <span>Balances</span>
-            </button>
-
-            <button
-              onClick={() => setTab('suscripcion')}
-              className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
-                tab === 'suscripcion' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <CreditCard className="w-3.5 h-3.5 shrink-0" />
-              <span>Suscripción</span>
-            </button>
-          </nav>
         </div>
       </header>
 
       {/* CONTENIDO CENTRAL */}
-      <main className="flex-1 w-full mx-auto p-4 sm:p-8 max-w-6xl">
+      <main className="flex-1 w-full mx-auto p-4 sm:p-8 pb-28 max-w-6xl">
         
         {/* PESTAÑA 1: TURNOS */}
         {tab === 'turnos' && (
@@ -2440,6 +2372,88 @@ export default function AdminPage() {
         )}
 
       </main>
+
+      {/* MENÚ DE NAVEGACIÓN INFERIOR FLOTANTE Y CENTRADO */}
+      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-fit">
+        <div className="flex items-center justify-start sm:justify-center gap-1.5 overflow-x-auto no-scrollbar bg-slate-900/85 backdrop-blur-xl border border-slate-700/70 p-2 rounded-2xl shadow-[0_12px_40px_-8px_rgba(0,0,0,0.85),0_0_25px_-5px_rgba(99,102,241,0.3)] ring-1 ring-white/10">
+          <button
+            onClick={() => setTab('turnos')}
+            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+              tab === 'turnos'
+                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40 scale-[1.03]'
+                : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+            }`}
+          >
+            <Calendar className="w-4 h-4 shrink-0" />
+            <span>Turnos</span>
+            {turnosPendientes.length > 0 && (
+              <span className="bg-amber-400 text-slate-950 text-[10px] px-1.5 py-0.5 rounded-full font-black shadow-sm animate-pulse">
+                {turnosPendientes.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setTab('servicios')}
+            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+              tab === 'servicios'
+                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40 scale-[1.03]'
+                : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+            }`}
+          >
+            <Scissors className="w-4 h-4 shrink-0" />
+            <span>Servicios</span>
+          </button>
+
+          <button
+            onClick={() => setTab('horarios_catalogo')}
+            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+              tab === 'horarios_catalogo'
+                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40 scale-[1.03]'
+                : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+            }`}
+          >
+            <Clock className="w-4 h-4 shrink-0" />
+            <span>Horarios & Catálogo</span>
+          </button>
+
+          <button
+            onClick={() => setTab('marca')}
+            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+              tab === 'marca'
+                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40 scale-[1.03]'
+                : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+            }`}
+          >
+            <Palette className="w-4 h-4 shrink-0" />
+            <span>Datos & Redes</span>
+          </button>
+
+          <button
+            onClick={() => setTab('historial')}
+            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+              tab === 'historial'
+                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40 scale-[1.03]'
+                : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4 shrink-0" />
+            <span>Balances</span>
+          </button>
+
+          <button
+            onClick={() => setTab('suscripcion')}
+            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+              tab === 'suscripcion'
+                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/40 scale-[1.03]'
+                : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+            }`}
+          >
+            <CreditCard className="w-4 h-4 shrink-0" />
+            <span>Suscripción</span>
+          </button>
+        </div>
+      </nav>
     </div>
   )
 }
