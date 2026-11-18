@@ -404,6 +404,18 @@ export default function AdminPage() {
     const file = e.target.files?.[0]
     if (!file || !negocio?.id) return
 
+    if (!file.type.startsWith('image/')) {
+      alert('Solo se permiten archivos de imagen (JPG, PNG, WEBP).')
+      e.target.value = ''
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('La imagen no puede superar los 5 MB.')
+      e.target.value = ''
+      return
+    }
+
     setCargando(true)
     const fileExt = file.name.split('.').pop()
     const fileName = `${negocio.id}/${Date.now()}.${fileExt}`
