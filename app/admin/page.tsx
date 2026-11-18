@@ -202,7 +202,7 @@ export default function AdminPage() {
         return
       }
 
-      const { data, error } = await supabase.functions.invoke('swift-endpoint', {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
         headers: { Authorization: `Bearer ${session.access_token}` }
       })
 
