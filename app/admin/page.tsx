@@ -2522,7 +2522,7 @@ export default function AdminPage() {
             }`}
           >
             <BarChart3 className="w-5 h-5" />
-            <span className="text-[11px] font-bold tracking-tight">Balances</span>
+            <span className="text-[11px] font-bold tracking-tight">Estadísticas</span>
           </button>
 
           <button
