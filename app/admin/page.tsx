@@ -14,8 +14,8 @@ import {
   ExternalLink, 
   Globe, 
   UserPlus, 
-  Scissors, 
-  Palette, 
+  Briefcase, 
+  User, 
   BarChart3, 
   CalendarCheck2, 
   TrendingUp, 
@@ -938,7 +938,7 @@ export default function AdminPage() {
                 type="button"
                 onClick={() => {
                   if (!slug) {
-                    alert('Aún no se ha cargado o configurado el enlace/slug de tu negocio. Completa y guarda tus datos en la pestaña "Datos & Redes".')
+                    alert('Aún no se ha cargado o configurado el enlace/slug de tu negocio. Completa y guarda tus datos en la pestaña "Perfil".')
                     return
                   }
                   window.open(`/${slug}`, '_blank')
@@ -1716,7 +1716,7 @@ export default function AdminPage() {
           </form>
         )}
 
-        {/* PESTAÑA 4: DATOS & REDES + SLUG */}
+        {/* PESTAÑA 4: PERFIL + SLUG */}
         {tab === 'marca' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
@@ -2485,7 +2485,7 @@ export default function AdminPage() {
                 : 'text-slate-400 hover:bg-white/5 hover:text-white'
             }`}
           >
-            <Scissors className="w-5 h-5" />
+            <Briefcase className="w-5 h-5" />
             <span className="text-[11px] font-bold tracking-tight">Servicios</span>
           </button>
 
@@ -2509,8 +2509,8 @@ export default function AdminPage() {
                 : 'text-slate-400 hover:bg-white/5 hover:text-white'
             }`}
           >
-            <Palette className="w-5 h-5" />
-            <span className="text-[11px] font-bold tracking-tight">Datos & Redes</span>
+            <User className="w-5 h-5" />
+            <span className="text-[11px] font-bold tracking-tight">Perfil</span>
           </button>
 
           <button
