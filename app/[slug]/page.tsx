@@ -743,7 +743,7 @@ export default function PaginaNegocioDinamica() {
                   <div key={i} className="bg-white/90 rounded-2xl overflow-hidden border border-black/10 shadow-sm flex flex-col justify-between">
                     <div className="aspect-square bg-slate-200 overflow-hidden relative">
                       <img src={item.imagen_url} alt={item.titulo} className="w-full h-full object-cover" />
-                      {item.precio && (
+                      {item.precio && item.mostrar_precio !== false && (
                         <span className="absolute bottom-2 right-2 bg-slate-900/90 text-white font-black text-[10px] px-2 py-0.5 rounded-lg border border-white/20">
                           ${item.precio}
                         </span>
