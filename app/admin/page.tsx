@@ -182,6 +182,8 @@ export default function AdminPage() {
   const [itemTitulo, setItemTitulo] = useState('')
   const [itemPrecio, setItemPrecio] = useState('')
   const [itemImagenUrl, setItemImagenUrl] = useState('')
+  const [itemMostrarPrecio, setItemMostrarPrecio] = useState(true)
+  const [mostrarPreciosCatalogo, setMostrarPreciosCatalogo] = useState(true)
 
   // Balances
   const [filtroHistorial, setFiltroHistorial] = useState<'todo' | 'dia' | 'rango'>('todo')
@@ -708,11 +710,27 @@ export default function AdminPage() {
 
   function handleAgregarItemGaleria() {
     if (!itemTitulo || !itemImagenUrl) return
-    const nuevo = { titulo: itemTitulo, precio: itemPrecio, imagen_url: itemImagenUrl }
+    const nuevo = {
+      titulo: itemTitulo,
+      precio: itemPrecio,
+      imagen_url: itemImagenUrl,
+      mostrar_precio: itemMostrarPrecio
+    }
     setGaleria([...galeria, nuevo])
     setItemTitulo('')
     setItemPrecio('')
     setItemImagenUrl('')
+    setItemMostrarPrecio(true)
+  }
+
+  function handleTogglePrecioItem(index: number) {
+    const nuevaGaleria = [...galeria]
+    const estadoActual = nuevaGaleria[index].mostrar_precio !== false
+    nuevaGaleria[index] = {
+      ...nuevaGaleria[index],
+      mostrar_precio: !estadoActual
+    }
+    setGaleria(nuevaGaleria)
   }
 
   function handleEliminarItemGaleria(index: number) {
@@ -1548,11 +1566,21 @@ export default function AdminPage() {
             </div>
 
             <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
-              <div>
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <h2 className="text-lg font-black text-white flex items-center gap-2">
                   <ImageIcon className="w-5 h-5 text-indigo-400" />
                   Catálogo Visual / Fotos con Precio
                 </h2>
+
+                <label className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={mostrarPreciosCatalogo}
+                    onChange={(e) => setMostrarPreciosCatalogo(e.target.checked)}
+                    className="accent-indigo-500 w-3.5 h-3.5 cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-slate-300">Mostrar precios en vista</span>
+                </label>
               </div>
 
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
@@ -1564,13 +1592,25 @@ export default function AdminPage() {
                     onChange={(e) => setItemTitulo(e.target.value)}
                     className="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
                   />
-                  <input
-                    type="text"
-                    placeholder="Precio ($)"
-                    value={itemPrecio}
-                    onChange={(e) => setItemPrecio(e.target.value)}
-                    className="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Precio ($)"
+                      value={itemPrecio}
+                      onChange={(e) => setItemPrecio(e.target.value)}
+                      disabled={!itemMostrarPrecio}
+                      className="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white disabled:opacity-40"
+                    />
+                    <label className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-300 cursor-pointer shrink-0 select-none">
+                      <input
+                        type="checkbox"
+                        checked={itemMostrarPrecio}
+                        onChange={(e) => setItemMostrarPrecio(e.target.checked)}
+                        className="accent-indigo-500"
+                      />
+                      <span>Mostrar</span>
+                    </label>
+                  </div>
                 </div>
 
                 <input
@@ -1597,42 +1637,72 @@ export default function AdminPage() {
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {galeria.map((item, index) => (
-                  <div key={index} className="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden relative">
-                    <img src={item.imagen_url} alt={item.titulo} className="w-full h-28 object-cover" />
-                    <div className="p-2 space-y-0.5">
-                      <p className="font-bold text-xs text-white truncate">{item.titulo}</p>
-                      {item.precio && <p className="text-xs text-emerald-400 font-black">${item.precio}</p>}
-                    </div>
-                    <div className="absolute top-2 left-2 flex gap-1">
+                {galeria.map((item, index) => {
+                  const precioVisible = mostrarPreciosCatalogo && item.mostrar_precio !== false
+
+                  return (
+                    <div key={index} className="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden relative">
+                      <img src={item.imagen_url} alt={item.titulo} className="w-full h-28 object-cover" />
+                      <div className="p-2.5 space-y-1.5">
+                        <p className="font-bold text-xs text-white truncate">{item.titulo}</p>
+
+                        <div className="flex items-center justify-between gap-1">
+                          {item.precio ? (
+                            precioVisible ? (
+                              <p className="text-xs text-emerald-400 font-black">${item.precio}</p>
+                            ) : (
+                              <p className="text-[11px] text-slate-500 italic">Precio oculto</p>
+                            )
+                          ) : (
+                            <span className="text-[10px] text-slate-600">Sin precio</span>
+                          )}
+
+                          {item.precio && (
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePrecioItem(index)}
+                              className={`text-[10px] px-2 py-0.5 rounded-lg font-bold border transition ${
+                                item.mostrar_precio !== false
+                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                  : 'bg-slate-900 text-slate-400 border-slate-700'
+                              }`}
+                            >
+                              {item.mostrar_precio !== false ? 'Visible' : 'Oculto'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="absolute top-2 left-2 flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleMoverItemGaleria(index, 'arriba')}
+                          disabled={index === 0}
+                          title="Mover arriba"
+                          className="bg-slate-900/90 hover:bg-indigo-600 disabled:opacity-40 text-white p-1.5 rounded-lg text-xs transition"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMoverItemGaleria(index, 'abajo')}
+                          disabled={index === galeria.length - 1}
+                          title="Mover abajo"
+                          className="bg-slate-900/90 hover:bg-indigo-600 disabled:opacity-40 text-white p-1.5 rounded-lg text-xs transition"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                       <button
                         type="button"
-                        onClick={() => handleMoverItemGaleria(index, 'arriba')}
-                        disabled={index === 0}
-                        title="Mover arriba"
-                        className="bg-slate-900/90 hover:bg-indigo-600 disabled:opacity-40 text-white p-1.5 rounded-lg text-xs transition"
+                        onClick={() => handleEliminarItemGaleria(index)}
+                        className="absolute top-2 right-2 bg-rose-600 text-white p-1.5 rounded-lg text-xs"
                       >
-                        <ArrowUp className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleMoverItemGaleria(index, 'abajo')}
-                        disabled={index === galeria.length - 1}
-                        title="Mover abajo"
-                        className="bg-slate-900/90 hover:bg-indigo-600 disabled:opacity-40 text-white p-1.5 rounded-lg text-xs transition"
-                      >
-                        <ArrowDown className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleEliminarItemGaleria(index)}
-                      className="absolute top-2 right-2 bg-rose-600 text-white p-1.5 rounded-lg text-xs"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
 
