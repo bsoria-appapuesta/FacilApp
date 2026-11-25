@@ -358,38 +358,38 @@ export default function PaginaNegocioDinamica() {
     grande: 'text-base'
   }[negocio?.tamano_fuente as 'chico' | 'mediano' | 'grande'] || 'text-sm'
 
-  const tamanosTexto = {
+  const tamanosInline = {
     chico: {
-      titulo: 'text-xl sm:text-2xl',
-      subtitulo: 'text-[11px]',
-      botonTitulo: 'text-xs',
-      botonSubtitulo: 'text-[9px]',
-      catalogoHeader: 'text-[10px]',
-      catalogoItem: 'text-[10px]',
+      titulo: '20px',
+      subtitulo: '11px',
+      botonTitulo: '12px',
+      botonSubtitulo: '9px',
+      catalogoHeader: '10px',
+      catalogoItem: '10px',
     },
     mediano: {
-      titulo: 'text-2xl sm:text-3xl',
-      subtitulo: 'text-xs',
-      botonTitulo: 'text-sm',
-      botonSubtitulo: 'text-[10px]',
-      catalogoHeader: 'text-[11px]',
-      catalogoItem: 'text-[11px]',
+      titulo: '26px',
+      subtitulo: '13px',
+      botonTitulo: '14px',
+      botonSubtitulo: '11px',
+      catalogoHeader: '11px',
+      catalogoItem: '12px',
     },
     grande: {
-      titulo: 'text-3xl sm:text-4xl',
-      subtitulo: 'text-sm',
-      botonTitulo: 'text-base',
-      botonSubtitulo: 'text-xs',
-      catalogoHeader: 'text-xs',
-      catalogoItem: 'text-xs',
+      titulo: '34px',
+      subtitulo: '16px',
+      botonTitulo: '17px',
+      botonSubtitulo: '13px',
+      catalogoHeader: '13px',
+      catalogoItem: '14px',
     },
   }[negocio?.tamano_fuente as 'chico' | 'mediano' | 'grande'] || {
-    titulo: 'text-2xl sm:text-3xl',
-    subtitulo: 'text-xs',
-    botonTitulo: 'text-sm',
-    botonSubtitulo: 'text-[10px]',
-    catalogoHeader: 'text-[11px]',
-    catalogoItem: 'text-[11px]',
+    titulo: '26px',
+    subtitulo: '13px',
+    botonTitulo: '14px',
+    botonSubtitulo: '11px',
+    catalogoHeader: '11px',
+    catalogoItem: '12px',
   }
 
   const getRedSocialIcon = (tipo: string, soloIcono = false) => {
@@ -483,17 +483,26 @@ export default function PaginaNegocioDinamica() {
             </div>
 
             <div>
-              <h1 className={`${tamanosTexto.titulo} font-extrabold tracking-tight`} style={{ color: colorTexto }}>
+              <h1
+                className="font-extrabold tracking-tight leading-tight"
+                style={{ color: colorTexto, fontSize: tamanosInline.titulo }}
+              >
                 {negocio ? negocio.nombre : 'Cargando...'}
               </h1>
               
-              <p className={`${tamanosTexto.subtitulo} font-semibold mt-1 flex items-center justify-center gap-1 opacity-80`} style={{ color: colorTexto }}>
+              <p
+                className="font-semibold mt-1 flex items-center justify-center gap-1 opacity-80"
+                style={{ color: colorTexto, fontSize: tamanosInline.subtitulo }}
+              >
                 <MapPin className="w-3.5 h-3.5 text-rose-500 inline" />
                 {negocio?.ubicacion || 'Buenos Aires, Argentina'}
               </p>
 
               {negocio?.descripcion && (
-                <p className={`${tamanosTexto.subtitulo} mt-2 px-4 leading-relaxed font-medium opacity-80`} style={{ color: colorTexto }}>
+                <p
+                  className="mt-2 px-4 leading-relaxed font-medium opacity-80"
+                  style={{ color: colorTexto, fontSize: tamanosInline.subtitulo }}
+                >
                   {negocio.descripcion}
                 </p>
               )}
@@ -558,8 +567,18 @@ export default function PaginaNegocioDinamica() {
                   <CalendarIcon className="w-5 h-5" />
                 </div>
                 <div className="text-left">
-                  <span className={`font-extrabold block ${tamanosTexto.botonTitulo}`}>Solicitar Turno / Pedido</span>
-                  <span className={`${tamanosTexto.botonSubtitulo} opacity-80 block`}>Consultá servicios y horarios disponibles</span>
+                  <span
+                    className="font-extrabold block"
+                    style={{ fontSize: tamanosInline.botonTitulo }}
+                  >
+                    Solicitar Turno / Pedido
+                  </span>
+                  <span
+                    className="opacity-80 block"
+                    style={{ fontSize: tamanosInline.botonSubtitulo }}
+                  >
+                    Consultá servicios y horarios disponibles
+                  </span>
                 </div>
               </div>
               <Plus className={`w-5 h-5 transition-transform duration-300 ${seccionAbierta === 'turnos' ? 'rotate-45' : ''}`} />
@@ -767,7 +786,10 @@ export default function PaginaNegocioDinamica() {
           {/* CATÁLOGO VISUAL */}
           {galeriaLista.length > 0 && (
             <div className="border-t border-black/10 pt-5 space-y-3">
-              <p className={`${tamanosTexto.catalogoHeader} font-extrabold uppercase tracking-wider flex items-center gap-1.5 opacity-80`} style={{ color: colorTexto }}>
+              <p
+                className="font-extrabold uppercase tracking-wider flex items-center gap-1.5 opacity-80"
+                style={{ color: colorTexto, fontSize: tamanosInline.catalogoHeader }}
+              >
                 <ImageIcon className="w-3.5 h-3.5 opacity-70" />
                 Catálogo de Servicios & Productos
               </p>
@@ -784,7 +806,12 @@ export default function PaginaNegocioDinamica() {
                       )}
                     </div>
                     <div className="p-2">
-                      <p className={`font-bold text-slate-800 ${tamanosTexto.catalogoItem} line-clamp-1`}>{item.titulo}</p>
+                      <p
+                        className="font-bold text-slate-800 line-clamp-1"
+                        style={{ fontSize: tamanosInline.catalogoItem }}
+                      >
+                        {item.titulo}
+                      </p>
                     </div>
                   </div>
                 ))}
