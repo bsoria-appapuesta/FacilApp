@@ -358,6 +358,40 @@ export default function PaginaNegocioDinamica() {
     grande: 'text-base'
   }[negocio?.tamano_fuente as 'chico' | 'mediano' | 'grande'] || 'text-sm'
 
+  const tamanosTexto = {
+    chico: {
+      titulo: 'text-xl sm:text-2xl',
+      subtitulo: 'text-[11px]',
+      botonTitulo: 'text-xs',
+      botonSubtitulo: 'text-[9px]',
+      catalogoHeader: 'text-[10px]',
+      catalogoItem: 'text-[10px]',
+    },
+    mediano: {
+      titulo: 'text-2xl sm:text-3xl',
+      subtitulo: 'text-xs',
+      botonTitulo: 'text-sm',
+      botonSubtitulo: 'text-[10px]',
+      catalogoHeader: 'text-[11px]',
+      catalogoItem: 'text-[11px]',
+    },
+    grande: {
+      titulo: 'text-3xl sm:text-4xl',
+      subtitulo: 'text-sm',
+      botonTitulo: 'text-base',
+      botonSubtitulo: 'text-xs',
+      catalogoHeader: 'text-xs',
+      catalogoItem: 'text-xs',
+    },
+  }[negocio?.tamano_fuente as 'chico' | 'mediano' | 'grande'] || {
+    titulo: 'text-2xl sm:text-3xl',
+    subtitulo: 'text-xs',
+    botonTitulo: 'text-sm',
+    botonSubtitulo: 'text-[10px]',
+    catalogoHeader: 'text-[11px]',
+    catalogoItem: 'text-[11px]',
+  }
+
   const getRedSocialIcon = (tipo: string, soloIcono = false) => {
     const claseIcono = soloIcono ? 'w-5 h-5' : 'w-5 h-5'
     switch (tipo.toLowerCase()) {
@@ -449,17 +483,17 @@ export default function PaginaNegocioDinamica() {
             </div>
 
             <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight" style={{ color: colorTexto }}>
+              <h1 className={`${tamanosTexto.titulo} font-extrabold tracking-tight`} style={{ color: colorTexto }}>
                 {negocio ? negocio.nombre : 'Cargando...'}
               </h1>
               
-              <p className="text-xs font-semibold mt-1 flex items-center justify-center gap-1 opacity-80" style={{ color: colorTexto }}>
+              <p className={`${tamanosTexto.subtitulo} font-semibold mt-1 flex items-center justify-center gap-1 opacity-80`} style={{ color: colorTexto }}>
                 <MapPin className="w-3.5 h-3.5 text-rose-500 inline" />
                 {negocio?.ubicacion || 'Buenos Aires, Argentina'}
               </p>
 
               {negocio?.descripcion && (
-                <p className="text-xs mt-2 px-4 leading-relaxed font-medium opacity-80" style={{ color: colorTexto }}>
+                <p className={`${tamanosTexto.subtitulo} mt-2 px-4 leading-relaxed font-medium opacity-80`} style={{ color: colorTexto }}>
                   {negocio.descripcion}
                 </p>
               )}
@@ -524,8 +558,8 @@ export default function PaginaNegocioDinamica() {
                   <CalendarIcon className="w-5 h-5" />
                 </div>
                 <div className="text-left">
-                  <span className="font-extrabold block">Solicitar Turno / Pedido</span>
-                  <span className="text-[10px] opacity-80 block">Consultá servicios y horarios disponibles</span>
+                  <span className={`font-extrabold block ${tamanosTexto.botonTitulo}`}>Solicitar Turno / Pedido</span>
+                  <span className={`${tamanosTexto.botonSubtitulo} opacity-80 block`}>Consultá servicios y horarios disponibles</span>
                 </div>
               </div>
               <Plus className={`w-5 h-5 transition-transform duration-300 ${seccionAbierta === 'turnos' ? 'rotate-45' : ''}`} />
@@ -573,7 +607,7 @@ export default function PaginaNegocioDinamica() {
 
                   <div>
                     <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1 opacity-80" style={{ color: colorTexto }}>
-                      1. Seleccioná el Servicio
+1. Seleccioná el Servicio
                     </label>
                     <select
                       value={servicioSel?.id || ''}
@@ -594,7 +628,7 @@ export default function PaginaNegocioDinamica() {
 
                   <div>
                     <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1 opacity-80" style={{ color: colorTexto }}>
-                      2. Tus Datos
+2. Tus Datos
                     </label>
                     <input
                       type="text"
@@ -616,7 +650,7 @@ export default function PaginaNegocioDinamica() {
 
                   <div>
                     <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1 opacity-80" style={{ color: colorTexto }}>
-                      3. Elegí Fecha en el Calendario
+3. Elegí Fecha en el Calendario
                     </label>
 
                     <div className="bg-white border border-slate-200 rounded-2xl p-3 mb-2 shadow-sm">
@@ -733,7 +767,7 @@ export default function PaginaNegocioDinamica() {
           {/* CATÁLOGO VISUAL */}
           {galeriaLista.length > 0 && (
             <div className="border-t border-black/10 pt-5 space-y-3">
-              <p className="text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1.5 opacity-80" style={{ color: colorTexto }}>
+              <p className={`${tamanosTexto.catalogoHeader} font-extrabold uppercase tracking-wider flex items-center gap-1.5 opacity-80`} style={{ color: colorTexto }}>
                 <ImageIcon className="w-3.5 h-3.5 opacity-70" />
                 Catálogo de Servicios & Productos
               </p>
@@ -750,7 +784,7 @@ export default function PaginaNegocioDinamica() {
                       )}
                     </div>
                     <div className="p-2">
-                      <p className="font-bold text-slate-800 text-[11px] line-clamp-1">{item.titulo}</p>
+                      <p className={`font-bold text-slate-800 ${tamanosTexto.catalogoItem} line-clamp-1`}>{item.titulo}</p>
                     </div>
                   </div>
                 ))}
