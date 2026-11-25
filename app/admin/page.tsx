@@ -898,6 +898,40 @@ export default function AdminPage() {
   const maxVentaDia = Math.max(...facturacionPorDiaSemana, 1)
   const inicialNegocio = (negocio?.nombre?.trim()?.charAt(0) || 'A').toUpperCase()
 
+  const previewTamanos = {
+    chico: {
+      titulo: 'text-sm',
+      subtitulo: 'text-[10px]',
+      texto: 'text-[10px]',
+      boton: 'text-[11px]',
+      catalogoTitulo: 'text-[10px]',
+      catalogoPrecio: 'text-[9px]'
+    },
+    mediano: {
+      titulo: 'text-base',
+      subtitulo: 'text-xs',
+      texto: 'text-xs',
+      boton: 'text-xs',
+      catalogoTitulo: 'text-[11px]',
+      catalogoPrecio: 'text-[10px]'
+    },
+    grande: {
+      titulo: 'text-lg',
+      subtitulo: 'text-sm',
+      texto: 'text-sm',
+      boton: 'text-sm',
+      catalogoTitulo: 'text-xs',
+      catalogoPrecio: 'text-[11px]'
+    }
+  }[tamanoFuente as 'chico' | 'mediano' | 'grande'] || {
+    titulo: 'text-base',
+    subtitulo: 'text-xs',
+    texto: 'text-xs',
+    boton: 'text-xs',
+    catalogoTitulo: 'text-[11px]',
+    catalogoPrecio: 'text-[10px]'
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       <link 
@@ -2087,9 +2121,7 @@ export default function AdminPage() {
                 <div className="w-20 h-4 bg-slate-800 rounded-full mx-auto mb-3"></div>
 
                 <div 
-                  className={`rounded-[30px] p-4 text-center transition-all duration-300 overflow-y-auto max-h-[550px] shadow-inner ${
-                    tamanoFuente === 'chico' ? 'text-xs' : tamanoFuente === 'grande' ? 'text-base' : 'text-sm'
-                  }`}
+                  className="rounded-[30px] p-4 text-center transition-all duration-300 overflow-y-auto max-h-[550px] shadow-inner"
                   style={{ 
                     backgroundColor: colorFondo,
                     fontFamily: `'${tipoFuente}', sans-serif`
@@ -2114,9 +2146,9 @@ export default function AdminPage() {
                         {logoUrl ? <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" /> : nombreNegocio?.charAt(0) || 'L'}
                       </div>
 
-                      <h3 className="font-extrabold text-sm" style={{ color: colorTexto }}>{nombreNegocio || 'Tu Negocio'}</h3>
-                      <p className="text-[10px] opacity-80" style={{ color: colorTexto }}>{ubicacion || 'Tu Ubicación'}</p>
-                      <p className="text-[10px] mt-1 opacity-80" style={{ color: colorTexto }}>{descripcion || 'Descripción del negocio'}</p>
+                      <h3 className={`font-extrabold ${previewTamanos.titulo}`} style={{ color: colorTexto }}>{nombreNegocio || 'Tu Negocio'}</h3>
+                      <p className={`${previewTamanos.subtitulo} opacity-80`} style={{ color: colorTexto }}>{ubicacion || 'Tu Ubicación'}</p>
+                      <p className={`${previewTamanos.texto} mt-1 opacity-80`} style={{ color: colorTexto }}>{descripcion || 'Descripción del negocio'}</p>
 
                       <div className="mt-4">
                         {estiloRedes === 'solo_iconos' ? (
@@ -2131,7 +2163,7 @@ export default function AdminPage() {
                                 </div>
                                 {textoIconosRedes !== 'ninguno' && (
                                   <span
-                                    className="text-[9px] font-bold leading-tight truncate w-full text-center opacity-90"
+                                    className={`${previewTamanos.subtitulo} font-bold leading-tight truncate w-full text-center opacity-90`}
                                     style={{ color: colorTexto }}
                                   >
                                     {textoIconosRedes === 'nombre' ? r.nombreRed : r.usuarioODetalle}
@@ -2146,7 +2178,7 @@ export default function AdminPage() {
                               <div
                                 key={r.id}
                                 style={{ backgroundColor: colorRedes }}
-                                className="border border-black/10 p-2 rounded-xl flex items-center justify-between text-[11px] font-bold text-slate-800"
+                                className={`border border-black/10 p-2 rounded-xl flex items-center justify-between ${previewTamanos.texto} font-bold text-slate-800`}
                               >
                                 <div className="flex items-center gap-2">
                                   {renderIconoRed(r.plataforma)}
@@ -2160,10 +2192,31 @@ export default function AdminPage() {
 
                         <div 
                           style={{ backgroundColor: colorPrincipal, color: '#ffffff' }}
-                          className="p-2.5 rounded-xl text-[11px] font-bold shadow"
+                          className={`p-2.5 rounded-xl ${previewTamanos.boton} font-bold shadow`}
                         >
                           📅 Solicitar Turno / Pedido
                         </div>
+
+                        {galeria.length > 0 && (
+                          <div className="mt-4 pt-3 border-t border-black/10 text-left space-y-2">
+                            <p className={`${previewTamanos.subtitulo} font-extrabold uppercase tracking-wider opacity-80`} style={{ color: colorTexto }}>
+                              Catálogo
+                            </p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {galeria.slice(0, 4).map((item, idx) => (
+                                <div key={idx} className="bg-white/90 rounded-xl overflow-hidden border border-black/10">
+                                  <img src={item.imagen_url} alt={item.titulo} className="w-full h-14 object-cover" />
+                                  <div className="p-1.5">
+                                    <p className={`${previewTamanos.catalogoTitulo} font-bold text-slate-800 truncate`}>{item.titulo}</p>
+                                    {item.precio && mostrarPreciosCatalogo && item.mostrar_precio !== false && (
+                                      <p className={`${previewTamanos.catalogoPrecio} font-black text-emerald-600`}>${item.precio}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -2522,7 +2575,7 @@ export default function AdminPage() {
             }`}
           >
             <BarChart3 className="w-5 h-5" />
-            <span className="text-[11px] font-bold tracking-tight">Estadísticas</span>
+            <span className="text-[11px] font-bold tracking-tight">Balances</span>
           </button>
 
           <button
