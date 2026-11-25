@@ -229,13 +229,13 @@ export default function PaginaNegocioDinamica() {
     // 1. Trampa Honeypot: si el campo oculto tiene texto, es un bot
     if (campoTrampa) return
 
-    // 2. Cooldown local: evita envíos repetidos seguidos desde el mismo navegador (30 seg)
+    // 2. Cooldown local breve (3 seg) para evitar doble clic accidental sin trabar turnos seguidos
     if (typeof window !== 'undefined' && negocio?.id) {
       const claveCooldown = `facilapp_ultima_reserva_${negocio.id}`
       const ultimaReserva = Number(localStorage.getItem(claveCooldown) || 0)
       const segundosTranscurridos = Math.floor((Date.now() - ultimaReserva) / 1000)
-      if (ultimaReserva && segundosTranscurridos < 30) {
-        alert(`Por favor aguardá ${30 - segundosTranscurridos} segundos antes de realizar otra reserva.`)
+      if (ultimaReserva && segundosTranscurridos < 3) {
+        alert(`Por favor aguardá ${3 - segundosTranscurridos} segundos antes de realizar otra reserva.`)
         return
       }
     }
@@ -292,6 +292,15 @@ export default function PaginaNegocioDinamica() {
       const celDestino = formatearNumeroWhatsApp(negocio.whatsapp || '')
       const msg = `¡Hola ${negocio.nombre}! 👋%0AMi nombre es *${nombre}*.%0A%0AQuiero reservar:%0A📌 *Servicio:* ${servicioSel.nombre}%0A📅 *Fecha:* ${fecha}%0A⏰ *Hora:* ${hora} hs%0A💰 *Precio:* $${servicioSel.precio}%0A%0A¿Me confirmás el turno?`
       setLinkWa(`https://wa.me/${celDestino}?text=${msg}`)
+    }
+  }
+
+  const handleNuevoTurno = () => {
+    setExito(false)
+    setHora('')
+    setLinkWa('')
+    if (fecha && negocio) {
+      cargarTurnosOcupados(fecha)
     }
   }
 
@@ -558,7 +567,14 @@ export default function PaginaNegocioDinamica() {
             )}
 
             <button
-              onClick={() => setSeccionAbierta(seccionAbierta === 'turnos' ? null : 'turnos')}
+              onClick={() => {
+                if (seccionAbierta === 'turnos') {
+                  setSeccionAbierta(null)
+                } else {
+                  if (exito) handleNuevoTurno()
+                  setSeccionAbierta('turnos')
+                }
+              }}
               style={{ backgroundColor: colorPrincipal, color: '#ffffff' }}
               className={`w-full p-4 flex items-center justify-between shadow-lg transition-all active:scale-[0.99] mt-4 ${bordes}`}
             >
@@ -589,7 +605,7 @@ export default function PaginaNegocioDinamica() {
           {seccionAbierta === 'turnos' && (
             <div className="border-t border-black/10 pt-5 space-y-4 mb-6">
               {exito ? (
-                <div className="text-center space-y-4 py-2">
+                <div className="text-center space-y-3 py-2">
                   <div className="bg-emerald-50 text-emerald-900 p-5 rounded-2xl border border-emerald-200 shadow-sm">
                     <div className="w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto mb-2 text-xl font-bold shadow-md">
                       ✓
@@ -608,6 +624,15 @@ export default function PaginaNegocioDinamica() {
                   >
                     <FaWhatsapp className="w-5 h-5" /> Confirmar por WhatsApp
                   </a>
+
+                  <button
+                    type="button"
+                    onClick={handleNuevoTurno}
+                    className={`w-full bg-slate-900/10 hover:bg-slate-900/20 font-bold py-3 px-4 transition text-xs ${bordes}`}
+                    style={{ color: colorTexto }}
+                  >
+                    + Sacar otro turno
+                  </button>
                 </div>
               ) : (
                 <form onSubmit={handleReservar} className="space-y-4 text-slate-900">
@@ -626,7 +651,7 @@ export default function PaginaNegocioDinamica() {
 
                   <div>
                     <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1 opacity-80" style={{ color: colorTexto }}>
-1. Seleccioná el Servicio
+                      1. Seleccioná el Servicio
                     </label>
                     <select
                       value={servicioSel?.id || ''}
@@ -647,7 +672,7 @@ export default function PaginaNegocioDinamica() {
 
                   <div>
                     <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1 opacity-80" style={{ color: colorTexto }}>
-2. Tus Datos
+                      2. Tus Datos
                     </label>
                     <input
                       type="text"
@@ -669,7 +694,7 @@ export default function PaginaNegocioDinamica() {
 
                   <div>
                     <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1 opacity-80" style={{ color: colorTexto }}>
-3. Elegí Fecha en el Calendario
+                      3. Elegí Fecha en el Calendario
                     </label>
 
                     <div className="bg-white border border-slate-200 rounded-2xl p-3 mb-2 shadow-sm">
