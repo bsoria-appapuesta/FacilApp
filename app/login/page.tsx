@@ -1,625 +1,469 @@
 'use client'
 
-import React, { useState } from 'react'
-import Link from 'next/link'
-import { 
-  Clock, 
-  ArrowRight, 
-  CheckCircle2, 
-  Sparkles, 
-  Palette, 
-  Globe,
-  Calendar,
-  ChevronRight,
-  Star,
-  Check,
-  SlidersHorizontal,
-  Eye
-} from 'lucide-react'
-import { FaWhatsapp, FaInstagram, FaFacebook } from 'react-icons/fa'
+import { useState, useEffect, Suspense } from 'react'
+import { createClient } from '@supabase/supabase-js'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Sparkles, CheckCircle2, Lock } from 'lucide-react'
 
-const SERVICIOS_INICIALES = [
-  {
-    id: 1,
-    nombre: 'Corte + Perfilado de Barba',
-    duracion: '45 min',
-    precio: '$12.500',
-    descripcion: 'Degradé a navaja, lavado refrescante y toalla caliente con aceites esenciales.',
-    imagen: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=300&q=80',
-    destacado: true,
-  },
-  {
-    id: 2,
-    nombre: 'Corte Clásico / Fade',
-    duracion: '30 min',
-    precio: '$9.000',
-    descripcion: 'Asesoramiento de imagen, tijera o máquina y styling final.',
-    imagen: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=300&q=80',
-    destacado: false,
-  },
-  {
-    id: 3,
-    nombre: 'Colorimetría & Claritos',
-    duracion: '90 min',
-    precio: '$28.000',
-    descripcion: 'Decoloración cuidada + matizador + baño de crema nutritivo.',
-    imagen: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=300&q=80',
-    destacado: false,
-  },
-]
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-const TEMAS = {
-  violet: {
-    label: 'Violeta',
-    dot: 'bg-violet-500',
-    banner: 'from-violet-600/40 via-purple-600/30 to-teal-400/30',
-    badge: 'bg-violet-500/15 border-violet-500/30 text-violet-300',
-    tab: 'bg-violet-600 shadow-violet-600/25',
-    btn: 'bg-violet-600/15 hover:bg-violet-600 text-violet-300 hover:text-white border-violet-500/30',
-    price: 'text-teal-300',
-  },
-  teal: {
-    label: 'Turquesa',
-    dot: 'bg-teal-400',
-    banner: 'from-teal-500/40 via-cyan-600/30 to-violet-500/30',
-    badge: 'bg-teal-500/15 border-teal-500/30 text-teal-300',
-    tab: 'bg-teal-500 text-slate-950 shadow-teal-500/25',
-    btn: 'bg-teal-500/15 hover:bg-teal-500 text-teal-300 hover:text-slate-950 border-teal-500/30',
-    price: 'text-teal-300',
-  },
-  rose: {
-    label: 'Estética',
-    dot: 'bg-pink-500',
-    banner: 'from-pink-600/40 via-rose-500/30 to-violet-500/30',
-    badge: 'bg-pink-500/15 border-pink-500/30 text-pink-300',
-    tab: 'bg-pink-600 shadow-pink-600/25',
-    btn: 'bg-pink-600/15 hover:bg-pink-600 text-pink-300 hover:text-white border-pink-500/30',
-    price: 'text-pink-300',
-  },
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+})
+
+// Función para traducir los errores nativos de Supabase al español
+function traducirError(mensajeIngles: string): string {
+  const msg = mensajeIngles.toLowerCase()
+  if (msg.includes('invalid login credentials')) {
+    return 'Correo o contraseña incorrectos. Verificalos e intentá nuevamente.'
+  }
+  if (msg.includes('user already registered')) {
+    return 'Este correo ya tiene una cuenta registrada. Seleccioná "Iniciar Sesión".'
+  }
+  if (msg.includes('email rate limit exceeded')) {
+    return 'Se enviaron demasiados correos en poco tiempo. Por favor, esperá unos minutos.'
+  }
+  if (msg.includes('network request failed') || msg.includes('failed to fetch')) {
+    return 'Error de conexión. Revisá tu conexión a internet.'
+  }
+  if (msg.includes('password should be at least')) {
+    return 'La contraseña debe tener al menos 8 caracteres.'
+  }
+  if (msg.includes('email not confirmed')) {
+    return 'El correo no está confirmado todavía. Revisá tu casilla de correo.'
+  }
+  return mensajeIngles
 }
 
-const HORARIOS_DEMO = ['10:00', '11:30', '15:00', '16:30', '18:00']
+function LoginContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const tabInicial = searchParams.get('tab') === 'registro' ? 'registro' : 'login'
 
-export default function LandingPage() {
-  const [activeTab, setActiveTab] = useState<'servicios' | 'turnos'>('servicios')
-  const [selectedService, setSelectedService] = useState<number>(1)
-  const [selectedTime, setSelectedTime] = useState<string>('15:00')
+  const [modo, setModo] = useState<'login' | 'registro'>(tabInicial)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [cargando, setCargando] = useState(false)
+  const [cargandoGoogle, setCargandoGoogle] = useState(false)
+  const [mensaje, setMensaje] = useState<{ tipo: 'error' | 'exito'; texto: string } | null>(null)
 
-  const [isEditing, setIsEditing] = useState<boolean>(false)
-  const [bizName, setBizName] = useState<string>('Studio Facil Barber')
-  const [bizCategory, setBizCategory] = useState<string>('Barbería & Estilismo')
-  const [themeKey, setThemeKey] = useState<keyof typeof TEMAS>('violet')
-  const [servicios, setServicios] = useState(SERVICIOS_INICIALES)
+  const [mostrarRecuperar, setMostrarRecuperar] = useState(false)
+  const [emailRecuperar, setEmailRecuperar] = useState('')
+  const [cargandoRecuperar, setCargandoRecuperar] = useState(false)
+  const [mensajeRecuperar, setMensajeRecuperar] = useState<{ tipo: 'error' | 'exito'; texto: string } | null>(null)
 
-  const theme = TEMAS[themeKey]
+  // Si ya inició sesión (por ejemplo, al regresar de Google), redirige automáticamente
+  useEffect(() => {
+    const verificarSesionExistente = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        if (session.user.email === 'braiandsoria@gmail.com') {
+          router.push('/superadmin')
+        } else {
+          router.push('/admin')
+        }
+      }
+    }
+    verificarSesionExistente()
 
-  const handleReservarServicio = (id: number) => {
-    setSelectedService(id)
-    setActiveTab('turnos')
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        if (session.user.email === 'braiandsoria@gmail.com') {
+          router.push('/superadmin')
+        } else {
+          router.push('/admin')
+        }
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [router])
+
+  function validarContrasena(pass: string): string | null {
+    if (pass.length < 8) {
+      return 'La contraseña debe tener al menos 8 caracteres.'
+    }
+    if (!/[A-Z]/.test(pass)) {
+      return 'La contraseña debe contener al menos una letra mayúscula.'
+    }
+    if (!/[a-z]/.test(pass)) {
+      return 'La contraseña debe contener al menos una letra minúscula.'
+    }
+    if (!/[0-9]/.test(pass)) {
+      return 'La contraseña debe contener al menos un número.'
+    }
+    return null
   }
 
-  const handlePriceChange = (id: number, newPrice: string) => {
-    setServicios((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, precio: newPrice } : item))
-    )
+  async function handleLoginGoogle() {
+    setMensaje(null)
+    setCargandoGoogle(true)
+
+    const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://facilapp-seven.vercel.app'
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${siteUrl}/admin`,
+      },
+    })
+
+    if (error) {
+      setCargandoGoogle(false)
+      setMensaje({ tipo: 'error', texto: traducirError(error.message) })
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setMensaje(null)
+
+    if (modo === 'registro') {
+      const errorClave = validarContrasena(password)
+      if (errorClave) {
+        setMensaje({ tipo: 'error', texto: errorClave })
+        return
+      }
+    }
+
+    setCargando(true)
+
+    if (modo === 'login') {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+
+      setCargando(false)
+
+      if (error) {
+        setMensaje({ tipo: 'error', texto: traducirError(error.message) })
+        return
+      }
+
+      if (data.user?.email === 'braiandsoria@gmail.com') {
+        router.push('/superadmin')
+      } else {
+        router.push('/admin')
+      }
+    } else {
+      const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://facilapp-seven.vercel.app'
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${siteUrl}/confirmar-cuenta`,
+        },
+      })
+
+      if (error) {
+        setCargando(false)
+        setMensaje({ tipo: 'error', texto: traducirError(error.message) })
+        return
+      }
+
+      // Valida si el correo ya estaba registrado en Supabase
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        setCargando(false)
+        setMensaje({
+          tipo: 'error',
+          texto: 'Este correo ya tiene una cuenta registrada. Seleccioná "Iniciar Sesión".'
+        })
+        return
+      }
+
+      setCargando(false)
+
+      // Si requiere confirmación por email, redirige directo a la pantalla del código
+      if (!data.session) {
+        router.push(`/confirmar-cuenta?email=${encodeURIComponent(email.trim())}`)
+        return
+      }
+
+      if (email === 'braiandsoria@gmail.com') {
+        router.push('/superadmin')
+      } else {
+        router.push('/admin')
+      }
+    }
+  }
+
+  async function handleSolicitarRecuperacion(e: React.FormEvent) {
+    e.preventDefault()
+    setMensajeRecuperar(null)
+    setCargandoRecuperar(true)
+
+    const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://facilapp-seven.vercel.app'
+
+    const { error } = await supabase.auth.resetPasswordForEmail(emailRecuperar.trim(), {
+      redirectTo: `${siteUrl}/recuperar-clave`
+    })
+
+    if (error) {
+      setCargandoRecuperar(false)
+      setMensajeRecuperar({
+        tipo: 'error',
+        texto: traducirError(error.message)
+      })
+      return
+    }
+
+    router.push(`/recuperar-clave?email=${encodeURIComponent(emailRecuperar.trim())}`)
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-violet-600 selection:text-white">
-      
-      {/* 1. NAVEGACIÓN SUPERIOR */}
-      <header className="sticky top-0 z-50 bg-slate-950/85 backdrop-blur-md border-b border-slate-800/80">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-full bg-white p-0.5 shadow-lg shadow-violet-600/20 ring-2 ring-teal-300/60 group-hover:scale-105 transition-transform">
-              <img 
-                src="/logo.jpeg" 
-                alt="FacilApp Logo" 
-                className="w-full h-full object-cover rounded-full"
-              />
-            </div>
-            <span className="font-extrabold text-lg tracking-tight text-white">
-              Facil<span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-teal-300">App</span>
-            </span>
-          </Link>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="text-xs font-bold text-slate-300 hover:text-white px-3 py-2 transition"
-            >
-              Iniciar Sesión
-            </Link>
-            <Link
-              href="/login"
-              className="text-xs font-bold bg-violet-600 hover:bg-violet-500 text-white px-4 py-2.5 rounded-xl transition shadow-md shadow-violet-600/30 flex items-center gap-1.5"
-            >
-              <span>Probar Gratis</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5">
+        
+        {/* ENCABEZADO */}
+        <div className="text-center space-y-1">
+          <h1 className="text-2xl font-black text-white tracking-tight">FacilApp</h1>
+          <p className="text-xs text-slate-400">Plataforma de turnos online y catálogo digital</p>
         </div>
-      </header>
 
-      {/* 2. HERO SECTION + DEMO INTERACTIVA EDITABLE */}
-      <section className="relative pt-12 pb-20 px-4 sm:px-6 max-w-6xl mx-auto">
-        <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[340px] h-[340px] bg-violet-600/20 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute top-32 left-1/3 w-[240px] h-[240px] bg-teal-400/10 rounded-full blur-[100px] pointer-events-none" />
+        {/* TARJETA DE PRECIO Y CONDICIONES */}
+        <div className="bg-slate-950 border border-indigo-500/30 rounded-2xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5" /> Prueba Gratis: 10 Días
+            </span>
+            <span className="text-xs font-black text-white">
+              $16.400 <span className="text-[10px] text-slate-400 font-normal">/ mes</span>
+            </span>
+          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          
-          {/* Columna Izquierda: Propuesta de Valor */}
-          <div className="lg:col-span-7 text-center lg:text-left space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-violet-500/10 border border-teal-400/30 text-teal-300 text-xs font-bold">
-              <Sparkles className="w-3.5 h-3.5 text-teal-300" />
-              <span>10 días gratis • Sin tarjeta de crédito para probar</span>
+          <ul className="text-[11px] text-slate-300 space-y-1.5 pt-2 border-t border-slate-800/80">
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>10 días de acceso total sin ingresar tarjeta ahora.</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>0% de comisiones por reservas o turnos confirmados.</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>Abono mes a mes sin permanencia ni renovación obligada.</span>
+            </li>
+          </ul>
+        </div>
+
+        {/* SELECTOR DE PESTAÑAS */}
+        <div className="flex bg-slate-950 p-1 rounded-2xl border border-slate-800">
+          <button
+            type="button"
+            onClick={() => { setModo('login'); setMensaje(null) }}
+            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition ${
+              modo === 'login' 
+                ? 'bg-indigo-600 text-white shadow-lg' 
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Iniciar Sesión
+          </button>
+          <button
+            type="button"
+            onClick={() => { setModo('registro'); setMensaje(null) }}
+            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition ${
+              modo === 'registro' 
+                ? 'bg-indigo-600 text-white shadow-lg' 
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Registrarse
+          </button>
+        </div>
+
+        {/* MENSAJES DE ESTADO */}
+        {mensaje && (
+          <div
+            className={`p-3.5 rounded-2xl text-xs border ${
+              mensaje.tipo === 'error'
+                ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+            }`}
+          >
+            {mensaje.texto}
+          </div>
+        )}
+
+        {/* FORMULARIO */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">
+              Correo electrónico
+            </label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="tu@correo.com"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-xs font-semibold text-slate-300">
+                Contraseña
+              </label>
+              {modo === 'login' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmailRecuperar(email)
+                    setMensajeRecuperar(null)
+                    setMostrarRecuperar(true)
+                  }}
+                  className="text-[11px] text-indigo-400 hover:underline"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              )}
             </div>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={modo === 'registro' ? 'Mín. 8 caracteres, mayúscula y número' : '••••••••'}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+            />
+            {modo === 'registro' && (
+              <p className="text-[10px] text-slate-500 mt-1">
+                Debe incluir mínimo 8 caracteres, una mayúscula, una minúscula y un número.
+              </p>
+            )}
+          </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.1]">
-              Dejá de perder clientes respondiendo mensajes. Automatizá tus turnos por{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-emerald-400">
-                WhatsApp
-              </span>
-            </h1>
+          <button
+            type="submit"
+            disabled={cargando || cargandoGoogle}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg mt-2"
+          >
+            {cargando 
+              ? 'Procesando...' 
+              : modo === 'login' 
+              ? 'Entrar a mi panel' 
+              : 'Comenzar mi prueba de 10 días'}
+          </button>
+        </form>
 
-            <p className="text-sm sm:text-base text-slate-400 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              Armá tu página con catálogo de servicios, precios y horarios disponibles en 2 minutos. Tus clientes reservan solos y vos recibís el turno listo en tu WhatsApp. Probá editar el ejemplo de al lado 👇
+        {/* SEPARADOR */}
+        <div className="relative flex items-center py-0.5">
+          <div className="flex-grow border-t border-slate-800"></div>
+          <span className="shrink mx-3 text-[11px] text-slate-500 font-medium">o continuá con</span>
+          <div className="flex-grow border-t border-slate-800"></div>
+        </div>
+
+        {/* BOTÓN DE GOOGLE */}
+        <button
+          type="button"
+          onClick={handleLoginGoogle}
+          disabled={cargandoGoogle || cargando}
+          className="w-full bg-white hover:bg-slate-100 disabled:opacity-60 text-slate-900 font-bold py-3 px-4 rounded-xl text-xs transition shadow flex items-center justify-center gap-2.5"
+        >
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+            <path
+              fill="#4285F4"
+              d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 24c3.3 0 6.08-1.09 8.11-2.96l-3.88-3.05c-1.1.74-2.51 1.18-4.23 1.18-3.26 0-6.02-2.2-7-5.16H1.01v3.14C3.05 21.2 7.24 24 12 24Z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5 14.01c-.25-.74-.39-1.54-.39-2.36 0-.82.14-1.62.39-2.36V6.15H1.01C.37 7.43 0 8.87 0 10.39s.37 2.96 1.01 4.24l3.99-3.14Z"
+            />
+            <path
+              fill="#EA4335"
+              d="M12 4.75c1.79 0 3.41.62 4.68 1.82l3.51-3.51C18.07 1.19 15.3 0 12 0 7.24 0 3.05 2.8 1.01 6.85l3.99 3.14c.98-2.96 3.74-5.24 7-5.24Z"
+            />
+          </svg>
+          <span>{cargandoGoogle ? 'Conectando con Google...' : 'Continuar con Google'}</span>
+        </button>
+
+        <p className="text-[10px] text-center text-slate-500 leading-relaxed pt-1">
+          Al registrarte aceptás las condiciones de servicio. Renovación voluntaria de $16.400/mes tras los 10 días de prueba.
+        </p>
+      </div>
+
+      {/* MODAL RECUPERAR CONTRASEÑA */}
+      {mostrarRecuperar && (
+        <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Lock className="w-4 h-4 text-indigo-400" /> Recuperar contraseña
+            </h3>
+            <p className="text-xs text-slate-400">
+              Ingresá tu correo electrónico y te enviaremos el código para restablecerla.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2">
-              <Link
-                href="/login"
-                className="w-full sm:w-auto px-8 py-4 bg-violet-600 hover:bg-violet-500 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-xl shadow-violet-600/30 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2"
-              >
-                <span>Empezar prueba gratis de 10 días</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-
-            <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-5 text-xs text-slate-400 font-medium">
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-teal-400" /> Luego solo $16.400/mes
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-teal-400" /> Sin comisiones por turno
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-teal-400" /> Cancelás cuando quieras
-              </span>
-            </div>
-          </div>
-
-          {/* Columna Derecha: COMPONENTE DE PERFIL CON MODO EDICIÓN EN VIVO */}
-          <div className="lg:col-span-5 flex flex-col items-center">
-            
-            {/* Barra superior de control para probar la personalización */}
-            <div className="w-full max-w-[390px] mb-3 flex items-center justify-between bg-slate-900/90 border border-slate-800 px-3.5 py-2 rounded-2xl">
-              <span className="text-[11px] font-bold text-slate-400">
-                Ejemplo interactivo
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsEditing(!isEditing)}
-                className={`px-3 py-1 rounded-xl text-[11px] font-bold transition flex items-center gap-1.5 ${
-                  isEditing
-                    ? 'bg-teal-400 text-slate-950 shadow-md shadow-teal-400/20'
-                    : 'bg-violet-600/20 text-violet-300 border border-violet-500/30 hover:bg-violet-600/30'
+            {mensajeRecuperar && (
+              <div
+                className={`p-3 rounded-xl text-xs border ${
+                  mensajeRecuperar.tipo === 'error'
+                    ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                 }`}
               >
-                {isEditing ? (
-                  <>
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>Ver como cliente</span>
-                  </>
-                ) : (
-                  <>
-                    <SlidersHorizontal className="w-3.5 h-3.5" />
-                    <span>Probar editar</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Panel rápido de personalización cuando isEditing === true */}
-            {isEditing && (
-              <div className="w-full max-w-[390px] mb-3 bg-slate-900 border border-teal-400/40 rounded-2xl p-3.5 space-y-3 text-left shadow-xl">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-extrabold text-teal-300 uppercase tracking-wider">
-                    Personalizá el ejemplo
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    {(Object.keys(TEMAS) as Array<keyof typeof TEMAS>).map((key) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setThemeKey(key)}
-                        title={TEMAS[key].label}
-                        className={`w-5 h-5 rounded-full ${TEMAS[key].dot} transition-transform ${
-                          themeKey === key ? 'ring-2 ring-white scale-110' : 'opacity-60 hover:opacity-100'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[10px] text-slate-400 font-bold block mb-1">
-                      Nombre del negocio
-                    </label>
-                    <input
-                      type="text"
-                      value={bizName}
-                      onChange={(e) => setBizName(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-teal-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-slate-400 font-bold block mb-1">
-                      Rubro / Categoría
-                    </label>
-                    <input
-                      type="text"
-                      value={bizCategory}
-                      onChange={(e) => setBizCategory(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-teal-400"
-                    />
-                  </div>
-                </div>
+                {mensajeRecuperar.texto}
               </div>
             )}
 
-            {/* Tarjeta Mobile Card UI */}
-            <div className="w-full max-w-[390px] bg-slate-900/95 border border-slate-800 rounded-[36px] p-5 shadow-2xl shadow-violet-950/50 relative overflow-hidden transition-all">
-              
-              {/* Banner superior dinámico */}
-              <div className={`h-20 -mx-5 -mt-5 bg-gradient-to-r ${theme.banner} border-b border-slate-800/60 transition-colors duration-300`} />
-
-              {/* A. SECCIÓN DE IDENTIDAD */}
-              <div className="relative -mt-10 flex flex-col items-center text-center">
-                <div className="relative">
-                  <div className="w-20 h-20 rounded-full bg-white p-1 shadow-xl ring-2 ring-teal-300">
-                    <img
-                      src="/logo.jpeg"
-                      alt={bizName}
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                  </div>
-                  <span 
-                    title="Disponible hoy"
-                    className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-400 border-2 border-slate-900" 
-                  />
-                </div>
-
-                <span className={`mt-3 px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-colors ${theme.badge}`}>
-                  {bizCategory || 'Tu Rubro'}
-                </span>
-
-                <h2 className="mt-1.5 text-lg font-black text-white tracking-tight flex items-center gap-1.5">
-                  {bizName || 'Nombre de tu Negocio'}
-                  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-teal-400/20 text-teal-300">
-                    <Check className="w-2.5 h-2.5 stroke-[3]" />
-                  </span>
-                </h2>
-
-                <p className="mt-1 text-xs text-slate-400 max-w-[280px] leading-relaxed">
-                  Cortes de autor, barbería tradicional y color. Reservá tu lugar en 30 segundos 👇
-                </p>
-
-                {/* B. BARRA DE ICONOS SOCIALES */}
-                <div className="mt-4 flex items-center justify-center gap-2.5">
-                  {[
-                    { icon: FaInstagram, label: 'Instagram', href: '#', color: 'hover:border-pink-500/50 hover:text-pink-400' },
-                    { icon: FaWhatsapp, label: 'WhatsApp', href: '#', color: 'hover:border-emerald-500/50 hover:text-emerald-400' },
-                    { icon: FaFacebook, label: 'Facebook', href: '#', color: 'hover:border-blue-500/50 hover:text-blue-400' },
-                    { icon: Globe, label: 'Web', href: '#', color: 'hover:border-teal-400/50 hover:text-teal-300' },
-                  ].map((social, idx) => {
-                    const Icon = social.icon
-                    return (
-                      <a
-                        key={idx}
-                        href={social.href}
-                        onClick={(e) => e.preventDefault()}
-                        aria-label={social.label}
-                        className={`w-10 h-10 rounded-2xl bg-slate-950/90 border border-slate-800 flex items-center justify-center text-slate-300 transition-all duration-200 hover:-translate-y-0.5 active:scale-95 ${social.color}`}
-                      >
-                        <Icon className="w-4 h-4" />
-                      </a>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* C. SELECTOR DE NAVEGACIÓN */}
-              <div className="mt-5 p-1 bg-slate-950 rounded-2xl border border-slate-800/80 grid grid-cols-2 gap-1">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('servicios')}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
-                    activeTab === 'servicios'
-                      ? `${theme.tab} text-white shadow-md`
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Servicios</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('turnos')}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
-                    activeTab === 'turnos'
-                      ? `${theme.tab} text-white shadow-md`
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>Sacar Turno</span>
-                </button>
-              </div>
-
-              {/* D. CATÁLOGO DE SERVICIOS */}
-              <div className="mt-4 min-h-[270px]">
-                {activeTab === 'servicios' ? (
-                  <div className="space-y-2.5">
-                    {servicios.map((servicio) => (
-                      <div
-                        key={servicio.id}
-                        className="group bg-slate-950/90 hover:bg-slate-950 border border-slate-800/90 hover:border-slate-700 rounded-2xl p-2.5 transition-all duration-200 flex items-center gap-3"
-                      >
-                        <img
-                          src={servicio.imagen}
-                          alt={servicio.nombre}
-                          className="w-14 h-14 rounded-xl object-cover shrink-0 border border-slate-800 group-hover:scale-105 transition-transform duration-300"
-                        />
-
-                        <div className="flex-1 min-w-0 text-left">
-                          <div className="flex items-center gap-1.5">
-                            <h3 className="text-xs font-bold text-white truncate">
-                              {servicio.nombre}
-                            </h3>
-                            {servicio.destacado && (
-                              <Star className="w-3 h-3 text-teal-300 fill-teal-300 shrink-0" />
-                            )}
-                          </div>
-                          <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
-                            {servicio.descripcion}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1.5">
-                            {isEditing ? (
-                              <input
-                                type="text"
-                                value={servicio.precio}
-                                onChange={(e) => handlePriceChange(servicio.id, e.target.value)}
-                                className="w-20 bg-slate-900 border border-teal-400/50 rounded px-1.5 py-0.5 text-xs font-extrabold text-teal-300 focus:outline-none"
-                              />
-                            ) : (
-                              <span className={`text-xs font-extrabold ${theme.price}`}>
-                                {servicio.precio}
-                              </span>
-                            )}
-                            <span className="text-[10px] text-slate-500">
-                              • {servicio.duracion}
-                            </span>
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => handleReservarServicio(servicio.id)}
-                          className={`shrink-0 px-2.5 py-2 rounded-xl border text-[11px] font-bold transition-all active:scale-95 flex items-center gap-0.5 ${theme.btn}`}
-                        >
-                          <span>Turno</span>
-                          <ChevronRight className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-3.5 space-y-3.5 text-left">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        1. Servicio elegido
-                      </span>
-                      <p className="text-xs font-bold text-white mt-0.5">
-                        {servicios.find((s) => s.id === selectedService)?.nombre} —{' '}
-                        <span className={theme.price}>
-                          {servicios.find((s) => s.id === selectedService)?.precio}
-                        </span>
-                      </p>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        2. Horarios disponibles hoy
-                      </span>
-                      <div className="grid grid-cols-3 gap-1.5 mt-1.5">
-                        {HORARIOS_DEMO.map((hora) => (
-                          <button
-                            key={hora}
-                            type="button"
-                            onClick={() => setSelectedTime(hora)}
-                            className={`py-1.5 rounded-xl text-xs font-bold border transition-all ${
-                              selectedTime === hora
-                                ? 'bg-teal-400/20 border-teal-300 text-teal-200'
-                                : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
-                            }`}
-                          >
-                            {hora}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('servicios')}
-                      className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 active:scale-98"
-                    >
-                      <FaWhatsapp className="w-4 h-4" />
-                      <span>Confirmar {selectedTime}hs por WhatsApp</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-center gap-1.5 text-[10px] text-slate-500">
-                <span>Creado con</span>
-                <span className="font-bold text-slate-300">FacilApp</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* 3. CARACTERÍSTICAS PRINCIPALES */}
-      <section className="py-16 px-4 sm:px-6 max-w-6xl mx-auto border-t border-slate-900">
-        <div className="text-center space-y-2 mb-12">
-          <h2 className="text-2xl sm:text-3xl font-black text-white">
-            Todo lo que tu negocio necesita en un solo enlace
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-400">
-            Diseñado para barberías, salones de estética, terapeutas y profesionales independientes.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-slate-900/60 border border-slate-800/80 hover:border-violet-500/40 transition p-6 rounded-3xl space-y-3">
-            <div className="w-10 h-10 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400">
-              <Clock className="w-5 h-5" />
-            </div>
-            <h3 className="font-extrabold text-base text-white">Disponibilidad Dinámica</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Configurá tus días de atención, rango de horas y duración de turnos. El sistema bloquea automáticamente los horarios ya tomados para evitar superposiciones.
-            </p>
-          </div>
-
-          <div className="bg-slate-900/60 border border-slate-800/80 hover:border-teal-400/40 transition p-6 rounded-3xl space-y-3">
-            <div className="w-10 h-10 rounded-2xl bg-teal-400/15 border border-teal-400/30 flex items-center justify-center text-teal-300">
-              <FaWhatsapp className="w-5 h-5" />
-            </div>
-            <h3 className="font-extrabold text-base text-white">Confirmación por WhatsApp</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Al pedir el turno, el cliente envía un mensaje autogenerado a tu WhatsApp con los datos completos. Vos confirmás o reprogramás con un solo clic.
-            </p>
-          </div>
-
-          <div className="bg-slate-900/60 border border-slate-800/80 hover:border-violet-500/40 transition p-6 rounded-3xl space-y-3">
-            <div className="w-10 h-10 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-300">
-              <Palette className="w-5 h-5" />
-            </div>
-            <h3 className="font-extrabold text-base text-white">Catálogo y Marca Propia</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Personalizá los colores, tipografía, logo oficial, links a tus redes sociales (Instagram, Facebook, TikTok) y mostrá fotos de tus trabajos con precios visibles.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. CÓMO FUNCIONA */}
-      <section className="py-16 px-4 sm:px-6 max-w-5xl mx-auto border-t border-slate-900">
-        <h2 className="text-2xl sm:text-3xl font-black text-center text-white mb-10">
-          En 3 simples pasos
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center sm:text-left">
-          <div className="space-y-2">
-            <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-teal-300">01</span>
-            <h4 className="font-bold text-sm text-white">Creá tu cuenta</h4>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Ingresá tu correo, agregá los servicios que ofrecés y definí tus horarios disponibles.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-teal-300">02</span>
-            <h4 className="font-bold text-sm text-white">Compartí tu enlace</h4>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Pegá tu link en tu biografía de Instagram, Facebook o ponelo como respuesta automática de WhatsApp.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-teal-300">03</span>
-            <h4 className="font-bold text-sm text-white">Recibí las reservas</h4>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Tus clientes eligen su horario y te llega la notificación lista para agendar y atender.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. PLAN ÚNICO Y LLAMADO A LA ACCIÓN (FOOTER CTA) */}
-      <section className="py-20 px-4 sm:px-6">
-        <div className="max-w-4xl mx-auto bg-gradient-to-br from-violet-950/90 via-slate-900 to-slate-950 border border-violet-500/30 p-8 sm:p-12 rounded-[36px] shadow-2xl relative overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-            
-            {/* Columna Izquierda: Beneficios incluidos */}
-            <div className="md:col-span-7 text-center md:text-left space-y-4">
-              <span className="inline-block px-3 py-1 rounded-full bg-teal-400/15 border border-teal-400/30 text-teal-300 text-xs font-bold">
-                Un solo plan, todo incluido
-              </span>
-              <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-                Empezá a organizar tus turnos hoy mismo
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Probá FacilApp sin compromiso. Configurá tu perfil, compartilo en tu Instagram y comprobá cuánto tiempo te ahorrás en la primera semana.
-              </p>
-
-              <ul className="space-y-2 pt-2 text-xs text-slate-300 text-left inline-block md:block">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                  <span>Turnos ilimitados y sin comisiones por reserva</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                  <span>Catálogo de servicios con fotos, precios y redes sociales</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                  <span>Confirmación directa a tu WhatsApp con un clic</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Columna Derecha: Tarjeta de Precio */}
-            <div className="md:col-span-5 bg-slate-950/90 border border-slate-800 rounded-3xl p-6 text-center space-y-4 shadow-xl">
+            <form onSubmit={handleSolicitarRecuperacion} className="space-y-4">
               <div>
-                <p className="text-xs font-bold text-teal-300 uppercase tracking-wider">
-                  10 días de prueba gratis
-                </p>
-                <div className="mt-2 flex items-baseline justify-center gap-1">
-                  <span className="text-3xl sm:text-4xl font-black text-white">$16.400</span>
-                  <span className="text-xs text-slate-400 font-bold">ARS / mes</span>
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Sin contratos ni permanencia. Cancelás con un clic.
-                </p>
+                <label className="block text-xs text-slate-300 mb-1">Correo electrónico</label>
+                <input
+                  type="email"
+                  required
+                  value={emailRecuperar}
+                  onChange={(e) => setEmailRecuperar(e.target.value)}
+                  placeholder="tu@correo.com"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                />
               </div>
 
-              <Link
-                href="/login"
-                className="w-full py-3.5 px-6 bg-violet-600 hover:bg-violet-500 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg shadow-violet-600/30 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2"
-              >
-                <span>Probar 10 días gratis</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-
-              <p className="text-[11px] text-slate-400">
-                No necesitas tarjeta para empezar.
-              </p>
-            </div>
-
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setMostrarRecuperar(false)}
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition"
+                >
+                  Cerrar
+                </button>
+                <button
+                  type="submit"
+                  disabled={cargandoRecuperar}
+                  className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow"
+                >
+                  {cargandoRecuperar ? 'Enviando...' : 'Enviar enlace'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </section>
-
-      {/* 6. PIE DE PÁGINA */}
-      <footer className="border-t border-slate-900 py-8 px-4 text-center text-xs text-slate-500">
-        <p>© 2026 FacilApp. Todos los derechos reservados.</p>
-      </footer>
-
+      )}
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <p className="text-xs text-slate-500">Cargando...</p>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   )
 }
