@@ -146,7 +146,8 @@ export default function PaginaNegocioDinamica() {
     const fechaVenc = negData.fecha_vencimiento ? new Date(negData.fecha_vencimiento) : null
     if (negData.estado !== 'activo' && fechaVenc && hoy > fechaVenc) {
       setSuspendido(true)
-      return
+    } else {
+      setSuspendido(false)
     }
 
     setNegocio(negData)
@@ -225,6 +226,9 @@ export default function PaginaNegocioDinamica() {
 
   const handleReservar = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Si está suspendido, bloqueamos la reserva
+    if (suspendido) return
 
     // 1. Trampa Honeypot: si el campo oculto tiene texto, es un bot
     if (campoTrampa) return
@@ -320,20 +324,6 @@ export default function PaginaNegocioDinamica() {
     }
     setMesActual(nuevoMes)
     setAnioActual(nuevoAnio)
-  }
-
-  if (suspendido) {
-    return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 text-center space-y-4">
-        <h1 className="text-2xl font-black text-white">Página temporalmente suspendida</h1>
-        <p className="text-slate-400 text-xs max-w-sm">
-          Este perfil no se encuentra disponible momentáneamente. Si sos el dueño, ingresá al panel de administración.
-        </p>
-        <a href="/login" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs">
-          Acceso Administrador
-        </a>
-      </div>
-    )
   }
 
   if (noEncontrado) {
@@ -566,43 +556,69 @@ export default function PaginaNegocioDinamica() {
               </div>
             )}
 
-            <button
-              onClick={() => {
-                if (seccionAbierta === 'turnos') {
-                  setSeccionAbierta(null)
-                } else {
-                  if (exito) handleNuevoTurno()
-                  setSeccionAbierta('turnos')
-                }
-              }}
-              style={{ backgroundColor: colorPrincipal, color: '#ffffff' }}
-              className={`w-full p-4 flex items-center justify-between shadow-lg transition-all active:scale-[0.99] mt-4 ${bordes}`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
-                  <CalendarIcon className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <span
-                    className="font-extrabold block"
-                    style={{ fontSize: tamanosInline.botonTitulo }}
-                  >
-                    Solicitar Turno / Pedido
-                  </span>
-                  <span
-                    className="opacity-80 block"
-                    style={{ fontSize: tamanosInline.botonSubtitulo }}
-                  >
-                    Consultá servicios y horarios disponibles
-                  </span>
+            {suspendido ? (
+              <div
+                className={`w-full p-4 flex items-center justify-between bg-slate-900/80 border border-slate-700/60 text-slate-400 cursor-not-allowed mt-4 ${bordes}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
+                    <CalendarIcon className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <span
+                      className="font-extrabold block text-slate-300"
+                      style={{ fontSize: tamanosInline.botonTitulo }}
+                    >
+                      Reservas online pausadas
+                    </span>
+                    <span
+                      className="opacity-80 block text-slate-400"
+                      style={{ fontSize: tamanosInline.botonSubtitulo }}
+                    >
+                      Contactate por nuestras redes sociales
+                    </span>
+                  </div>
                 </div>
               </div>
-              <Plus className={`w-5 h-5 transition-transform duration-300 ${seccionAbierta === 'turnos' ? 'rotate-45' : ''}`} />
-            </button>
+            ) : (
+              <button
+                onClick={() => {
+                  if (seccionAbierta === 'turnos') {
+                    setSeccionAbierta(null)
+                  } else {
+                    if (exito) handleNuevoTurno()
+                    setSeccionAbierta('turnos')
+                  }
+                }}
+                style={{ backgroundColor: colorPrincipal, color: '#ffffff' }}
+                className={`w-full p-4 flex items-center justify-between shadow-lg transition-all active:scale-[0.99] mt-4 ${bordes}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
+                    <CalendarIcon className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <span
+                      className="font-extrabold block"
+                      style={{ fontSize: tamanosInline.botonTitulo }}
+                    >
+                      Solicitar Turno / Pedido
+                    </span>
+                    <span
+                      className="opacity-80 block"
+                      style={{ fontSize: tamanosInline.botonSubtitulo }}
+                    >
+                      Consultá servicios y horarios disponibles
+                    </span>
+                  </div>
+                </div>
+                <Plus className={`w-5 h-5 transition-transform duration-300 ${seccionAbierta === 'turnos' ? 'rotate-45' : ''}`} />
+              </button>
+            )}
           </div>
 
           {/* FORMULARIO DE TURNOS */}
-          {seccionAbierta === 'turnos' && (
+          {!suspendido && seccionAbierta === 'turnos' && (
             <div className="border-t border-black/10 pt-5 space-y-4 mb-6">
               {exito ? (
                 <div className="text-center space-y-3 py-2">
@@ -651,7 +667,7 @@ export default function PaginaNegocioDinamica() {
 
                   <div>
                     <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1 opacity-80" style={{ color: colorTexto }}>
-                      1. Seleccioná el Servicio
+1. Seleccioná el Servicio
                     </label>
                     <select
                       value={servicioSel?.id || ''}
@@ -672,7 +688,7 @@ export default function PaginaNegocioDinamica() {
 
                   <div>
                     <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1 opacity-80" style={{ color: colorTexto }}>
-                      2. Tus Datos
+2. Tus Datos
                     </label>
                     <input
                       type="text"
@@ -694,7 +710,7 @@ export default function PaginaNegocioDinamica() {
 
                   <div>
                     <label className="block text-[11px] font-extrabold uppercase tracking-wider mb-1 opacity-80" style={{ color: colorTexto }}>
-                      3. Elegí Fecha en el Calendario
+3. Elegí Fecha en el Calendario
                     </label>
 
                     <div className="bg-white border border-slate-200 rounded-2xl p-3 mb-2 shadow-sm">
