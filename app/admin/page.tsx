@@ -333,7 +333,11 @@ export default function AdminPage() {
     const diasDiff = fechaVenc ? Math.ceil((fechaVenc.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)) : 0
     setDiasRestantes(diasDiff)
 
-    if (negData.estado !== 'activo' && fechaVenc && hoy > fechaVenc) {
+    const estadoLimpio = (negData.estado || '').toLowerCase()
+    const estaBloqueadoManual = ['vencido', 'bloqueado', 'suspendido', 'inactivo'].includes(estadoLimpio)
+    const estaVencidoPorFecha = estadoLimpio !== 'activo' && fechaVenc && hoy > fechaVenc
+
+    if (estaBloqueadoManual || estaVencidoPorFecha) {
       setBloqueadoPorVencimiento(true)
     } else {
       setBloqueadoPorVencimiento(false)

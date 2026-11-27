@@ -63,6 +63,7 @@ export default function PaginaNegocioDinamica() {
   const [seccionAbierta, setSeccionAbierta] = useState<'turnos' | null>(null)
   const [modalCompartir, setModalCompartir] = useState(false)
   const [copiado, setCopiado] = useState(false)
+  const [fotoAmpliada, setFotoAmpliada] = useState<any | null>(null)
   
   const obtenerFechaLocal = () => {
     const d = new Date()
@@ -144,7 +145,11 @@ export default function PaginaNegocioDinamica() {
 
     const hoy = new Date()
     const fechaVenc = negData.fecha_vencimiento ? new Date(negData.fecha_vencimiento) : null
-    if (negData.estado !== 'activo' && fechaVenc && hoy > fechaVenc) {
+    const estadoLimpio = (negData.estado || '').toLowerCase()
+    const estaBloqueadoManual = ['vencido', 'bloqueado', 'suspendido', 'inactivo'].includes(estadoLimpio)
+    const estaVencidoPorFecha = estadoLimpio !== 'activo' && fechaVenc && hoy > fechaVenc
+
+    if (estaBloqueadoManual || estaVencidoPorFecha) {
       setSuspendido(true)
     } else {
       setSuspendido(false)
@@ -824,7 +829,7 @@ export default function PaginaNegocioDinamica() {
             </div>
           )}
 
-          {/* CATÁLOGO VISUAL */}
+          {/* CATÁLOGO VISUAL (CON AMPLIACIÓN AL TOCAR) */}
           {galeriaLista.length > 0 && (
             <div className="border-t border-black/10 pt-5 space-y-3">
               <p
@@ -837,9 +842,17 @@ export default function PaginaNegocioDinamica() {
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {galeriaLista.map((item: any, i: number) => (
-                  <div key={i} className="bg-white/90 rounded-2xl overflow-hidden border border-black/10 shadow-sm flex flex-col justify-between">
+                  <div
+                    key={i}
+                    onClick={() => setFotoAmpliada(item)}
+                    className="bg-white/90 rounded-2xl overflow-hidden border border-black/10 shadow-sm flex flex-col justify-between cursor-pointer group active:scale-95 transition-transform"
+                  >
                     <div className="aspect-square bg-slate-200 overflow-hidden relative">
-                      <img src={item.imagen_url} alt={item.titulo} className="w-full h-full object-cover" />
+                      <img
+                        src={item.imagen_url}
+                        alt={item.titulo}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
                       {item.precio && item.mostrar_precio !== false && (
                         <span className="absolute bottom-2 right-2 bg-slate-900/90 text-white font-black text-[10px] px-2 py-0.5 rounded-lg border border-white/20">
                           ${item.precio}
@@ -873,6 +886,47 @@ export default function PaginaNegocioDinamica() {
 
         </div>
       </div>
+
+      {/* MODAL DE FOTO AMPLIADA DEL CATÁLOGO */}
+      {fotoAmpliada && (
+        <div
+          onClick={() => setFotoAmpliada(null)}
+          className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border border-white/15 max-w-md w-full rounded-3xl overflow-hidden shadow-2xl relative"
+          >
+            <button
+              type="button"
+              onClick={() => setFotoAmpliada(null)}
+              aria-label="Cerrar vista previa"
+              className="absolute top-3 right-3 z-10 w-9 h-9 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center backdrop-blur-sm border border-white/15 transition"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="bg-black flex items-center justify-center max-h-[70vh] overflow-hidden">
+              <img
+                src={fotoAmpliada.imagen_url}
+                alt={fotoAmpliada.titulo}
+                className="w-full h-auto max-h-[70vh] object-contain"
+              />
+            </div>
+
+            <div className="p-4 flex items-center justify-between gap-3 bg-slate-900">
+              <p className="font-extrabold text-sm text-white">
+                {fotoAmpliada.titulo}
+              </p>
+              {fotoAmpliada.precio && fotoAmpliada.mostrar_precio !== false && (
+                <span className="px-3 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-black text-sm shrink-0">
+                  ${fotoAmpliada.precio}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL COMPARTIR (Respaldo para PC) */}
       {modalCompartir && (
