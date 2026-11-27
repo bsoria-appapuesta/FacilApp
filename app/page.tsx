@@ -8,100 +8,99 @@ import {
   CheckCircle2, 
   Sparkles, 
   Palette, 
-  Globe,
   Calendar,
-  ChevronRight,
-  Star,
-  Check,
   SlidersHorizontal,
-  Eye
+  Eye,
+  Share2,
+  MapPin,
+  Plus,
+  Minus,
+  Image as ImageIcon
 } from 'lucide-react'
-import { FaWhatsapp, FaInstagram, FaFacebook } from 'react-icons/fa'
+import { FaWhatsapp, FaInstagram } from 'react-icons/fa'
 
 const SERVICIOS_INICIALES = [
   {
     id: 1,
-    nombre: 'Corte + Perfilado de Barba',
+    nombre: 'Servicio Principal',
     duracion: '45 min',
-    precio: '$12.500',
-    descripcion: 'Degradé a navaja, lavado refrescante y toalla caliente con aceites esenciales.',
-    imagen: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=300&q=80',
-    destacado: true,
+    precio: '$12000',
+    imagen: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=300&q=80',
   },
   {
     id: 2,
-    nombre: 'Corte Clásico / Fade',
-    duracion: '30 min',
-    precio: '$9.000',
-    descripcion: 'Asesoramiento de imagen, tijera o máquina y styling final.',
-    imagen: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=300&q=80',
-    destacado: false,
+    nombre: 'Sesión / Pack Pro',
+    duracion: '60 min',
+    precio: '$15000',
+    imagen: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&w=300&q=80',
   },
   {
     id: 3,
-    nombre: 'Colorimetría & Claritos',
-    duracion: '90 min',
-    precio: '$28.000',
-    descripcion: 'Decoloración cuidada + matizador + baño de crema nutritivo.',
-    imagen: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=300&q=80',
-    destacado: false,
+    nombre: 'Consulta / Básico',
+    duracion: '30 min',
+    precio: '$10000',
+    imagen: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=300&q=80',
   },
 ]
 
 const TEMAS = {
+  red: {
+    label: 'Rojo',
+    dot: 'bg-red-600',
+    ctaBtn: 'bg-[#b90808] hover:bg-red-700',
+    pin: 'text-red-500',
+    activeSlot: 'bg-red-600/20 border-red-500 text-red-200',
+  },
   violet: {
     label: 'Violeta',
-    dot: 'bg-violet-500',
-    banner: 'from-violet-600/40 via-purple-600/30 to-teal-400/30',
-    badge: 'bg-violet-500/15 border-violet-500/30 text-violet-300',
-    tab: 'bg-violet-600 shadow-violet-600/25',
-    btn: 'bg-violet-600/15 hover:bg-violet-600 text-violet-300 hover:text-white border-violet-500/30',
-    price: 'text-teal-300',
+    dot: 'bg-violet-600',
+    ctaBtn: 'bg-violet-600 hover:bg-violet-500',
+    pin: 'text-violet-400',
+    activeSlot: 'bg-violet-600/20 border-violet-400 text-violet-200',
   },
   teal: {
     label: 'Turquesa',
-    dot: 'bg-teal-400',
-    banner: 'from-teal-500/40 via-cyan-600/30 to-violet-500/30',
-    badge: 'bg-teal-500/15 border-teal-500/30 text-teal-300',
-    tab: 'bg-teal-500 text-slate-950 shadow-teal-500/25',
-    btn: 'bg-teal-500/15 hover:bg-teal-500 text-teal-300 hover:text-slate-950 border-teal-500/30',
-    price: 'text-teal-300',
-  },
-  rose: {
-    label: 'Estética',
-    dot: 'bg-pink-500',
-    banner: 'from-pink-600/40 via-rose-500/30 to-violet-500/30',
-    badge: 'bg-pink-500/15 border-pink-500/30 text-pink-300',
-    tab: 'bg-pink-600 shadow-pink-600/25',
-    btn: 'bg-pink-600/15 hover:bg-pink-600 text-pink-300 hover:text-white border-pink-500/30',
-    price: 'text-pink-300',
+    dot: 'bg-teal-500',
+    ctaBtn: 'bg-teal-600 hover:bg-teal-500',
+    pin: 'text-teal-400',
+    activeSlot: 'bg-teal-500/20 border-teal-400 text-teal-200',
   },
 }
 
 const HORARIOS_DEMO = ['10:00', '11:30', '15:00', '16:30', '18:00']
 
 export default function LandingPage() {
-  const [activeTab, setActiveTab] = useState<'servicios' | 'turnos'>('servicios')
+  const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false)
   const [selectedService, setSelectedService] = useState<number>(1)
   const [selectedTime, setSelectedTime] = useState<string>('15:00')
+  const [bookingSuccess, setBookingSuccess] = useState<boolean>(false)
 
   const [isEditing, setIsEditing] = useState<boolean>(false)
-  const [bizName, setBizName] = useState<string>('Studio Facil Barber')
-  const [bizCategory, setBizCategory] = useState<string>('Barbería & Estilismo')
-  const [themeKey, setThemeKey] = useState<keyof typeof TEMAS>('violet')
+  const [bizName, setBizName] = useState<string>('Tu Negocio / Marca')
+  const [bizAddress, setBizAddress] = useState<string>('Av. Principal 401, Centro')
+  const [themeKey, setThemeKey] = useState<keyof typeof TEMAS>('red')
   const [servicios, setServicios] = useState(SERVICIOS_INICIALES)
 
   const theme = TEMAS[themeKey]
 
-  const handleReservarServicio = (id: number) => {
+  const handleSelectCatalogItem = (id: number) => {
     setSelectedService(id)
-    setActiveTab('turnos')
+    setIsBookingOpen(true)
+    setBookingSuccess(false)
   }
 
   const handlePriceChange = (id: number, newPrice: string) => {
     setServicios((prev) =>
       prev.map((item) => (item.id === id ? { ...item, precio: newPrice } : item))
     )
+  }
+
+  const handleConfirmDemo = () => {
+    setBookingSuccess(true)
+    setTimeout(() => {
+      setBookingSuccess(false)
+      setIsBookingOpen(false)
+    }, 2500)
   }
 
   return (
@@ -141,7 +140,7 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* 2. HERO SECTION + DEMO INTERACTIVA EDITABLE */}
+      {/* 2. HERO SECTION + DEMO INTERACTIVA REAL */}
       <section className="relative pt-12 pb-20 px-4 sm:px-6 max-w-6xl mx-auto">
         <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[340px] h-[340px] bg-violet-600/20 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute top-32 left-1/3 w-[240px] h-[240px] bg-teal-400/10 rounded-full blur-[100px] pointer-events-none" />
@@ -189,13 +188,13 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Columna Derecha: COMPONENTE DE PERFIL CON MODO EDICIÓN EN VIVO */}
+          {/* Columna Derecha: SIMULADOR IDÉNTICO AL PERFIL REAL */}
           <div className="lg:col-span-5 flex flex-col items-center">
             
             {/* Barra superior de control para probar la personalización */}
             <div className="w-full max-w-[390px] mb-3 flex items-center justify-between bg-slate-900/90 border border-slate-800 px-3.5 py-2 rounded-2xl">
               <span className="text-[11px] font-bold text-slate-400">
-                Ejemplo interactivo
+                Vista previa interactiva
               </span>
               <button
                 type="button"
@@ -225,7 +224,7 @@ export default function LandingPage() {
               <div className="w-full max-w-[390px] mb-3 bg-slate-900 border border-teal-400/40 rounded-2xl p-3.5 space-y-3 text-left shadow-xl">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-extrabold text-teal-300 uppercase tracking-wider">
-                    Personalizá el ejemplo
+                    Personalizá tu página
                   </span>
                   <div className="flex items-center gap-1.5">
                     {(Object.keys(TEMAS) as Array<keyof typeof TEMAS>).map((key) => (
@@ -256,12 +255,12 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <label className="text-[10px] text-slate-400 font-bold block mb-1">
-                      Rubro / Categoría
+                      Dirección / Ubicación
                     </label>
                     <input
                       type="text"
-                      value={bizCategory}
-                      onChange={(e) => setBizCategory(e.target.value)}
+                      value={bizAddress}
+                      onChange={(e) => setBizAddress(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-teal-400"
                     />
                   </div>
@@ -269,168 +268,119 @@ export default function LandingPage() {
               </div>
             )}
 
-            {/* Tarjeta Mobile Card UI */}
-            <div className="w-full max-w-[390px] bg-slate-900/95 border border-slate-800 rounded-[36px] p-5 shadow-2xl shadow-violet-950/50 relative overflow-hidden transition-all">
+            {/* TARJETA MOBILE UI (ESTILO NEGRO PURO COMO LA CAPTURA) */}
+            <div className="w-full max-w-[390px] bg-black border border-neutral-800 rounded-[36px] p-5 shadow-2xl shadow-violet-950/40 relative overflow-hidden">
               
-              {/* Banner superior dinámico */}
-              <div className={`h-20 -mx-5 -mt-5 bg-gradient-to-r ${theme.banner} border-b border-slate-800/60 transition-colors duration-300`} />
+              {/* Botón Compartir arriba a la derecha */}
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  aria-label="Compartir perfil"
+                  className="w-9 h-9 rounded-full bg-neutral-950 border border-neutral-800 flex items-center justify-center text-neutral-400 hover:text-white transition"
+                >
+                  <Share2 className="w-4 h-4" />
+                </button>
+              </div>
 
-              {/* A. SECCIÓN DE IDENTIDAD */}
-              <div className="relative -mt-10 flex flex-col items-center text-center">
-                <div className="relative">
-                  <div className="w-20 h-20 rounded-full bg-white p-1 shadow-xl ring-2 ring-teal-300">
-                    <img
-                      src="/logo.jpeg"
-                      alt={bizName}
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                  </div>
-                  <span 
-                    title="Disponible hoy"
-                    className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-400 border-2 border-slate-900" 
+              {/* A. IDENTIDAD CENTRADA */}
+              <div className="-mt-2 flex flex-col items-center text-center">
+                <div className="w-24 h-24 rounded-full bg-black border-2 border-white p-1.5 shadow-xl flex items-center justify-center overflow-hidden">
+                  <img
+                    src="/logo.jpeg"
+                    alt={bizName}
+                    className="w-full h-full object-cover rounded-full"
                   />
                 </div>
 
-                <span className={`mt-3 px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-colors ${theme.badge}`}>
-                  {bizCategory || 'Tu Rubro'}
-                </span>
-
-                <h2 className="mt-1.5 text-lg font-black text-white tracking-tight flex items-center gap-1.5">
-                  {bizName || 'Nombre de tu Negocio'}
-                  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-teal-400/20 text-teal-300">
-                    <Check className="w-2.5 h-2.5 stroke-[3]" />
-                  </span>
+                <h2 className="mt-4 text-2xl font-black text-white tracking-tight">
+                  {bizName || 'Tu Negocio'}
                 </h2>
 
-                <p className="mt-1 text-xs text-slate-400 max-w-[280px] leading-relaxed">
-                  Cortes de autor, barbería tradicional y color. Reservá tu lugar en 30 segundos 👇
+                <div className="mt-1.5 flex items-center justify-center gap-1.5 text-xs text-neutral-300 font-medium">
+                  <MapPin className={`w-3.5 h-3.5 shrink-0 ${theme.pin}`} />
+                  <span>{bizAddress || 'Tu Dirección 123'}</span>
+                </div>
+
+                <p className="mt-2 text-xs text-neutral-300">
+                  ¡Bienvenidos a nuestra página de reservas!
                 </p>
 
-                {/* B. BARRA DE ICONOS SOCIALES */}
-                <div className="mt-4 flex items-center justify-center gap-2.5">
-                  {[
-                    { icon: FaInstagram, label: 'Instagram', href: '#', color: 'hover:border-pink-500/50 hover:text-pink-400' },
-                    { icon: FaWhatsapp, label: 'WhatsApp', href: '#', color: 'hover:border-emerald-500/50 hover:text-emerald-400' },
-                    { icon: FaFacebook, label: 'Facebook', href: '#', color: 'hover:border-blue-500/50 hover:text-blue-400' },
-                    { icon: Globe, label: 'Web', href: '#', color: 'hover:border-teal-400/50 hover:text-teal-300' },
-                  ].map((social, idx) => {
-                    const Icon = social.icon
-                    return (
-                      <a
-                        key={idx}
-                        href={social.href}
-                        onClick={(e) => e.preventDefault()}
-                        aria-label={social.label}
-                        className={`w-10 h-10 rounded-2xl bg-slate-950/90 border border-slate-800 flex items-center justify-center text-slate-300 transition-all duration-200 hover:-translate-y-0.5 active:scale-95 ${social.color}`}
-                      >
-                        <Icon className="w-4 h-4" />
-                      </a>
-                    )
-                  })}
+                {/* B. ICONOS SOCIALES MINIMALISTAS */}
+                <div className="mt-5 flex items-center justify-center gap-6">
+                  <a
+                    href="#ig"
+                    onClick={(e) => e.preventDefault()}
+                    aria-label="Instagram"
+                    className="text-pink-500 hover:scale-110 transition-transform"
+                  >
+                    <FaInstagram className="w-5 h-5" />
+                  </a>
+                  <a
+                    href="#wa"
+                    onClick={(e) => e.preventDefault()}
+                    aria-label="WhatsApp"
+                    className="text-emerald-400 hover:scale-110 transition-transform"
+                  >
+                    <FaWhatsapp className="w-5 h-5" />
+                  </a>
                 </div>
               </div>
 
-              {/* C. SELECTOR DE NAVEGACIÓN */}
-              <div className="mt-5 p-1 bg-slate-950 rounded-2xl border border-slate-800/80 grid grid-cols-2 gap-1">
+              {/* C. BOTÓN PRINCIPAL DE ACCIÓN (DESPLEGABLE) */}
+              <div className="mt-6">
                 <button
                   type="button"
-                  onClick={() => setActiveTab('servicios')}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
-                    activeTab === 'servicios'
-                      ? `${theme.tab} text-white shadow-md`
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
+                  onClick={() => setIsBookingOpen(!isBookingOpen)}
+                  className={`w-full ${theme.ctaBtn} rounded-2xl p-4 flex items-center justify-between transition-all shadow-lg active:scale-[0.99]`}
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Servicios</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('turnos')}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
-                    activeTab === 'turnos'
-                      ? `${theme.tab} text-white shadow-md`
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>Sacar Turno</span>
-                </button>
-              </div>
-
-              {/* D. CATÁLOGO DE SERVICIOS */}
-              <div className="mt-4 min-h-[270px]">
-                {activeTab === 'servicios' ? (
-                  <div className="space-y-2.5">
-                    {servicios.map((servicio) => (
-                      <div
-                        key={servicio.id}
-                        className="group bg-slate-950/90 hover:bg-slate-950 border border-slate-800/90 hover:border-slate-700 rounded-2xl p-2.5 transition-all duration-200 flex items-center gap-3"
-                      >
-                        <img
-                          src={servicio.imagen}
-                          alt={servicio.nombre}
-                          className="w-14 h-14 rounded-xl object-cover shrink-0 border border-slate-800 group-hover:scale-105 transition-transform duration-300"
-                        />
-
-                        <div className="flex-1 min-w-0 text-left">
-                          <div className="flex items-center gap-1.5">
-                            <h3 className="text-xs font-bold text-white truncate">
-                              {servicio.nombre}
-                            </h3>
-                            {servicio.destacado && (
-                              <Star className="w-3 h-3 text-teal-300 fill-teal-300 shrink-0" />
-                            )}
-                          </div>
-                          <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
-                            {servicio.descripcion}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1.5">
-                            {isEditing ? (
-                              <input
-                                type="text"
-                                value={servicio.precio}
-                                onChange={(e) => handlePriceChange(servicio.id, e.target.value)}
-                                className="w-20 bg-slate-900 border border-teal-400/50 rounded px-1.5 py-0.5 text-xs font-extrabold text-teal-300 focus:outline-none"
-                              />
-                            ) : (
-                              <span className={`text-xs font-extrabold ${theme.price}`}>
-                                {servicio.precio}
-                              </span>
-                            )}
-                            <span className="text-[10px] text-slate-500">
-                              • {servicio.duracion}
-                            </span>
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => handleReservarServicio(servicio.id)}
-                          className={`shrink-0 px-2.5 py-2 rounded-xl border text-[11px] font-bold transition-all active:scale-95 flex items-center gap-0.5 ${theme.btn}`}
-                        >
-                          <span>Turno</span>
-                          <ChevronRight className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-3.5 space-y-3.5 text-left">
+                  <div className="flex items-center gap-3.5 text-left">
+                    <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-white shrink-0">
+                      <Calendar className="w-5 h-5" />
+                    </div>
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        1. Servicio elegido
-                      </span>
-                      <p className="text-xs font-bold text-white mt-0.5">
-                        {servicios.find((s) => s.id === selectedService)?.nombre} —{' '}
-                        <span className={theme.price}>
-                          {servicios.find((s) => s.id === selectedService)?.precio}
-                        </span>
+                      <p className="text-sm font-extrabold text-white leading-tight">
+                        Solicitar Turno / Pedido
                       </p>
+                      <p className="text-[11px] text-white/80 mt-0.5">
+                        Consultá servicios y horarios disponibles
+                      </p>
+                    </div>
+                  </div>
+                  {isBookingOpen ? (
+                    <Minus className="w-5 h-5 text-white shrink-0" />
+                  ) : (
+                    <Plus className="w-5 h-5 text-white shrink-0" />
+                  )}
+                </button>
+
+                {/* Panel desplegable de reserva al hacer clic */}
+                {isBookingOpen && (
+                  <div className="mt-2.5 bg-neutral-950 border border-neutral-800 rounded-2xl p-3.5 space-y-3 text-left animate-fadeIn">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                        1. Elegí el servicio
+                      </span>
+                      <div className="grid grid-cols-1 gap-1.5 mt-1.5">
+                        {servicios.map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setSelectedService(s.id)}
+                            className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-between transition ${
+                              selectedService === s.id
+                                ? theme.activeSlot
+                                : 'bg-neutral-900 border-neutral-800 text-neutral-300 hover:border-neutral-700'
+                            }`}
+                          >
+                            <span>{s.nombre}</span>
+                            <span>{s.precio}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
                         2. Horarios disponibles hoy
                       </span>
                       <div className="grid grid-cols-3 gap-1.5 mt-1.5">
@@ -439,10 +389,10 @@ export default function LandingPage() {
                             key={hora}
                             type="button"
                             onClick={() => setSelectedTime(hora)}
-                            className={`py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                            className={`py-1.5 rounded-xl text-xs font-bold border transition ${
                               selectedTime === hora
-                                ? 'bg-teal-400/20 border-teal-300 text-teal-200'
-                                : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                                ? theme.activeSlot
+                                : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:border-neutral-700'
                             }`}
                           >
                             {hora}
@@ -451,21 +401,71 @@ export default function LandingPage() {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('servicios')}
-                      className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 active:scale-98"
-                    >
-                      <FaWhatsapp className="w-4 h-4" />
-                      <span>Confirmar {selectedTime}hs por WhatsApp</span>
-                    </button>
+                    {bookingSuccess ? (
+                      <div className="py-2.5 px-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold text-center">
+                        ✓ ¡Listo! Se abriría WhatsApp con el turno de las {selectedTime}hs
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleConfirmDemo}
+                        className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-extrabold text-xs transition flex items-center justify-center gap-1.5"
+                      >
+                        <FaWhatsapp className="w-4 h-4" />
+                        <span>Confirmar {selectedTime}hs por WhatsApp</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-center gap-1.5 text-[10px] text-slate-500">
+              {/* D. CATÁLOGO DE SERVICIOS & PRODUCTOS (GRILLA DE 3 COLUMNAS CON PRECIO FLOTANTE) */}
+              <div className="mt-7">
+                <div className="flex items-center gap-2 mb-3">
+                  <ImageIcon className="w-3.5 h-3.5 text-neutral-400" />
+                  <h3 className="text-[11px] font-extrabold text-neutral-300 uppercase tracking-wider">
+                    Catálogo de Servicios & Productos
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2.5">
+                  {servicios.map((servicio) => (
+                    <div
+                      key={servicio.id}
+                      onClick={() => !isEditing && handleSelectCatalogItem(servicio.id)}
+                      className="group relative aspect-[3/4] rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-900 cursor-pointer"
+                    >
+                      <img
+                        src={servicio.imagen}
+                        alt={servicio.nombre}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
+
+                      {/* Etiqueta de precio flotante abajo */}
+                      <div className="absolute bottom-2 inset-x-1.5 flex justify-center">
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={servicio.precio}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => handlePriceChange(servicio.id, e.target.value)}
+                            className="w-full bg-slate-950/95 border border-teal-400 rounded-lg px-1 py-0.5 text-[11px] font-extrabold text-teal-300 text-center focus:outline-none"
+                          />
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-lg bg-[#161b26]/95 border border-white/10 text-[11px] font-extrabold text-white shadow-md">
+                            {servicio.precio}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-5 pt-3 border-t border-neutral-900 flex items-center justify-center gap-1.5 text-[10px] text-neutral-500">
                 <span>Creado con</span>
-                <span className="font-bold text-slate-300">FacilApp</span>
+                <span className="font-bold text-neutral-300">FacilApp</span>
               </div>
             </div>
           </div>
@@ -480,7 +480,7 @@ export default function LandingPage() {
             Todo lo que tu negocio necesita en un solo enlace
           </h2>
           <p className="text-xs sm:text-sm text-slate-400">
-            Diseñado para barberías, salones de estética, terapeutas y profesionales independientes.
+            Diseñado para estudios, salones de estética, consultorios, talleres y profesionales independientes.
           </p>
         </div>
 
@@ -511,7 +511,7 @@ export default function LandingPage() {
             </div>
             <h3 className="font-extrabold text-base text-white">Catálogo y Marca Propia</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Personalizá los colores, tipografía, logo oficial, links a tus redes sociales (Instagram, Facebook, TikTok) y mostrá fotos de tus trabajos con precios visibles.
+              Personalizá los colores, logo oficial, links a tus redes sociales y mostrá fotos de tus trabajos o productos con precios visibles.
             </p>
           </div>
         </div>
@@ -528,7 +528,7 @@ export default function LandingPage() {
             <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-teal-300">01</span>
             <h4 className="font-bold text-sm text-white">Creá tu cuenta</h4>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Ingresá tu correo, agregá los servicios que ofrecés y definí tus horarios disponibles.
+              Ingresá tu correo, agregá los servicios o productos que ofrecés y definí tus horarios disponibles.
             </p>
           </div>
 
